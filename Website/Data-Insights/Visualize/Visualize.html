@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-Wiki | Visualizations</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        /* Header Styles */
+        .intro {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        /* Navigation Styles */
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #3498db;
+            font-size: 24px;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #2980b9;
+        }
+
+        /* List Styles */
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 20px;
+        }
+
+        ul li {
+            font-size: 20px;
+            background-color: #ecf0f1;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        ul li:hover {
+            background-color: #bdc3c7;
+        }
+
+        /* Background Image Styles */
+        .background-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+            background-image: url('background.jpg'); /* Replace with your image URL */
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="intro">
+        Visualizations
+    </div>
+    <div class="nav-links">
+
+        <a href="./Visualizations/PlotGraphOfGeneralTextDensity.html">General Text Density</a>
+        <a href="./Visualizations/PlotGraphOfTextDensityByUser.html">Text Density By User</a>
+        <a href="./Visualizations/PlotGraphOfTimeStampDensity.html">Timestamp Density</a>
+        <a href="./Visualizations/PlotGraphOfUserActivity.html">Graph User Activity Visualization</a>
+    </div>
+
+    <div class="background-image"></div>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Timestamp Density Plot</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Message Timestamp Density Plot</h1>
+    <canvas id="densityPlot" width="800" height="600"></canvas>
+    <script>
+        // Load JSON data from a file
+        async function loadData() {
+            const response = await fetch('../../../../ObjectExample.txt');
+            const data = await response.json();
+            return data;
+        }
+
+        // Function to handle different timestamp formats
+        function parseTimestamp(timestampStr) {
+            const options = { timeZone: 'UTC', hour12: false };
+            const date = new Date(timestampStr);
+            return date.getTime();
+        }
+
+        // Extract timestamps from the data
+        function extractTimestamps(data) {
+            const timestamps = data.map(message => {
+                const timestampStr = message.timestamp;
+                return timestampStr ? parseTimestamp(timestampStr) : null;
+            }).filter(ts => ts !== null);
+            return timestamps;
+        }
+
+        // Plot the density of timestamps
+        function plotTimestampDensity(timestamps) {
+            const ctx = document.getElementById('densityPlot').getContext('2d');
+
+            const chartData = {
+                labels: timestamps,
+                datasets: [{
+                    label: 'Density of Message Timestamps',
+                    data: timestamps,
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1,
+                    fill: true,
+                }]
+            };
+
+            // Create a histogram-like density plot
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            title: {
+                                display: true,
+                                text: 'Time (UTC)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Density'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load data and plot on page load
+        window.onload = async () => {
+            const data = await loadData();
+            const timestamps = extractTimestamps(data);
+            plotTimestampDensity(timestamps);
+        };
+    </script>
+</body>
+</html>

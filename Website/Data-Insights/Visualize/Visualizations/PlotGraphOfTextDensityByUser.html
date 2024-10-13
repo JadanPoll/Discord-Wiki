@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Text Density Plot</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>User Text Density Plot</h1>
+    <canvas id="densityPlot" width="800" height="600"></canvas>
+    <script>
+        // Load JSON data from a file
+        async function loadData() {
+            try {
+                const response = await fetch('path/to/your/ObjectExample.txt');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error loading data:', error);
+                return [];
+            }
+        }
+
+        // Extract total text lengths by user
+        function extractUserTextDensity(data) {
+            const userTextDensity = {};
+
+            data.forEach(message => {
+                const author = message.author || {};
+                const username = author.username || 'Unknown';  // Default to 'Unknown'
+                const userText = message.content || '';  // Get the message content
+
+                if (userText) {  // Only consider messages with valid text
+                    const messageLength = userText.length;  // Measure message length by character count
+                    userTextDensity[username] = (userTextDensity[username] || 0) + messageLength;  // Accumulate length
+                }
+            });
+
+            return userTextDensity;
+        }
+
+        // Plot the text density by user
+        function plotUserTextDensity(userTextDensity) {
+            const ctx = document.getElementById('densityPlot').getContext('2d');
+
+            const usernames = Object.keys(userTextDensity);
+            const totalCharacters = Object.values(userTextDensity);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: usernames,
+                    datasets: [{
+                        label: 'Total Characters',
+                        data: totalCharacters,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Username'
+                            },
+                            ticks: {
+                                autoSkip: false,  // Prevent skipping labels
+                                maxRotation: 45,   // Rotate labels for better readability
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Total Characters'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load data and plot on page load
+        window.onload = async () => {
+            const data = await loadData();
+            if (data.length > 0) {  // Only plot if data is loaded correctly
+                const userTextDensity = extractUserTextDensity(data);
+                plotUserTextDensity(userTextDensity);
+            } else {
+                console.error('No data available to plot.');
+            }
+        };
+    </script>
+</body>
+</html>

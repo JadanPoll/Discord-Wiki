@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Length Density Plot</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Message Length Density Plot</h1>
+    <canvas id="densityPlot" width="800" height="600"></canvas>
+    <script>
+        // Load JSON data from a file
+        async function loadData() {
+            const response = await fetch('../../../../ObjectExample.txt');
+            const data = await response.json();
+            return data;
+        }
+
+        // Extract message lengths from the data
+        function extractMessageLengths(data) {
+            return data.map(message => {
+                const userText = message.content;
+                return userText ? userText.length : 0;
+            }).filter(length => length > 0);
+        }
+
+        // Plot the density of user text lengths
+        function plotTextLengthDensity(messageLengths) {
+            const ctx = document.getElementById('densityPlot').getContext('2d');
+
+            // Prepare data for the plot (you may need to adjust this based on your data)
+            const densityData = {};
+            messageLengths.forEach(length => {
+                densityData[length] = (densityData[length] || 0) + 1;
+            });
+
+            const labels = Object.keys(densityData);
+            const values = Object.values(densityData);
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Density of Message Lengths',
+                        data: values,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Message Length (characters)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Density'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load data and plot on page load
+        window.onload = async () => {
+            const data = await loadData();
+            const messageLengths = extractMessageLengths(data);
+            plotTextLengthDensity(messageLengths);
+        };
+    </script>
+</body>
+</html>
