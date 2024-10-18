@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,43 +29,30 @@
             color: #2c3e50;
         }
 
-        /* Navigation Styles */
+        /* Navigation Links Grid */
         .nav-links {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive columns */
             gap: 20px;
+            width: 90%;
+            max-width: 1200px; /* Limits the grid width */
             margin-bottom: 30px;
         }
 
         .nav-links a {
             text-decoration: none;
             color: #3498db;
-            font-size: 24px;
-            transition: color 0.3s;
+            font-size: 20px;
+            padding: 10px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            text-align: center;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .nav-links a:hover {
-            color: #2980b9;
-        }
-
-        /* List Styles */
-        ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            gap: 20px;
-        }
-
-        ul li {
-            font-size: 20px;
-            background-color: #ecf0f1;
-            padding: 10px 20px;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
-
-        ul li:hover {
             background-color: #bdc3c7;
+            color: #2980b9;
         }
 
         /* Background Image Styles */
@@ -80,14 +68,23 @@
             background-size: cover;
             background-position: center;
         }
+
+        /* Media Query for smaller screens */
+        @media (max-width: 600px) {
+            .nav-links a {
+                font-size: 16px;
+                padding: 8px;
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="intro">
         Visualizations
     </div>
-    <div class="nav-links">
 
+    <div class="nav-links">
         <a href="./Visualizations/PlotGraphOfGeneralTextDensity.html">General Text Density</a>
         <a href="./Visualizations/PlotGraphOfTextDensityByUser.html">Text Density By User</a>
         <a href="./Visualizations/PlotGraphOfTimeStampDensity.html">Timestamp Density</a>
@@ -99,4 +96,5 @@
 
     <div class="background-image"></div>
 </body>
+
 </html>
