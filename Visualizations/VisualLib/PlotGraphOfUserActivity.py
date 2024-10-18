@@ -1,10 +1,6 @@
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
-from flask import Flask, render_template, send_file
-import io
-
-app = Flask(__name__)
 
 # Load data from a JSON file
 def load_data_from_file(file_path):
@@ -34,23 +30,15 @@ def plot_user_activity(user_activity):
     plt.grid(True)
     plt.tight_layout()
 
-    # Save plot to a BytesIO object
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    plt.close()
-    return img
+    # Save the plot to a file or display it
+    plt.savefig("user_activity.png")  # Save as a PNG file
+    plt.show()  # Display the plot
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/plot')
-def plot():
+# Main function
+def main():
     data = load_data_from_file('ObjectExample.txt')  # Ensure your file path is correct
     user_activity = extract_user_activity(data)
-    img = plot_user_activity(user_activity)
-    return send_file(img, mimetype='image/png')
+    plot_user_activity(user_activity)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    main()

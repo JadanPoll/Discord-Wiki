@@ -1,10 +1,7 @@
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
-from flask import Flask, render_template, send_file
 import io
-
-app = Flask(__name__)
 
 # Function to load JSON data from file with utf-8 encoding
 def load_data_from_file(file_path):
@@ -31,23 +28,15 @@ def plot_text_length_density(message_lengths):
     plt.grid(True)
     plt.tight_layout()
 
-    # Save plot to a BytesIO object
-    img = io.BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    plt.close()
-    return img
+    # Save plot to a file or display it
+    plt.savefig("density_plot.png")  # Save as a PNG file
+    plt.show()  # Display the plot
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/plot')
-def plot():
+# Main function
+def main():
     data = load_data_from_file('ObjectExample.txt')
     message_lengths = extract_message_lengths(data)
-    img = plot_text_length_density(message_lengths)
-    return send_file(img, mimetype='image/png')
+    plot_text_length_density(message_lengths)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    main()
