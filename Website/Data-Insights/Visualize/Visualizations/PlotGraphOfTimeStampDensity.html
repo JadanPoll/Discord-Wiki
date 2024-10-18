@@ -12,15 +12,20 @@
     <script>
         // Load JSON data from a file
         async function loadData() {
-            const response = await fetch('https://raw.githubusercontent.com/JadanPoll/Discord-Wiki/refs/heads/main/ObjectExample.txt');
+            const response = await fetch('https://raw.githubusercontent.com/JadanPoll/Discord-Wiki/main/ObjectExample.txt');
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
             const data = await response.json();
             return data;
         }
 
         // Function to handle different timestamp formats
         function parseTimestamp(timestampStr) {
-            const options = { timeZone: 'UTC', hour12: false };
             const date = new Date(timestampStr);
+            if (isNaN(date.getTime())) {
+                throw new Error('Invalid timestamp format');
+            }
             return date.getTime();
         }
 
@@ -33,25 +38,28 @@
             return timestamps;
         }
 
-        // Plot the density of timestamps
+        // Plot the density of timestamps as a scatter plot
         function plotTimestampDensity(timestamps) {
             const ctx = document.getElementById('densityPlot').getContext('2d');
 
+            // Prepare the data for scatter plot
+            const scatterData = timestamps.map((timestamp, index) => ({
+                x: timestamp,
+                y: index + 1  // A simple count to show density over time
+            }));
+
             const chartData = {
-                labels: timestamps,
                 datasets: [{
-                    label: 'Density of Message Timestamps',
-                    data: timestamps,
+                    label: 'Message Timestamps',
+                    data: scatterData,
                     backgroundColor: 'rgba(75, 192, 192, 0.6)',
                     borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1,
-                    fill: true,
+                    pointRadius: 3,
                 }]
             };
 
-            // Create a histogram-like density plot
             const chart = new Chart(ctx, {
-                type: 'line',
+                type: 'scatter',
                 data: chartData,
                 options: {
                     responsive: true,
@@ -61,12 +69,15 @@
                             title: {
                                 display: true,
                                 text: 'Time (UTC)'
+                            },
+                            time: {
+                                unit: 'hour' // Adjust this based on the granularity you prefer
                             }
                         },
                         y: {
                             title: {
                                 display: true,
-                                text: 'Density'
+                                text: 'Cumulative Message Count'
                             },
                             beginAtZero: true
                         }
@@ -77,9 +88,13 @@
 
         // Load data and plot on page load
         window.onload = async () => {
-            const data = await loadData();
-            const timestamps = extractTimestamps(data);
-            plotTimestampDensity(timestamps);
+            try {
+                const data = await loadData();
+                const timestamps = extractTimestamps(data);
+                plotTimestampDensity(timestamps);
+            } catch (error) {
+                console.error('Error loading or parsing data:', error);
+            }
         };
     </script>
 </body>
