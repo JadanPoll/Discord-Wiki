@@ -1,19 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Word Cloud Visualization</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.0.6/wordcloud2.min.js"></script>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
         #wordCloud {
-            width: 800px;
-            height: 600px;
-            border: 1px solid #ccc;
-            margin: 0 auto;
+            width: 90vw;
+            height: 80vh;
+            border: 2px solid #aaa;
+            margin: 20px auto;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            background-color: #f8f9fa;
+            position: relative;
+            overflow: hidden;
         }
     </style>
 </head>
+
 <body>
     <h1>Word Cloud Visualization</h1>
     <div id="wordCloud"></div>
@@ -46,6 +62,16 @@
             return wordFrequency;
         }
 
+        // Generate a random vibrant color
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
         // Generate the word cloud
         function plotWordCloud(wordFrequency) {
             const wordList = Object.entries(wordFrequency).map(([word, count]) => [word, count]);
@@ -53,15 +79,21 @@
                 list: wordList,
                 gridSize: Math.round(16 * window.innerWidth / 1024),
                 weightFactor: function (size) {
-                    return Math.pow(size, 1.2);
+                    return Math.pow(size, 1.5); // Increased for better sizing
                 },
-                fontFamily: 'Times, serif',
+                fontFamily: 'Impact, sans-serif',
                 color: function () {
-                    return 'random-dark';
+                    return getRandomColor(); // Generate random colors
                 },
-                rotateRatio: 0.5,
-                rotationSteps: 2,
-                backgroundColor: '#f0f0f0'
+                rotateRatio: 0.6, // Increased rotation for better variance
+                rotationSteps: 3, // More rotation angles
+                backgroundColor: '#ffffff',
+                shape: 'circle', // Creates a circular word cloud
+                drawOutOfBound: false,
+                shuffle: true,
+                click: function (item, dimension, event) {
+                    alert(item[0] + ' appears ' + item[1] + ' times.');
+                },
             });
         }
 
@@ -77,4 +109,5 @@
         };
     </script>
 </body>
+
 </html>
