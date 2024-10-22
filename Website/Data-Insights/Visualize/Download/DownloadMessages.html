@@ -28,9 +28,11 @@
         <label for="auth-token">Paste your Discord authorization key:</label>
         <input type="text" id="auth-token" placeholder="Enter your Discord Token" required>
 
-        <label for="channel-name">Enter the channel name:</label>
-        <input type="text" id="channel-name" placeholder="Enter the channel name" required>
+        <label for="channel-name">Enter the channel URL:</label>
+        <input type="text" id="channel-url" placeholder="Enter the channel URL (https://discord.com/channels/n/m)" required>
 
+        <label for="num-messages">Enter the number of messages to save</label>
+        <input type="number" id="num-messages" min="1" max="10000" value="50">
         <button type="submit">Submit</button>
     </form>
 
@@ -38,19 +40,20 @@
 </div>
 
 <script>
-// This code is responsible for extracting messages from Discord.
+// This code is responsible for extracting messages from the discord.
 
 class DiscordAPI {
-
-    constructor(authToken) {
+    constructor(authToken)
+    {
         this.DISCORD_EPOCH = 1420070400000n;
         this.setAuthorization(authToken);
     }
-
-    setAuthorization(token) {
+    setAuthorization(token)
+    {
         this.authToken = token;
     }
 
+    //Snowflake is a epoch-based way of calculating timestamps with more information
     convertTimestampToSnowflake(timestamp) {
         return ((BigInt(new Date(timestamp).getTime()) - this.DISCORD_EPOCH) << 22n).toString();
     }
@@ -82,111 +85,89 @@ class DiscordAPI {
         }
     }
 
-    indexChannelElements() {
-        const channelContainer = document.querySelector('ul[aria-label="Channels"]');
-        if (!channelContainer) {
-            console.log("Channel container not found");
-            return {};
+    async fetchChannelMessages(channelId, options) {
+
+        //TODO: add some logic that verifies channel (or just use response code?)
+        const allMessages = [];
+        let startTime, endTime;
+        options.limit = options.limit || 100;
+
+        // Start timing
+        startTime = performance.now();
+
+        while (options.limit > 0) {
+            const apiUrl = `https://discord.com/api/v9/channels/${channelId}/messages?limit=${Math.min(options.limit, 100)}&${this.constructSearchParams(options)}`;
+            console.log(`API URL: ${apiUrl}`);
+            const messages = await this.fetchMessages(apiUrl);
+            allMessages.push(...messages);
+
+            if (messages.length < 100) break;
+
+            const lastMessage = messages[messages.length - 1];
+            options.before = this.convertTimestampToSnowflake(lastMessage.timestamp);
+            options.limit -= messages.length;
         }
 
-        const channelElements = channelContainer.querySelectorAll('[data-dnd-name]');
-        const indexedChannels = {};
+        // End timing
+        endTime = performance.now();
+        console.log(`Time taken: ${(endTime - startTime).toFixed(2)} milliseconds`);
 
-        channelElements.forEach((element, index) => {
-            const channelName = element.getAttribute('data-dnd-name');
-            indexedChannels[channelName] = {
-                element,
-                index,
-                url: element.getAttribute('href') || element.querySelector('a')?.getAttribute('href') || element.querySelector('[href]')?.getAttribute('href')
-            };
-        });
-
-        console.log("Indexed Channels:", indexedChannels);
-        return indexedChannels;
-    }
-
-    async fetchChannelMessages(channelName, options) {
-        const channels = this.indexChannelElements();
-        const channel = channels[channelName];
-
-        if (channel) {
-            console.log(`Channel: ${channelName}, Index: ${channel.index}, URL: ${channel.url || 'N/A'}`);
-            const channelId = channel.url?.split('/').pop();
-            const allMessages = [];
-            let startTime, endTime;
-
-            if (channelId) {
-                options.limit = options.limit || 100;
-
-                // Start timing
-                startTime = performance.now();
-
-                while (options.limit > 0) {
-                    const apiUrl = `https://discord.com/api/v9/channels/${channelId}/messages?limit=${Math.min(options.limit, 100)}&${this.constructSearchParams(options)}`;
-                    console.log(`API URL: ${apiUrl}`);
-                    const messages = await this.fetchMessages(apiUrl);
-                    allMessages.push(...messages);
-
-                    if (messages.length < 100) break;
-
-                    const lastMessage = messages[messages.length - 1];
-                    options.before = this.convertTimestampToSnowflake(lastMessage.timestamp);
-                    options.limit -= messages.length;
-                }
-
-                // End timing
-                endTime = performance.now();
-                console.log(`Time taken: ${(endTime - startTime).toFixed(2)} milliseconds`);
-
-                console.log(`Fetched ${allMessages.length} messages`);
-                return allMessages;
-            } else {
-                console.error(`Channel "${channelName}" not found.`);
-            }
-        }
+        console.log(`Fetched ${allMessages.length} messages`);
+        return allMessages;
     }
 
     saveMessagesToFile(messages) {
+        // Reverse the order of the messages
         const reversedMessages = messages.reverse().map(message => `${message.author.username}: ${message.content}`).join('\n');
+
+        // Create a Blob from the reversed messages
         const blob = new Blob([reversedMessages], { type: 'text/plain' });
+
+        // Create a link element
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = 'discord_messages.txt';
+
+        // Append the link to the document and trigger the download
         document.body.appendChild(a);
         a.click();
+
+        // Remove the link from the document
         document.body.removeChild(a);
 
         console.log('Messages saved to discord_messages.txt in reversed order.');
     }
 }
-
 document.getElementById('discord-form').addEventListener('submit', async function (e) {
     e.preventDefault();
 
     const authToken = document.getElementById('auth-token').value;
-    const channelName = document.getElementById('channel-name').value;
-
-    if (!authToken || !channelName) {
-        alert('Please enter both the Discord Token and the Channel Name.');
-        return;
-    }
+    const channelURL = document.getElementById('channel-url').value;
+    
+    // During the testing we will just hope that the user is sensible
+    const numMsg = document.getElementById('num-messages').value * 1;
+    
+    // extract channel ID
+    const channelId = channelURL.split('/').pop();
 
     const discordAPI = new DiscordAPI(authToken);
-
     const searchOptions = {
-        author_id: null,
-        mentions: null,
-        has: [],
-        pinned: false,
-        before: null,
-        after: null,
-        limit: 1000
+        author_id: null,   
+        mentions: null,    
+        has: [],           
+        pinned: false,     
+        before: null,      
+        after: null,       
+        limit: numMsg 
     };
 
-    const messages = await discordAPI.fetchChannelMessages(channelName, searchOptions);
-    console.log(messages);
-    discordAPI.saveMessagesToFile(messages);
+    discordAPI.fetchChannelMessages(channelId, searchOptions).then(messages => {
+        console.log(messages);
+        discordAPI.saveMessagesToFile(messages);
+    });
 });
+
+
 </script>
 
 </body>
