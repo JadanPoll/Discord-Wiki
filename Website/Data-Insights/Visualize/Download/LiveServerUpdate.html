@@ -125,7 +125,7 @@
                 log('Received: ' + JSON.stringify(this.result, null, 2));
                 if(this.result.t=="READY")
             {
-                HandleReceivedServers(this.result);
+                handleReceivedServers(this.result);
             }
                 this.seq = this.result.s || this.seq;
                 this.inflater.chunks = [];
