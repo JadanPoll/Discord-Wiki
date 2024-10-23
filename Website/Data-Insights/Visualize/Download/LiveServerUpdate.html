@@ -9,7 +9,6 @@
             font-family: Arial, sans-serif;
             padding: 20px;
         }
-
         #output {
             white-space: pre-wrap;
             background-color: #f4f4f4;
@@ -19,12 +18,10 @@
             overflow-y: auto;
             margin-top: 20px;
         }
-
         #tokenForm {
             margin-bottom: 20px;
         }
-
-        /* Grid layout for server items */
+        /* Simple grid layout */
         .grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -39,10 +36,7 @@
             border-radius: 5px;
             border: 1px solid #ddd;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            position: relative;
         }
-
         /* Popup styling */
         .popup {
             position: absolute;
@@ -118,6 +112,7 @@
 <div id="serverGrid" class="grid-container"></div>
 
 <!-- Popup for showing channels -->
+<!-- Popup for showing channels -->
 <div id="popup" class="popup">
     <div class="popup-header">
         <h3 id="serverName"></h3>
@@ -127,7 +122,6 @@
         <ul id="channelList"></ul>
     </div>
 </div>
-
 <script>
 (() => {
     const SCRIPT_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.0/pako.js';
@@ -137,15 +131,21 @@
     const form = document.getElementById('tokenForm');
     const tokenInput = document.getElementById('discordToken');
 
-    const serverGrid = document.getElementById('serverGrid');
-    const popup = document.getElementById('popup');
-    const serverNameElement = document.getElementById('serverName');
-    const channelListElement = document.getElementById('channelList');
-    const closePopupButton = document.getElementById('closePopup');
 
-    closePopupButton.addEventListener('click', () => {
-        popup.classList.remove('open');
-    });
+
+    // Asynchronously load external script
+    const loadScript = async (url) => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to load script: ${response.statusText}`);
+            const scriptElement = document.createElement('script');
+            scriptElement.textContent = await response.text();
+            document.head.appendChild(scriptElement);
+            console.log('Pako.js loaded successfully.');
+        } catch (error) {
+            console.log(`Error loading script: ${error}`);
+        }
+    };
 
     function onReceivedServers(json) {
         console.log(json);
@@ -217,35 +217,95 @@
         });
     }
 
-    // Load external script and initialize WebSocket after loading Pako.js
-    async function loadScript(url) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Failed to load script: ${response.statusText}`);
-            const scriptElement = document.createElement('script');
-            scriptElement.textContent = await response.text();
-            document.head.appendChild(scriptElement);
-            console.log('Pako.js loaded successfully.');
-        } catch (error) {
-            console.log(`Error loading script: ${error}`);
+    // Handles WebSocket and compression logic
+    class DiscordClient {
+        constructor(wsUrl, token) {
+            this.wsUrl = wsUrl;
+            this.token = token;
+            this.ws = null;
+            this.seq = null;
+            this.heartbeatInterval = null;
+            this.inflater = new pako.Inflate({ chunkSize: 65536, to: 'string' });
+            this.inflater.onEnd = this.afterDataDecompressed.bind(this);
+            this.result = null;
+        }
+
+        connect() {
+            this.ws = new WebSocket(this.wsUrl);
+            this.ws.binaryType = 'arraybuffer';
+            this.ws.onopen = () => { console.log('WebSocket connected.'); this.sayHello(); }
+            this.ws.onmessage = this.handleMessage.bind(this);
+            this.ws.onclose = () => console.log('WebSocket closed.');
+        }
+        
+
+
+        handleMessage(event) { 
+            if (event.data instanceof ArrayBuffer) {
+                this.inflater.push(new Uint8Array(event.data), pako.Z_SYNC_FLUSH);
+            }
+            if (!this.heartbeatInterval && this.result) {
+                this.startHeartbeat();
+            }
+        }
+
+        
+        afterDataDecompressed(status) {
+            if (status === 0) {
+                this.result = JSON.parse(this.inflater.chunks.join(''));
+                if(this.result.t=="READY")
+            {
+                onReceivedServers(this.result);
+            }
+                this.seq = this.result.s || this.seq;
+                this.inflater.chunks = [];
+            } else {
+                console.log('Inflation failed.');
+            }
+        }
+
+        sayHello() {
+            this.send({
+                op: 2,
+                d: {
+                    token: this.token,
+                    properties: { os: "Windows", browser: "Chrome", device: "" },
+                    compress: false,
+                    capabilities: 30717,
+                    presence: { status: "online", afk: false }
+                }
+            });
+        }
+
+        startHeartbeat() {
+            const heartbeatInterval = this.result.d?.heartbeat_interval || 5000;
+            this.heartbeatInterval = setInterval(() => {
+                this.send({ op: 1, d: this.seq });
+                console.log('Heartbeat sent.');
+            }, heartbeatInterval);
+        }
+
+        send(payload) {
+            if (this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify(payload));
+            }
         }
     }
 
-    form.addEventListener('submit', (event) => {
-        event.preventDefault();  // Prevent form from reloading the page
-        const discordToken = tokenInput.value.trim();
-        if (discordToken) {
-            console.log('Connecting with provided token...');
-            const client = new DiscordClient(WS_URL, discordToken);
-            client.connect();
-        } else {
-            console.log('Please enter a valid Discord token.');
-        }
+    // Initialize WebSocket after loading Pako.js
+    loadScript(SCRIPT_URL).then(() => {
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();  // Prevent form from reloading the page
+            const discordToken = tokenInput.value.trim();
+            if (discordToken) {
+                console.log('Connecting with provided token...');
+                const client = new DiscordClient(WS_URL, discordToken);
+                client.connect();
+            } else {
+                console.log('Please enter a valid Discord token.');
+            }
+        });
     });
-
-    loadScript(SCRIPT_URL);
-
-    // WebSocket logic would go here (same as before)
 })();
 </script>
 
