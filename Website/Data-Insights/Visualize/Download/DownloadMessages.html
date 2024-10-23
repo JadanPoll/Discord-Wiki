@@ -18,6 +18,8 @@
             margin-top: 10px;
             width: 100%;
         }
+
+
     </style>
 </head>
 <body>
@@ -34,6 +36,8 @@
         <label for="num-messages">Enter the number of messages to save</label>
         <input type="number" id="num-messages" min="1" max="10000" value="50">
         <button type="submit">Submit</button>
+        <button id="downloadBtn" disabled style="background-color: gray; color: white; margin-top: 10px;">Download Messages</button>
+
     </form>
 
     <div id="result"></div>
@@ -117,59 +121,69 @@ class DiscordAPI {
     }
 
 
-
-
     saveMessagesToFile(messages) {
-        // Reverse the order of the messages
-        const reversedMessages = messages.reverse().map(message => `${message.author.username}: ${message.content}`).join('\n');
+    // Reverse the order of the messages
+    const reversedMessages = messages.reverse().map(message => `${message.author.username}: ${message.content}`).join('\n');
 
-        // Create a Blob from the reversed messages
-        const blob = new Blob([reversedMessages], { type: 'text/plain' });
+    // Create a Blob from the reversed messages
+    const blob = new Blob([reversedMessages], { type: 'text/plain' });
 
-        // Create a link element
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'discord_messages.txt';
+    // Create a link element
+    const a = document.createElement('a');
+    a.style.display = 'none'; // Hide the link element
+    a.href = URL.createObjectURL(blob);
+    a.download = 'discord_messages.txt';
 
-        // Append the link to the document and trigger the download
-        document.body.appendChild(a);
-        a.click();
+    // Append the link to the document
+    document.body.appendChild(a);
 
-        // Remove the link from the document
-        document.body.removeChild(a);
+    // Trigger the download and then clean up
+    a.click();
 
-        console.log('Messages saved to discord_messages.txt in reversed order.');
-    }
+    // Cleanup after download
+    URL.revokeObjectURL(a.href); // Revoke the Blob URL to free up memory
+    document.body.removeChild(a);
+
+    console.log('Messages saved to discord_messages.txt in reversed order.');
 }
+
+}
+
 document.getElementById('discord-form').addEventListener('submit', async function (e) {
     e.preventDefault();
 
     const authToken = document.getElementById('auth-token').value;
     const channelURL = document.getElementById('channel-url').value;
-    
-    // During the testing we will just hope that the user is sensible
     const numMsg = document.getElementById('num-messages').value * 1;
-    
-    // extract channel ID
     const channelId = channelURL.split('/').pop();
+    const downloadBtn = document.getElementById('downloadBtn');
 
+    // Create an instance of the DiscordAPI class
     const discordAPI = new DiscordAPI(authToken);
     const searchOptions = {
-        author_id: null,   
-        mentions: null,    
-        has: [],           
-        pinned: false,     
-        before: null,      
-        after: null,       
-        limit: numMsg 
+        author_id: null,
+        mentions: null,
+        has: [],
+        pinned: false,
+        before: null,
+        after: null,
+        limit: numMsg
     };
 
-    discordAPI.fetchChannelMessages(channelId, searchOptions).then(messages => {
-        console.log(messages);
-        discordAPI.saveMessagesToFile(messages);
-    });
-});
+    // Fetch messages and handle button state
+    const messages = await discordAPI.fetchChannelMessages(channelId, searchOptions);
 
+    if (messages.length > 0) {
+        // Enable the download button and change its color to green
+        downloadBtn.disabled = false;
+        downloadBtn.style.backgroundColor = 'green';
+
+        // Attach event listener for downloading when the button is clicked
+        downloadBtn.addEventListener('click', function () {
+            discordAPI.saveMessagesToFile(messages);
+        });
+    }
+});
 
 </script>
 
