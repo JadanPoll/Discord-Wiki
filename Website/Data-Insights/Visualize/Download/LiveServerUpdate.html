@@ -21,6 +21,22 @@
         #tokenForm {
             margin-bottom: 20px;
         }
+        /* Simple grid layout */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .grid-item {
+            padding: 20px;
+            text-align: center;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -35,6 +51,7 @@
 </form>
 
 <div id="output">Waiting for token submission...</div>
+<div id="serverGrid" class="grid-container"></div>
 
 <script>
 (() => {
@@ -60,10 +77,23 @@
             console.log(`Error loading script: ${error}`);
         }
     };
-    function onReceivedServers(json)
-    {
+    function onReceivedServers(json) {
+        // Log the received JSON
         console.log(json);
 
+        // Get the container where we'll insert the servers
+        const serverGrid = document.getElementById('serverGrid');
+
+        // Iterate over the servers in the received JSON object
+        json.d.guilds.forEach(server => {
+            // Create a new div for each server
+            const serverItem = document.createElement('div');
+            serverItem.classList.add('grid-item');
+            serverItem.innerText = server.properties.name; // Insert the server name
+
+            // Append the server item to the grid
+            serverGrid.appendChild(serverItem);
+        });
     }
     // Handles WebSocket and compression logic
     class DiscordClient {
