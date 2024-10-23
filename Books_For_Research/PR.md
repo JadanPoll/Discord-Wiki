@@ -13,9 +13,9 @@ Every great search engine boasts a host of cool unique features, and so do we! W
 Try out our most recent development here: [D-Wikis Website](https://d-wiki.glitch.me/)
 
 
-| ![Landing Page](./DLandingPage.png) | ![1st Image](https://link-to-your-image1.png)  |
+| ![Landing Page](./DLandingPage.png) | ![1st Image](./Dinsigt1.png)  |
 |---------------------------------------|------------------------------------------------|
-|                                       | ![2nd Image](https://link-to-your-image2.png)  |
+|                                       | ![2nd Image](./DInsight2.png)  |
 
 
 ### Progress:
