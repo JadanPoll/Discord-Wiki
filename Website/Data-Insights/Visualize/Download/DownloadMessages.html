@@ -96,7 +96,7 @@ class DiscordAPI {
         startTime = performance.now();
 
         while (options.limit > 0) {
-            const apiUrl = `https://cors-anywhere.herokuapp.com/https://discord.com/api/v9/channels/${channelId}/messages?limit=${Math.min(options.limit, 100)}&${this.constructSearchParams(options)}`;
+            const apiUrl = `https://discord.com/api/v9/channels/${channelId}/messages?limit=${Math.min(options.limit, 100)}&${this.constructSearchParams(options)}`;
             console.log(`API URL: ${apiUrl}`);
             const messages = await this.fetchMessages(apiUrl);
             allMessages.push(...messages);
