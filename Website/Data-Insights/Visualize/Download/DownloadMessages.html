@@ -181,6 +181,9 @@ document.getElementById('discord-form').addEventListener('submit', async functio
         // Attach event listener for downloading when the button is clicked
         downloadBtn.addEventListener('click', function () {
             discordAPI.saveMessagesToFile(messages);
+            downloadBtn.disabled = true;
+            downloadBtn.style.backgroundColor = 'gray';
+
         });
     }
 });
