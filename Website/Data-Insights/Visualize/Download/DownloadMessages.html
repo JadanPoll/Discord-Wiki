@@ -179,12 +179,12 @@ document.getElementById('discord-form').addEventListener('submit', async functio
         downloadBtn.style.backgroundColor = 'green';
 
         // Attach event listener for downloading when the button is clicked
-        downloadBtn.addEventListener('click', function () {
+        downloadBtn.onclick= function () {
             discordAPI.saveMessagesToFile(messages);
             downloadBtn.disabled = true;
             downloadBtn.style.backgroundColor = 'gray';
 
-        });
+        };
     }
 });
 
