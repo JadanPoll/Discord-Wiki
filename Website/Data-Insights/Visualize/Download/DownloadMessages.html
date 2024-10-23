@@ -71,10 +71,10 @@ class DiscordAPI {
 
     async fetchMessages(apiUrl) {
         try {
-            const response = await fetch(`/cors-bypass/${apiUrl}`, {
+            const response = await fetch(apiUrl, {
                 method: 'GET',
                 headers: {
-                    Authorization: this.authToken,
+                    'Authorization': this.authToken,
                     'Content-Type': 'application/json'
                 }
             });
@@ -116,9 +116,6 @@ class DiscordAPI {
         return allMessages;
     }
 
-
-
-
     saveMessagesToFile(messages) {
         // Reverse the order of the messages
         const reversedMessages = messages.reverse().map(message => `${message.author.username}: ${message.content}`).join('\n');
@@ -133,15 +130,10 @@ class DiscordAPI {
 
         // Append the link to the document and trigger the download
         document.body.appendChild(a);
-        setTimeout(() => {
         a.click();
-        // Cleanup
-        URL.revokeObjectURL(a.href);
-        document.body.removeChild(a);
-        console.log('Messages saved to discord_messages.txt in reversed order.');
-    }, 2000);
+
         // Remove the link from the document
-        //document.body.removeChild(a);
+        document.body.removeChild(a);
 
         console.log('Messages saved to discord_messages.txt in reversed order.');
     }
