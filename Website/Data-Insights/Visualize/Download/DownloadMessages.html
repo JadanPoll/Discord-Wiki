@@ -126,7 +126,7 @@ class DiscordAPI {
     const reversedMessages = messages.reverse().map(message => `${message.author.username}: ${message.content}`).join('\n');
 
     // Create a Blob from the reversed messages
-    const blob = new Blob([reversedMessages], { type: 'application/octet-stream' });
+    const blob = new Blob([reversedMessages]);
 
     // Create a link element
     const a = document.createElement('a');
