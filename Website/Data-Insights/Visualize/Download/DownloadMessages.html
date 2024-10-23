@@ -119,7 +119,7 @@ class DiscordAPI {
     saveMessagesToFile(messages) {
         // Reverse the order of the messages
         const reversedMessages = messages.reverse().map(message => `${message.author.username}: ${message.content}`).join('\n');
-
+    
         // Create a Blob from the reversed messages
         const blob = new Blob([reversedMessages], { type: 'text/plain' });
 
@@ -127,7 +127,7 @@ class DiscordAPI {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = 'discord_messages.txt';
-
+        console.log(a.href,messages)
         // Append the link to the document and trigger the download
         document.body.appendChild(a);
         a.click();
