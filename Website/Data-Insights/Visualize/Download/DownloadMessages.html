@@ -133,7 +133,7 @@ class DiscordAPI {
     a.style.display = 'block'; // Hide the link element
     a.href = URL.createObjectURL(blob);
     a.download = 'discord_messages.txt';
-
+    a.innerText="Discord Messages"
     // Append the link to the document
     document.body.appendChild(a);
 
