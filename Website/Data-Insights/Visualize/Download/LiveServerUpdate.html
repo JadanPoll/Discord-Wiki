@@ -87,8 +87,10 @@
             this.ws.onmessage = this.handleMessage.bind(this);
             this.ws.onclose = () => log('WebSocket closed.');
         }
+        
 
-        handleMessage(event) {
+
+        handleMessage(event) { 
             if (event.data instanceof ArrayBuffer) {
                 this.inflater.push(new Uint8Array(event.data), pako.Z_SYNC_FLUSH);
             }
@@ -97,10 +99,34 @@
             }
         }
 
+        handleReceivedServers(result) {
+    // Iterate over each server in the result's guilds
+    result.guilds.forEach(server => {
+        // Construct the link using the server ID
+        let link = `https://discord.com/channels/${server.id}`;
+        // Assign the server's name to the link
+        link.name = server.properties.name;
+
+        // Add the link to a grid of links (you'll need to implement this part)
+        // Example of adding to a grid can depend on your environment
+        // For instance, using HTML DOM manipulation in a web app:
+        let gridElement = document.createElement('a');
+        gridElement.href = link;
+        gridElement.textContent = server.properties.name;
+        gridElement.classList.add('grid-item'); // Add a class for styling if needed
+
+        // Assuming you have a container element with an ID of 'grid-container'
+        document.getElementById('grid-container').appendChild(gridElement);
+    });
+}
         afterDataDecompressed(status) {
             if (status === 0) {
                 this.result = JSON.parse(this.inflater.chunks.join(''));
                 log('Received: ' + JSON.stringify(this.result, null, 2));
+                if(this.result.t=="READY")
+            {
+                HandleReceivedServers(this.result);
+            }
                 this.seq = this.result.s || this.seq;
                 this.inflater.chunks = [];
             } else {
