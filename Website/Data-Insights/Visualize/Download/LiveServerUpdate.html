@@ -45,13 +45,7 @@
     const form = document.getElementById('tokenForm');
     const tokenInput = document.getElementById('discordToken');
 
-    // Function to log messages to the output div
-    const log = (message) => {
-        const logMessage = document.createElement('div');
-        logMessage.textContent = message;
-        outputElement.appendChild(logMessage);
-        outputElement.scrollTop = outputElement.scrollHeight;
-    };
+
 
     // Asynchronously load external script
     const loadScript = async (url) => {
@@ -61,12 +55,16 @@
             const scriptElement = document.createElement('script');
             scriptElement.textContent = await response.text();
             document.head.appendChild(scriptElement);
-            log('Pako.js loaded successfully.');
+            console.log('Pako.js loaded successfully.');
         } catch (error) {
-            log(`Error loading script: ${error}`);
+            console.log(`Error loading script: ${error}`);
         }
     };
+    function onReceivedServers(json)
+    {
+        console.log(json);
 
+    }
     // Handles WebSocket and compression logic
     class DiscordClient {
         constructor(wsUrl, token) {
@@ -83,9 +81,9 @@
         connect() {
             this.ws = new WebSocket(this.wsUrl);
             this.ws.binaryType = 'arraybuffer';
-            this.ws.onopen = () => { log('WebSocket connected.'); this.sayHello(); }
+            this.ws.onopen = () => { console.log('WebSocket connected.'); this.sayHello(); }
             this.ws.onmessage = this.handleMessage.bind(this);
-            this.ws.onclose = () => log('WebSocket closed.');
+            this.ws.onclose = () => console.log('WebSocket closed.');
         }
         
 
@@ -103,15 +101,14 @@
         afterDataDecompressed(status) {
             if (status === 0) {
                 this.result = JSON.parse(this.inflater.chunks.join(''));
-                log('Received: ' + JSON.stringify(this.result, null, 2));
                 if(this.result.t=="READY")
             {
-                HandleReceivedServers(this.result);
+                onReceivedServers(this.result);
             }
                 this.seq = this.result.s || this.seq;
                 this.inflater.chunks = [];
             } else {
-                log('Inflation failed.');
+                console.log('Inflation failed.');
             }
         }
 
@@ -132,7 +129,7 @@
             const heartbeatInterval = this.result.d?.heartbeat_interval || 5000;
             this.heartbeatInterval = setInterval(() => {
                 this.send({ op: 1, d: this.seq });
-                log('Heartbeat sent.');
+                console.log('Heartbeat sent.');
             }, heartbeatInterval);
         }
 
@@ -149,11 +146,11 @@
             event.preventDefault();  // Prevent form from reloading the page
             const discordToken = tokenInput.value.trim();
             if (discordToken) {
-                log('Connecting with provided token...');
+                console.log('Connecting with provided token...');
                 const client = new DiscordClient(WS_URL, discordToken);
                 client.connect();
             } else {
-                log('Please enter a valid Discord token.');
+                console.log('Please enter a valid Discord token.');
             }
         });
     });
