@@ -71,10 +71,10 @@ class DiscordAPI {
 
     async fetchMessages(apiUrl) {
         try {
-            const response = await fetch(apiUrl, {
+            const response = await fetch(`/cors-bypass/${apiUrl}`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': this.authToken,
+                    Authorization: this.authToken,
                     'Content-Type': 'application/json'
                 }
             });
@@ -115,6 +115,9 @@ class DiscordAPI {
         console.log(`Fetched ${allMessages.length} messages`);
         return allMessages;
     }
+
+
+
 
     saveMessagesToFile(messages) {
         // Reverse the order of the messages
