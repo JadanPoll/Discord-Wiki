@@ -129,20 +129,21 @@ class DiscordAPI {
     const blob = new Blob([reversedMessages]);
 
     // Create a link element
-    const a = document.createElement('a');
+    const a = window.parent.document.createElement('a'); // Use parent document
     a.style.display = 'block'; // Hide the link element
-    a.href = URL.createObjectURL(blob);
+    a.href = window.parent.URL.createObjectURL(blob); // Create Blob URL in parent context
     a.download = 'discord_messages.txt';
-    a.innerText="Discord Messages"
-    // Append the link to the document
-    document.body.appendChild(a);
+    a.innerText = "Discord Messages";
 
-    // Trigger the download and then clean up
+    // Append the link to the parent document
+    window.parent.document.body.appendChild(a);
+
+    // Trigger the download
     a.click();
 
     // Cleanup after download
-    //URL.revokeObjectURL(a.href); // Revoke the Blob URL to free up memory
-    //document.body.removeChild(a);
+    // window.parent.URL.revokeObjectURL(a.href); // Revoke the Blob URL in parent context
+    // window.parent.document.body.removeChild(a); // Remove the link from the parent document
 
     console.log('Messages saved to discord_messages.txt in reversed order.');
 }
