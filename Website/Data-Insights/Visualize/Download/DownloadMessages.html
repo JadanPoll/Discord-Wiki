@@ -71,7 +71,7 @@ class DiscordAPI {
 
     async fetchMessages(apiUrl) {
         try {
-            const response = await fetch(`/cors-bypass/${(apiUrl)}`, {
+            const response = await fetch(`/cors-bypass/${apiUrl}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': this.authToken,
