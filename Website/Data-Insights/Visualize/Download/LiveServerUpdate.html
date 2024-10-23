@@ -199,25 +199,6 @@
             serverGrid.appendChild(serverItem);
         });
     }
-        // Log the received JSON
-        console.log(json);
-
-        // Get the container where we'll insert the servers
-        const serverGrid = document.getElementById('serverGrid');
-
-        // Iterate over the servers in the received JSON object
-        json.d.guilds.forEach(server => {
-            // Create a new div for each server
-            const serverItem = document.createElement('div');
-            serverItem.classList.add('grid-item');
-            serverItem.innerText = server.properties.name; // Insert the server name
-            server.item.hiddenacnher=   `https://discord.com/channels/server.properties.id`
-            server.item.hiddenanchor channels= same but set to array server.channels
-            when clicked show expand popup and list channel names as array elem.name and  internal url as https://discord.com/channels/arrayelem.id
-            // Append the server item to the grid
-            serverGrid.appendChild(serverItem);
-        });
-    }
     // Handles WebSocket and compression logic
     class DiscordClient {
         constructor(wsUrl, token) {
