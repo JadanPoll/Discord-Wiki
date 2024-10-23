@@ -116,27 +116,44 @@ class DiscordAPI {
         return allMessages;
     }
 
+
+
     saveMessagesToFile(messages) {
-        // Reverse the order of the messages
-        const reversedMessages = messages.reverse().map(message => `${message.author.username}: ${message.content}`).join('\n');
-    
-        // Create a Blob from the reversed messages
-        const blob = new Blob([reversedMessages], { type: 'text/plain' });
-
-        // Create a link element
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'discord_messages.txt';
-        console.log(a.href,messages)
-        // Append the link to the document and trigger the download
-        document.body.appendChild(a);
-        a.click();
-
-        // Remove the link from the document
-        document.body.removeChild(a);
-
-        console.log('Messages saved to discord_messages.txt in reversed order.');
+    // Check if there are messages to save
+    if (!messages || messages.length === 0) {
+        console.error('No messages to save.');
+        return;
     }
+
+    // Reverse the order of the messages and format them
+    const reversedMessages = messages.reverse().map(message => `${message.author.username}: ${message.content}`).join('\n');
+
+    // Create a Blob from the reversed messages
+    const blob = new Blob([reversedMessages], { type: 'text/plain' });
+
+    // Create a link element
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    // Debug log to see the generated URL
+    console.log('Blob URL created:', url);
+
+    a.href = url;
+    a.download = 'discord_messages.txt';
+
+    // Append the link to the document and trigger the download
+    document.body.appendChild(a);
+    a.click();
+
+    // Remove the link from the document
+    document.body.removeChild(a);
+
+    // Revoke the Blob URL to free up memory
+    URL.revokeObjectURL(url);
+
+    console.log('Messages saved to discord_messages.txt in reversed order.');
+}
+
 }
 document.getElementById('discord-form').addEventListener('submit', async function (e) {
     e.preventDefault();
