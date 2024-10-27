@@ -147,7 +147,7 @@
 
 <script>
     // This code is responsible for extracting messages from the discord.
-    
+    var input_url = null;
     class DiscordAPI {
         constructor(authToken)
         {
@@ -297,9 +297,9 @@
         e.preventDefault();
         console.log("Clcikd")
         const authToken = document.getElementById('discordToken').value;
-        const channelURL = document.getElementById('channel-url').value;
+        // const channelURL = document.getElementById('channel-url').value;
         const numMsg = document.getElementById('num-messages').value * 1;
-        const channelId = channelURL.split('/').pop();
+        const channelId = input_url.split('/').pop();
         console.log(channelId)
         const downloadBtn = document.getElementById('download-btn');
     
@@ -396,8 +396,8 @@
                     //channelLink.href = `https://discord.com/channels/${server.properties.id}/${channel.id}`;
                     channelLink.onclick = ()=>
                     {
-                        const input_url = window.document.getElementById("channel-url")
-                        input_url.value=`https://discord.com/channels/${server.properties.id}/${channel.id}`
+                        // const input_url = window.document.getElementById("channel-url")
+                        input_url = `https://discord.com/channels/${server.properties.id}/${channel.id}`
 
                         const download_btn = window.document.getElementById("download-btn");
                         download_btn.disabled=false
