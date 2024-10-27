@@ -18,6 +18,17 @@
             overflow-y: auto;
             margin-top: 20px;
         }
+
+        #container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        input, button {
+            padding: 10px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
         #tokenForm {
             margin-bottom: 20px;
         }
@@ -103,10 +114,18 @@
 
 <form id="tokenForm">
     <label for="discordToken">Paste your Discord Token:</label><br>
-    <input type="text" id="discordToken" name="discordToken" placeholder="Enter your Discord Token" required style="width: 80%; padding: 10px;">
+    <input type="password" id="discordToken" name="discordToken" placeholder="Enter your Discord Token" required style="width: 80%; padding: 10px;">
     <br><br>
-    <button type="submit" style="padding: 10px 20px;">Submit</button>
+    <button type="submit" style="padding: 10px 20px;">Load Servers</button>
 </form>
+
+<label for="channel-name">Enter the channel URL:</label>
+<input type="text" id="channel-url" aria-disabled="true" placeholder="Enter the channel URL (https://discord.com/channels/n/m)" required>
+
+<label for="num-messages" aria-disabled="true">Enter the number of messages to save</label>
+<input type="number" id="num-messages" min="1" max="10000" value="50">
+<button id="download-btn" disabled style="background-color: gray; color: white; margin-top: 10px;">Download Messages</button>
+
 
 <div id="output">Waiting for token submission...</div>
 <div id="serverGrid" class="grid-container"></div>
@@ -116,12 +135,202 @@
 <div id="popup" class="popup">
     <div class="popup-header">
         <h3 id="serverName"></h3>
-        <button id="closePopup" class="popup-close">Close</button>
+        <button id="closePopup" class="popup-close" onclick="(() => document.getElementById('popup').classList.remove('open'))()">Close</button>
     </div>
     <div class="popup-content">
         <ul id="channelList"></ul>
     </div>
 </div>
+
+
+
+
+<script>
+    // This code is responsible for extracting messages from the discord.
+    
+    class DiscordAPI {
+        constructor(authToken)
+        {
+            this.DISCORD_EPOCH = 1420070400000n;
+            this.setAuthorization(authToken);
+        }
+        setAuthorization(token)
+        {
+            this.authToken = token;
+        }
+    
+        //Snowflake is a epoch-based way of calculating timestamps with more information
+        convertTimestampToSnowflake(timestamp) {
+            return ((BigInt(new Date(timestamp).getTime()) - this.DISCORD_EPOCH) << 22n).toString();
+        }
+    
+        constructSearchParams(options) {
+            const params = new URLSearchParams();
+            if (options.author_id) params.append('author_id', options.author_id);
+            if (options.mentions) params.append('mentions', options.mentions);
+            if (options.has && options.has.length > 0) params.append('has', options.has.join(','));
+            if (options.pinned) params.append('pinned', 'true');
+            if (options.before) params.append('before', options.before);
+            if (options.after) params.append('after', options.after);
+            return params.toString();
+        }
+    
+
+
+        async fetchMessages(apiUrl) {
+    try {
+        // First attempt using the cors-bypass path
+        const response = await fetch(`/cors-bypass/${apiUrl}`, {
+            method: 'GET',
+            headers: {
+                Authorization: this.authToken,  // Make sure this.authToken is set properly
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        // Check if the response is successful
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        return await response.json();  // Return the parsed JSON response
+    } 
+    catch (error) {
+        console.log('Trying different route:', error.message);
+
+        try {   
+            // If first attempt fails, try the direct API route
+            const response = await fetch(`${apiUrl}`, {
+                method: 'GET',
+                headers: {
+                    Authorization: this.authToken,  // Ensure the token is available
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            // Check if the second response is successful
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+
+            return await response.json();
+        } 
+        catch (error) {
+            // Log any final error that occurs
+            console.error('Error fetching messages on second attempt:', error.message);
+            return [];  // Return an empty array on failure
+        }
+    }
+}
+
+    
+        async fetchChannelMessages(channelId, options) {
+    
+            //TODO: add some logic that verifies channel (or just use response code?)
+            const allMessages = [];
+            let startTime, endTime;
+            options.limit = options.limit || 100;
+    
+            // Start timing
+            startTime = performance.now();
+    
+            while (options.limit > 0) {
+                const apiUrl = `https://discord.com/api/v9/channels/${channelId}/messages?limit=${Math.min(options.limit, 100)}&${this.constructSearchParams(options)}`;
+                console.log(`API URL: ${apiUrl}`);
+                const messages = await this.fetchMessages(apiUrl);
+                allMessages.push(...messages);
+    
+                if (messages.length < 100) break;
+    
+                const lastMessage = messages[messages.length - 1];
+                options.before = this.convertTimestampToSnowflake(lastMessage.timestamp);
+                options.limit -= messages.length;
+            }
+    
+            // End timing
+            endTime = performance.now();
+            console.log(`Time taken: ${(endTime - startTime).toFixed(2)} milliseconds`);
+    
+            console.log(`Fetched ${allMessages.length} messages`);
+            return allMessages;
+        }
+    
+    
+
+        saveMessagesToFile(messages) {
+    // Reverse the order of the messages
+    console.log(messages);
+    
+    // Serialize the entire array of reversed messages as a JSON string
+    const reversedMessages = JSON.stringify(messages.reverse(), null, 2);  // Proper JSON format with indentation
+    
+    // Create a Blob from the JSON string
+    const blob = new Blob([reversedMessages], { type: 'application/json' });  // Save as JSON, not plain text
+
+    // Create a link element for downloading the Blob
+    const a = window.parent.document.createElement('a');  // Create link in the parent document
+    a.style.display = 'none';  // Hide the link element
+    a.href = window.parent.URL.createObjectURL(blob);  // Create a URL for the Blob
+    a.download = 'discord_messages.json';  // Save the file as a JSON file
+    a.innerText = "Download Discord Messages";
+
+    // Append the link to the parent document
+    window.parent.document.body.appendChild(a);
+
+    // Trigger the download
+    a.click();
+
+    // Cleanup after the download
+    window.parent.URL.revokeObjectURL(a.href);  // Revoke the Blob URL to free memory
+    window.parent.document.body.removeChild(a);  // Remove the link from the document
+
+    console.log('Messages saved to discord_messages.json in reversed order.');
+}
+
+
+}
+    
+
+
+    
+    document.getElementById('download-btn').addEventListener('click', async function (e) {
+        e.preventDefault();
+        console.log("Clcikd")
+        const authToken = document.getElementById('discordToken').value;
+        const channelURL = document.getElementById('channel-url').value;
+        const numMsg = document.getElementById('num-messages').value * 1;
+        const channelId = channelURL.split('/').pop();
+        console.log(channelId)
+        const downloadBtn = document.getElementById('download-btn');
+    
+        // Create an instance of the DiscordAPI class
+        const discordAPI = new DiscordAPI(authToken);
+        const searchOptions = {
+            author_id: null,
+            mentions: null,
+            has: [],
+            pinned: false,
+            before: null,
+            after: null,
+            limit: numMsg
+        };
+    
+        // Fetch messages and handle button state
+        const messages = await discordAPI.fetchChannelMessages(channelId, searchOptions);
+    
+        if (messages.length > 0) {
+
+                discordAPI.saveMessagesToFile(messages);
+                downloadBtn.disabled = true;
+                downloadBtn.style.backgroundColor = 'gray';
+    
+        }
+    });
+    
+    </script>
+
+
+
 <script>
 (() => {
     const SCRIPT_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.0/pako.js';
@@ -184,9 +393,22 @@
                     const channelItem = document.createElement('li');
                     const channelLink = document.createElement('a');
 
-                    channelLink.href = `https://discord.com/channels/${server.properties.id}/${channel.id}`;
+                    //channelLink.href = `https://discord.com/channels/${server.properties.id}/${channel.id}`;
+                    channelLink.onclick = ()=>
+                    {
+                        const input_url = window.document.getElementById("channel-url")
+                        input_url.value=`https://discord.com/channels/${server.properties.id}/${channel.id}`
+
+                        const download_btn = window.document.getElementById("download-btn");
+                        download_btn.disabled=false
+                        download_btn.style.backgroundColor = 'green';
+
+                        popup.classList.remove('open');
+                        //download_btn.disabled=true
+
+                    }
                     channelLink.innerText = channel.name;
-                    channelLink.target = '_blank'; // Open in a new tab
+                    //channelLink.target = '_blank'; // Open in a new tab
 
                     channelItem.appendChild(channelLink);
                     channelListElement.appendChild(channelItem);
