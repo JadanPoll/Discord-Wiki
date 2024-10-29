@@ -285,7 +285,7 @@ if __name__ == "__main__":
     #analyzer.add_factor(UserImportanceFactor( time_window=2,weight=0.3))
     #analyzer.add_factor(TimestampDensityFactor(time_window=2, weight=0.8))
     analyzer.add_factor(VocabularyComplexityFactor( weight=1.2))
-    #analyzer.add_factor(ContainsWordFactor(keywords=["@everyone"], weight=1.0))
+    analyzer.add_factor(ContainsWordFactor(keywords=["@everyone"], weight=1.0))
 
     # Analyze and get the probability distribution
     pdf_distribution = analyzer.analyze()
