@@ -1,0 +1,48 @@
+/* Menu button styling */
+.menu-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 100;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Darken background overlay */
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 50;
+}
+
+/* Menu content (popup) */
+.menu-content {
+    display: none;
+    position: fixed;
+    bottom: 40%;
+    right: 20px;
+    background-color: white;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 101;
+}
+
+/* Close button styling */
+.close-btn {
+    margin-top: 20px;
+    padding: 5px 10px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    cursor: pointer;
+}

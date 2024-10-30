@@ -1,0 +1,206 @@
+{% extends "main.html" %}
+
+{% block title %}Storyboard Timeline{% endblock %}
+
+{% block head %}
+<style>
+    /* Global Styles */
+    .event-container {
+        font-family: 'Arial', sans-serif;
+        background-color: #f0f0f0;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+        line-height: 1.6;
+    }
+
+    /* Timeline Styles */
+    .timeline {
+        position: relative;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px 0;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        width: 4px;
+        background-color: #3498db;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    /* Container Styles */
+    .event-container {
+        position: relative;
+        width: 45%;
+        padding: 20px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin: 20px 0;
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    }
+
+    .event-container:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .event-container.left {
+        left: 0;
+    }
+
+    .event-container.right {
+        left: 55%;
+    }
+
+    .event-container::after {
+        content: '';
+        position: absolute;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        top: 20px;
+    }
+
+    .event-container.left::after {
+        left: 100%;
+        border-width: 10px 0 10px 10px;
+        border-color: transparent transparent transparent white;
+    }
+
+    .event-container.right::after {
+        right: 100%;
+        border-width: 10px 10px 10px 0;
+        border-color: transparent white transparent transparent;
+    }
+
+    /* Date and Description Styles */
+    .date {
+        font-size: 16px;
+        font-weight: bold;
+        color: #3498db;
+        margin-bottom: 10px;
+    }
+
+    .description h2 {
+        margin: 0;
+        font-size: 24px;
+    }
+
+    .description p {
+        margin: 10px 0 0;
+        font-size: 16px;
+        color: #555;
+    }
+
+    /* Animation */
+    .container {
+        opacity: 0;
+        animation: fadeInUp 0.6s ease-in-out forwards;
+    }
+
+    .container:nth-child(odd) {
+        animation-delay: 0.2s;
+    }
+
+    .container:nth-child(even) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Dark Mode */
+    .timeline-container.dark-mode {
+        background-color: #1e1e1e;
+        color: #ccc;
+    }
+
+    .timeline-container.dark-mode .timeline::before {
+        background-color: #8ab4f8;
+    }
+
+    .timeline-container.dark-mode .container {
+        background-color: #333;
+        color: #ddd;
+    }
+
+    .timeline-container.dark-mode .container::after {
+        border-color: transparent transparent transparent #333;
+    }
+
+    .timeline-container.dark-mode .container.left::after {
+        border-color: transparent transparent transparent #333;
+    }
+
+    .timeline-container.dark-mode .container.right::after {
+        border-color: transparent #333 transparent transparent;
+    }
+
+    .timeline-container.dark-mode .date {
+        color: #8ab4f8;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="timeline-container">
+    <div class="timeline">
+        <div class="event-container left">
+            <div class="date">January 2025</div>
+            <div class="description">
+                <h2>Groundbreaking Launch</h2>
+                <p>In January 2025, we launched a revolutionary feature that transformed the way users interact with our
+                    platform. This event marked a significant milestone in our mission to enhance user experience and
+                    engagement.</p>
+            </div>
+        </div>
+        <div class="event-container right">
+            <div class="date">February 2025</div>
+            <div class="description">
+                <h2>Major Update</h2>
+                <p>February 2025 brought a major update that introduced powerful new tools for content creation. This update
+                    empowered users to express their creativity and streamline their workflow, driving increased
+                    participation across our community.</p>
+            </div>
+        </div>
+        <div class="event-container left">
+            <div class="date">March 2025</div>
+            <div class="description">
+                <h2>Community Milestone</h2>
+                <p>In March 2025, we celebrated a remarkable community milestone, reaching over a million active users. This
+                    event showcased the tremendous growth of our platform and underscored our commitment to fostering a
+                    vibrant, interactive environment.</p>
+            </div>
+        </div>
+        <!-- Additional events can be added here -->
+    </div>
+</div>
+
+<script>
+    // Dark Mode Toggle
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+    }
+
+    // Trigger Dark Mode based on system preference
+    const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if (prefersDarkScheme) {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+{% endblock %}

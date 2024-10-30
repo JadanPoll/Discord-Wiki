@@ -1,0 +1,52 @@
+{% extends "main.html" %}
+
+{% block title %}Visualizations{% endblock %}
+
+{% block head %}
+<style>
+    /* Global Styles */
+
+    /* Navigation Links Grid */
+    .nav-links {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        /* Responsive columns */
+        gap: 20px;
+        width: 90%;
+        max-width: 1200px;
+        /* Limits the grid width */
+        margin-bottom: 30px;
+    }
+
+    .nav-links a {
+        text-decoration: none;
+        color: #3498db;
+        font-size: 20px;
+        padding: 10px;
+        background-color: #ecf0f1;
+        border-radius: 5px;
+        text-align: center;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    .nav-links a:hover {
+        background-color: #bdc3c7;
+        color: #2980b9;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<h1>
+    Visualizations
+</h1>
+<div class="nav-links">
+    <a href="/visualize/plot_general_density">General Text Density</a>
+    <a href="/visualize/plot_textdensity_user">Text Density By User</a>
+    <a href="/visualize/plot_timestamp_density">Timestamp Density</a>
+    <a href="/visualize/plot_useractivity">Graph User Activity Visualization</a>
+    <a href="/visualize/wordcloud">Word Cloud</a>
+    <a href="/visualize/download_messages">Download Info</a>
+    <a href="/visualize/live_server_update">Live Server</a>
+</div>
+{% endblock %}
