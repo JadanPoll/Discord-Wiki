@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Wiki Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        #content {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            min-height: 600px;
+            background: #f1f1f1;
+        }
+        h1 {
+            margin-top: 0;
+        }
+        .error {
+            color: red;
+        }
+        iframe {
+            width: 100%;
+            height: 700px;
+            border: none;
+            background: white;
+        }
+        #backButton {
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #backButton:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<button id="backButton" disabled>Back</button>
+<section id="content">
+    <p>Loading website...</p>
+</section>
+<script>
+    const config = {
+        repoOwner: 'JadanPoll',
+        repoName: 'Discord-Wiki',
+        branch: 'main',
+        folderPath: 'Website'
+    };
+    let historyStack = []; // Store the history of loaded pages
+    let currentDirectory = config.folderPath; // Track the current directory
+
+    async function fetchFolderContent() {
+        const folderUrl = `https://api.github.com/repos/${config.repoOwner}/${config.repoName}/contents/${currentDirectory}?ref=${config.branch}`;
+
+        try {
+            const folderData = await fetchJson(folderUrl);
+
+            const indexFile = folderData.find(file => file.name === 'index.html');
+            if (!indexFile) throw new Error('index.html not found in the folder');
+
+            const indexContent = await fetchTextFile(indexFile.download_url);
+            const iframeDoc = parseHTML(indexContent);
+
+            await loadExternalResources(iframeDoc, 'link[rel="stylesheet"]', 'href');
+            await loadExternalResources(iframeDoc, 'script[src]', 'src');
+            updateImageSources(iframeDoc);
+            updateLinkSources(iframeDoc);
+
+            loadIframeContent(iframeDoc);
+        } catch (error) {
+            showError(error.message);
+        }
+    }
+
+    async function fetchJson(url) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Folder not found or access denied');
+        return response.json();
+    }
+  async function fetchTextFile(url, retries = 3, delay = 1000) {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+          try {
+              const response = await fetch(url);
+              if (!response.ok) throw new Error(`Failed to fetch ${url} - Status: ${response.status}`);
+
+              const blob = await response.blob();
+              return await blob.text();
+          } catch (error) {
+              console.error(`Attempt ${attempt} failed: ${error.message}`);
+
+              // If this was the last attempt, rethrow the error
+              if (attempt === retries) {
+                  throw error;
+              }
+
+              // Wait before retrying (backoff delay)
+              await new Promise(resolve => setTimeout(resolve, delay));
+          }
+      }
+  }
+
+
+    function parseHTML(htmlString) {
+        return new DOMParser().parseFromString(htmlString, 'text/html');
+    }
+
+    async function loadExternalResources(doc, selector, attribute) {
+        const elements = doc.querySelectorAll(selector);
+        const promises = Array.from(elements).map(async element => {
+            const fileUrl = getFileUrl(element[attribute], selector.includes('link'));
+          console.log(">>",fileUrl);  
+          const fileContent = await fetchTextFile(fileUrl);
+
+            injectExternalResource(doc, selector, fileContent);
+        });
+        await Promise.all(promises);
+    }
+
+    function getFileUrl(filePath, isStylesheet) {
+      console.log("K=Map",filePath)
+        if (filePath.startsWith('http')) return filePath;
+        const rawUrl = `https://raw.githubusercontent.com/${config.repoOwner}/${config.repoName}/${config.branch}/${currentDirectory}/${filePath}`;
+        return rawUrl;
+    }
+
+    function injectExternalResource(doc, selector, content) {
+        if (selector.includes('link')) {
+            const styleTag = document.createElement('style');
+            styleTag.textContent = content;
+            doc.head.appendChild(styleTag);
+        } else if (selector.includes('script')) {
+            const scriptTag = document.createElement('script');
+            scriptTag.textContent = content;
+            doc.body.appendChild(scriptTag);
+        }
+    }
+
+    function updateImageSources(doc) {
+        doc.querySelectorAll('img[src]').forEach(img => {
+            img.src = getFileUrl(img.getAttribute('src'), false);
+        });
+    }
+
+    function updateLinkSources(doc) {
+        doc.querySelectorAll('a[href]').forEach(link => {
+            const href = link.getAttribute('href');
+            if (href.startsWith('#')) return; // In-page link, leave unchanged
+            if (!href.startsWith('http')) {
+                link.setAttribute('href', getFileUrl(href, false));
+            }
+        });
+    }
+
+    function loadIframeContent(iframeDoc) {
+        const iframe = document.createElement('iframe');
+        document.getElementById('content').innerHTML = '';
+        document.getElementById('content').appendChild(iframe);
+
+        const iframeDocContent = `
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>${iframeDoc.head.innerHTML}</head>
+                <body>${iframeDoc.body.innerHTML}</body>
+            </html>
+        `;
+        iframe.srcdoc = iframeDocContent;
+
+        iframe.addEventListener('load', () => setupIframeLinks(iframe));
+    }
+
+    function setupIframeLinks(iframe) {
+        const iframeDoc = iframe.contentDocument;
+        iframeDoc.addEventListener('click', async (event) => {
+            const target = event.target;
+            if (target.tagName === 'A' && target.getAttribute('href')) {
+                event.preventDefault();
+                const href = target.getAttribute('href');
+
+                if (href.endsWith('.html') || href.endsWith('.csv')) {
+                    // Resolve the href to an absolute URL if it's relative
+                    const absoluteHref = href.startsWith('http') ? href : `${currentDirectory}/${href}`;
+                    const resolvedPath = absoluteHref.replace(`https://raw.githubusercontent.com/${config.repoOwner}/${config.repoName}/${config.branch}/`, '');
+
+                    // Update the current directory based on the resolved path
+                    const parts = resolvedPath.split('/');
+                    currentDirectory = parts.slice(0, parts.length - 1).join('/');
+
+                    await loadPageIntoIframe(absoluteHref, iframe);
+                }
+            }
+        });
+    }
+
+    async function loadPageIntoIframe(url, iframe) {
+        try {
+            const pageUrl = url.startsWith('http') ? url : getFileUrl(url, false);
+            const pageContent = await fetchTextFile(pageUrl);
+            const pageDoc = parseHTML(pageContent);
+
+            await loadExternalResources(pageDoc, 'link[rel="stylesheet"]', 'href');
+            await loadExternalResources(pageDoc, 'script[src]', 'src');
+            updateImageSources(pageDoc);
+            updateLinkSources(pageDoc);
+
+            historyStack.push({ srcdoc: iframe.srcdoc, directory: currentDirectory });
+            iframe.srcdoc = `
+                <!DOCTYPE html>
+                <html lang="en">
+                    <head>${pageDoc.head.innerHTML}</head>
+                    <body>${pageDoc.body.innerHTML}</body>
+                </html>
+            `;
+
+            document.getElementById('backButton').disabled = historyStack.length === 0;
+        } catch (error) {
+            showError(error.message);
+        }
+    }
+
+    document.getElementById('backButton').addEventListener('click', () => {
+        if (historyStack.length > 0) {
+            const iframe = document.querySelector('iframe');
+            const { srcdoc, directory } = historyStack.pop();
+            iframe.srcdoc = srcdoc;
+            currentDirectory = directory;
+
+            document.getElementById('backButton').disabled = historyStack.length === 0;
+        }
+    });
+
+    function showError(message) {
+        document.getElementById('content').innerHTML = `<p class="error">Error: ${message}</p>`;
+    }
+
+    fetchFolderContent();
+</script>
+</body>
+</html>
