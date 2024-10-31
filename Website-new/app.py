@@ -122,6 +122,7 @@ def content():
 def character():
     return render_template('character/content.html', group='char')
 
+print("Yes we are running your app.py")
 if __name__ == "__main__":
     print("Nathan Hello WOrld")
     app.run(host='0.0.0.0', port=3000)  # Use 3000 or the port specified by your host
