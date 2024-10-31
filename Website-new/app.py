@@ -43,7 +43,7 @@ def on_webhook():
             else:
                 print("{} does not exist".format(GIT_SCRIPT))
                 
-            # Refresh the application
+            # Refresh the application. Might not be necessary but when I'm ediitng in glitch I do need to visually reset. Might not need in production
             subprocess.call("refresh", shell=True)
 
         except subprocess.CalledProcessError as e:
