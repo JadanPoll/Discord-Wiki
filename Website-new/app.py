@@ -17,8 +17,6 @@ SECRET = os.getenv('SECRET')  # GitHub webhook secret from environment variables
 
 
 
-
-
 # GitHub webhook handler
 @app.route('/git', methods=['POST'])
 def on_webhook():
@@ -40,16 +38,16 @@ def on_webhook():
 
             # Execute the git script
             if os.path.exists(GIT_SCRIPT):
-                print(f"{GIT_SCRIPT} found, executing...")
+                print("{} found, executing...".format(GIT_SCRIPT))
                 subprocess.check_call(GIT_SCRIPT, shell=True)
             else:
-                print(f"{GIT_SCRIPT} does not exist")
+                print("{} does not exist".format(GIT_SCRIPT))
                 
             # Refresh the application
             subprocess.call("refresh", shell=True)
 
         except subprocess.CalledProcessError as e:
-            print(f"Error in webhook processing: {e}")
+            print("Error in webhook processing: {}".format(e))
 
     return '', 200
 
