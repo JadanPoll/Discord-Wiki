@@ -1,0 +1,254 @@
+server.js
+
+/**
+ * This is the main Node.js server script for your project.
+ */
+console.log("Entering server.js");
+const path = require("path");
+const { exec } = require('child_process');
+const fs = require('fs'); // Import fs for file operations
+const fastify = require("fastify")({
+  logger: true, // Enable logging for better debugging
+});
+const axios = require("axios");
+const crypto = require('crypto');
+
+// Define configuration variables
+const GIT_SCRIPT = 'git.sh'; // Path to your git script
+const PORT =  3001; // Use a different port to avoid conflict with Flask
+const SECRET = process.env.SECRET; // GitHub webhook secret from environment variables
+//console.log(PORT)
+
+
+
+// Function to start the Flask app
+const startFlaskApp = () => {
+  console.log("Starting bash for app.py");
+
+  // Change to the directory containing app.py
+  exec('cd public/Website-new && python app.py', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error starting Flask app: ${error}`);
+      return;
+    }
+    console.log(`Flask app started: ${stdout}`);
+    if (stderr) {
+      console.error(`Flask app stderr: ${stderr}`);
+    }
+  });
+};
+
+// Call the function to start the Flask app
+//startFlaskApp();
+
+
+
+// Webhook handler
+const onWebhook = (req, reply) => {
+  console.log("Webhook activated");
+  let hmac = crypto.createHmac('sha1', SECRET);
+  let sig = `sha1=${hmac.update(JSON.stringify(req.body)).digest('hex')}`;
+
+  if (req.headers['x-github-event'] === 'push' && sig === req.headers['x-hub-signature']) {
+    console.log("Processing push event...");
+
+    // Change permissions for git.sh
+    exec(`chmod 777 ${GIT_SCRIPT}`, (err) => {
+      if (err) {
+        console.error('Failed to change permissions:', err);
+      } else {
+        console.log('Permissions changed for git.sh');
+      }
+    });
+
+    // Check if the script exists
+    fs.access(GIT_SCRIPT, fs.constants.F_OK, (err) => {
+      if (err) {
+        console.error(`${GIT_SCRIPT} does not exist`);
+        return;
+      }
+
+      console.log(`${GIT_SCRIPT} found, executing...`);
+      exec(GIT_SCRIPT, (err, stdout, stderr) => {
+        if (err) {
+          console.error('Error executing git.sh:', err);
+          return;
+        }
+        console.log('Output from git.sh:', stdout);
+        if (stderr) {
+          console.error('Error output from git.sh:', stderr);
+        }
+      });
+    });
+
+    exec('refresh', (err) => {
+      if (err) {
+        console.error('Error executing refresh:', err);
+      }
+    });
+  }
+
+  reply.sendStatus(200);
+};
+
+// GitHub webhook endpoint
+fastify.post('/git', onWebhook);
+
+// Enable CORS for all requests
+fastify.register(require('@fastify/cors'), {
+  origin: "*", // Adjust this for production
+});
+
+// CORS bypass route for proxying requests
+fastify.route({
+  method: ['GET', 'POST', 'PUT', 'DELETE'],
+  url: '/cors-bypass/*',
+  handler: async (request, reply) => {
+    try {
+      const targetUrl = request.params['*'];
+      if (!targetUrl) {
+        return reply.status(400).send({ error: 'Target URL is required' });
+      }
+
+      const authHeader = request.headers.authorization;
+
+      const response = await axios({
+        method: request.method,
+        url: targetUrl,
+        headers: {
+          Authorization: authHeader,
+        },
+      });
+
+      reply.status(response.status).send(response.data);
+    } catch (error) {
+      console.error('Error forwarding request:', error);
+      reply.status(error.response?.status || 500).send({
+        error: error.message,
+        ...(error.response?.data && { details: error.response.data }),
+      });
+    }
+  },
+});
+
+// Setup static files
+fastify.register(require("@fastify/static"), {
+  root: path.join(__dirname, "public/Website"), // Corrected path to match your structure
+  prefix: "/", // Ensure static files do not conflict with Flask routes
+});
+
+// Define a route for the root path
+fastify.get('/', (request, reply) => {
+  reply.send({ message: "Welcome to the Node.js server! You shouldn't be seeing this" }); // You can customize this response as needed
+});
+
+// Run the server and log the address
+fastify.listen(
+  { port: PORT, host: "0.0.0.0" },
+  function (err, address) {
+    if (err) {
+      console.error(err);
+      process.exit(1);
+    }
+    console.log(`Your app is listening on ${address}`);
+  }
+);
+
+
+
+
+package.json
+
+{
+  "name": "glitch-hello-node",
+  "version": "0.1.0",
+  "description": "A simple Node app built on Fastify, instantly up and running. Built to be remixed on Glitch.com.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "fastify": "^4.21.0",
+    "handlebars": "^4.7.8",
+    "@fastify/formbody": "^7.4.0",
+    "@fastify/static": "^6.10.2",
+    "@fastify/view": "^8.0.0",
+    "@fastify/cors": "^8.0.0",
+    "node-fetch": "^3.3.1",
+    "axios": "^1.0.0",
+    "node-cmd": "^5.0.0",
+    "body-parser": "^1.20.2"
+  },
+  "engines": {
+    "node": "14.x"
+  },
+  "repository": {
+    "url": "https://glitch.com/edit/#!/glitch-hello-node"
+  },
+  "license": "MIT",
+  "keywords": [
+    "node",
+    "glitch"
+  ]
+}
+
+
+
+
+git.sh
+
+#!/bin/bash
+
+# Define the folder name variable based on the directory you want to extract
+FOLDER_NAME="Website"
+
+# Define the remote repository URL
+REMOTE_REPO="git@github.com:JadanPoll/Discord-Wiki.git"
+
+# Check if remote origin exists
+if ! git remote get-url origin &>/dev/null; then
+  echo "Adding remote origin..."
+  git remote add origin "$REMOTE_REPO"
+else
+  echo "Remote origin already exists."
+fi
+
+# Initialize the repository if it hasn't been initialized
+if [ ! -d ".git" ]; then
+  echo "Initializing new git repository..."
+  git init
+fi
+
+# Fetch the latest changes from the main branch
+echo "Fetching changes from remote..."
+output=$(git fetch origin main 2>&1)  # Capture the output of the fetch command for the main branch
+echo "$output"
+
+# Show the contents of the main branch
+echo "Listing files and folders in the main branch:"
+git ls-tree -r origin/main --name-only  # List all files in the main branch
+
+
+
+# Attempt to check out the specified directory into the current working directory
+if git checkout origin/main -- "$FOLDER_NAME"; then
+  echo "Successfully checked out $FOLDER_NAME."
+  
+  # Create the target directory within public using the folder name
+  TARGET_DIR="public/$FOLDER_NAME"
+  if [ ! -d "$TARGET_DIR" ]; then
+    echo "Creating $TARGET_DIR directory..."
+    mkdir -p "$TARGET_DIR"  # Create the directory if it doesn't exist
+  fi
+  
+  # Move contents of the checked-out folder to the target directory
+  echo "Moving $FOLDER_NAME directory contents to $TARGET_DIR directory..."
+  mv "$FOLDER_NAME"/* "$TARGET_DIR/"  # Move contents of the folder to the target directory
+  rmdir "$FOLDER_NAME"  # Remove the empty folder after moving contents
+else
+  echo "Failed to check out $FOLDER_NAME directory."
+fi
+
+# Optionally, show the status after the operations
+echo "Showing the status after operations..."
+git status
