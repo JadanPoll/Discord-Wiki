@@ -1,6 +1,79 @@
-from flask import Flask, render_template
-
+import os
+import subprocess
+import hmac
+import hashlib
+from flask import Flask, request, jsonify, send_file, abort,render_template
+from flask_cors import CORS
+import requests
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
+
+CORS(app)  # Enable CORS for all routes
+
+# Define configuration variables
+GIT_SCRIPT = "../../git.sh"
+PORT = 3000
+SECRET = os.getenv('SECRET')  # GitHub webhook secret from environment variables
+
+
+
+
+
+
+# GitHub webhook handler
+@app.route('/git', methods=['POST'])
+def on_webhook():
+    print("Webhook activated")
+    
+    # Validate the GitHub webhook signature
+    signature = 'sha1=' + hmac.new(SECRET.encode(), request.data, hashlib.sha1).hexdigest()
+    if (
+        request.headers.get("X-GitHub-Event") == "push" and
+        signature == request.headers.get("X-Hub-Signature")
+    ):
+        print("Processing push event...")
+
+        # Ensure git.sh is executable
+        try:
+            subprocess.check_call(f"chmod +x {GIT_SCRIPT}", shell=True)
+            print("Permissions changed for git.sh")
+
+            # Execute the git script
+            if os.path.exists(GIT_SCRIPT):
+                print(f"{GIT_SCRIPT} found, executing...")
+                subprocess.check_call(GIT_SCRIPT, shell=True)
+            else:
+                print(f"{GIT_SCRIPT} does not exist")
+                
+            # Refresh the application
+            subprocess.call("refresh", shell=True)
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error in webhook processing: {e}")
+
+    return '', 200
+
+# CORS bypass route for proxying requests
+@app.route('/cors-bypass/<path:target_url>', methods=["GET", "POST", "PUT", "DELETE"])
+def cors_bypass(target_url):
+    try:
+        auth_header = request.headers.get("Authorization")
+        headers = {"Authorization": auth_header} if auth_header else {}
+
+        response = requests.request(
+            method=request.method,
+            url=target_url,
+            headers=headers,
+            data=request.get_data(),
+            params=request.args
+        )
+
+        return (response.content, response.status_code, response.headers.items())
+    except requests.RequestException as e:
+        print("Error forwarding request:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+
 
 @app.route("/")
 def main():
