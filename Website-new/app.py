@@ -34,7 +34,8 @@ def on_webhook():
 
         # Ensure git.sh is executable
         try:
-            subprocess.check_call(f"chmod +x {GIT_SCRIPT}", shell=True)
+            subprocess.check_call("chmod +x {}".format(GIT_SCRIPT), shell=True)
+
             print("Permissions changed for git.sh")
 
             # Execute the git script
