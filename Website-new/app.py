@@ -57,7 +57,7 @@ def cors_bypass(target_url):
     try:
         auth_header = request.headers.get("Authorization")
         headers = {"Authorization": auth_header} if auth_header else {}
-
+        print(headers)
         response = requests.request(
             method=request.method,
             url=target_url,
