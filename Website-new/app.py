@@ -65,7 +65,7 @@ def cors_bypass(target_url):
             data=request.get_data(),
             params=request.args
         )
-        print(response.content)
+        print(response.headers.get('Content-Type'))
 
 
 
