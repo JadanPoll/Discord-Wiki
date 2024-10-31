@@ -51,5 +51,5 @@ def character():
     return render_template('character/content.html', group='char')
 
 if __name__ == "__main__":
-    print("Hello World")
-    app.run(debug=True)
+    print("Nathan Hello WOrld")
+    app.run(host='0.0.0.0', port=3000)  # Use 3000 or the port specified by your host
