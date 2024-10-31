@@ -68,11 +68,7 @@ def cors_bypass(target_url):
 
 
 
-        # Check if the response is JSON
-        if response.headers.get('Content-Type') == 'application/json':
-            return jsonify(response.json()), response.status_code, {key: value for key, value in response.headers.items()}
-        else:
-            return jsonify({"error": "Response is not JSON", "content": response.text}), response.status_code
+        return jsonify({"error": "Response is not JSON", "content": response.text}), response.status_code
 
     except requests.RequestException as e:
         print("Error forwarding request:", e)
