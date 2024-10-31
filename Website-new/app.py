@@ -65,6 +65,7 @@ def cors_bypass(target_url):
             data=request.get_data(),
             params=request.args
         )
+        print(response.content)
 
         return (response.content, response.status_code, response.headers.items())
     except requests.RequestException as e:
