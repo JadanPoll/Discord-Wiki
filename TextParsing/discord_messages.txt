@@ -1,0 +1,78 @@
+jadan00: Lets get the yappathon started.
+jadan00: What are y'all thinking about the project?
+jadan00: What do y'all understand by it?
+kbmin24: tbh i dont know anything much further than what was given in the presentation
+kbmin24: ie analysing conversation, making a timeline
+kbmin24: and a frontend that visualises the info
+kbmin24: into an on demand webpage
+jadan00: The overview  is that we have a large amount of information, texting conversation  information from dozens and hundreds of users. 
+And  we are trying to make it actually useful and extract useful parameters from it.
+jadan00: Timeline and content analysis was one of the useful parameters i thought you could get from it
+jadan00: For example, take **Timeline** . if you have a group with friends and over the years you talked about all kinds of stuff Timeline makes it so you could view the whole group chat journey as some kind of picture story book. Like if you were discussing prom on time period and maybe ruthless exams another time period it looks over the whole period and creates a kind of sort of bookmark summary story
+jadan00: It was raw textual data but its application  and presentation in this particular way is an  **Insight**
+jadan00: That is the heart of the project. What would you do if you had large amounts of text data on a particular channel? particular topic? particular server.
+The website part was the ways of organizing all these various **insights** and presenting it to the user.
+jadan00: Eg: we could have a **stock insight**. Which could  extract text information from a stock market discord server and present it in any kind of suitable way(eg: graphs) or info divided by mentioned company
+jadan00: Of course, different insights ask for data to be processed and outputted differently so that's what the idea of engine.html was for
+jadan00: Hey <@561758447226454030> . Check out <#1289712482541371393> . What would you do with that kind of data?
+kbmin24: im outside rn so ill have a deeper look later during the day
+kbmin24: but my first instinct is that we should get rid of most of the fields and only leave eg username message time etc
+kbmin24: then do smth with the messages
+kbmin24: probably sentiment analysis is one of the things we should be able to do
+jadan00: Yesss that's one **insight** and the most popular one for ML.
+jadan00: Our good work would be creating **insights** that general users would find interesting and useful
+jadan00: The question is: we have all this threads of text conversation information, what can we do with it? Anything that answer that question is a potential **insight** and of key interest  to our work
+jiankunz: Currently, is there a way to distinguish between important information that needs to be recorded, versus messages like greetings that can be discarded?
+jadan00: Hey Jiankun.
+jadan00: I think there  are a few filtering techniques that can be used first, like filtering out short messages or for low complexity of vocabulary. 
+Like usually important information uses "bigger IQ" words., tends to be longer, tends to have upvotes or have texts packed around it in a short time frame, "@ everyones " etc. 
+Hey if anyone knows a one-shot solution happy to hear it but right now one way we could do it is use a series of those solutions to select a region of text with statistical likelyhood of being important.
+jadan00: That's all part of the big algorithm we need to take pains to develop😨 ,
+jadan00: testing looking at various factors of textual data, running the test and checking to see if it identifys the interesting information in text we wanted. Then run the data we captured through NLP to display as actual blog-like english(eg: for the **wiki**  insight)
+jadan00: Oh btw
+jadan00: <@728809041148510298>  do you guys know of tf-idf?
+jadan00: https://voyant-tools.org/?corpus=b40c4b7f9978fe73e9f91019ff881b34
+This is a statistical algorithm run on `[Data_Example #2]`  When we are developing the algorithms it will help to develop visualization tools to understand and tweak how our programmed parameters is selecting  on what in the data. The vocabulary can then be ID'd to select *interesting* regions for run through NLP.
+jadan00: Sigh... that's just one way I thought we could do it, a good part of the `conversation algorithm` project layer will be having these goals and researching things we could do  to get there. Nothing more abstract.
+jadan00: But hey if Sam Altman and his team of researches managed to index the entire web to build that crazy ChatGPT beast over 5 years we can for sure do this.
+kbmin24: yup, wasnt that frequence *  log(# of documents where it appears) or smth
+kbmin24: just thought abt smth
+kbmin24: what if we add proper search function as a side feature
+kbmin24: currently discord search is just rubbish, doesnt help at all
+kbmin24: for timeline should we compute tf-idf of all words that appear and choose the word/phrase with the highest value as its 'summary'
+kbmin24: ofc excluding trivial words
+kbmin24: by trivial words i mean articles plus nicknames etc etc
+kbmin24: how to determine whether a word is 'trivial' or not is a bigger problem tho
+joshuachen6: A thing you can do is just filter out the words that are part of grammar
+kbmin24: yeah but how abt nicknames?
+kbmin24: they dont necessarily follow discord nicknames
+kbmin24: whats in my mind rn is that if a word appears a lot across the entire convo it's likely to be smth not related to the topic
+kbmin24: for example lets say i call u josh
+kbmin24: im gonna text 'josh' a lot of times a day for years
+kbmin24: but it likely won't mean anything useful
+joshuachen6: "a", "can", "just", "are",  "out", "the", "that" ,"part of"
+
+This would leave you with "thing", "do", "filter", "grammar"
+
+About nicknames, you can check against a dictionary I guess, but otherwise that is a challenge
+kbmin24: yeah we should do that too
+kbmin24: tbh determining grammatical words should be easy
+kbmin24: what we can do is grab some data
+kbmin24: make a word cloud
+kbmin24: and examine top 100 and choose some of them
+kbmin24: then hardcode them
+jadan00: 💀 That's a wild thing to say in that context
+jadan00: Sorry Josh
+kbmin24: LOL i didn't mean in that way
+kbmin24: i just meant if it recurs over and over again it won't likely be the topic
+kbmin24: sry if u understood in that way tho
+jadan00: Mhm. There aren't that many other ways to understand that buddy.
+jadan00: Yess. I think this is actually a really common task performed on data before feeding into NLPs  actually. There's a library for it im sure
+kbmin24: 😭
+kbmin24: https://github.com/microsoft/PowerBI-visuals-WordCloud/blob/main/src/WordCloud.ts
+kbmin24: theres smth in line 276
+kbmin24: 
+jadan00: I ran our conversation thus far on a stop word remover  `https://tools.fromdev.com/remove-stopwords-online.html` and then through voyant `https://voyant-tools.org/?corpus=4205997ebc54249fd2b7f2449cd1f4fb`
+jadan00: Helpful find ▶️ going into Resource/ <#1289827196965490709>
+joshuachen6: you could assign weights to tags
+jadan00: 
