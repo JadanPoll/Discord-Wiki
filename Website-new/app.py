@@ -89,9 +89,9 @@ def main():
 def visualize():
     return render_template('visualize/index.html', group='dev')
 
-@app.route('/visualize/analyze')
+@app.route('/visualize/analysis')
 def analyze():
-    return render_template('visualize/analyze.html', group='dev')
+    return render_template('visualize/analysis.html', group='dev')
 
 @app.route("/visualize/download_messages")
 def dl_msg():
