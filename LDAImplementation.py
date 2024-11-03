@@ -2,7 +2,6 @@ import os
 import re
 import gensim
 import pyLDAvis
-print(pyLDAvis.__version__)
 import pyLDAvis.gensim
 import pickle
 import string
@@ -15,7 +14,6 @@ from pprint import pprint
 
 # gets username from the OS
 username = os.environ.get('USER')
-print(username)
 
 # Download the stopwords if not already done
 nltk.download('stopwords')
