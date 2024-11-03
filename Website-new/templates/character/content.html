@@ -1,0 +1,146 @@
+{% extends "main.html" %}
+
+{% block title %}Character Map of Skills and Attributes{% endblock %}
+
+{% block head %}
+<style>
+    h1 {
+        text-align: center;
+        color: #2c3e50;
+    }
+
+    .map-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        margin-top: 20px;
+    }
+
+    .user-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        margin: 10px;
+        padding: 20px;
+        text-align: center;
+        position: relative;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .user-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .user-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+        height: 4px;
+        background: #3498db;
+        border-radius: 4px;
+    }
+
+    .user-card h2 {
+        margin: 20px 0 10px;
+        font-size: 24px;
+        color: #333;
+    }
+
+    .user-card h3 {
+        margin: 10px 0;
+        font-size: 20px;
+        color: #3498db;
+    }
+
+    .skills-list,
+    .attributes-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        text-align: left;
+    }
+
+    .skills-list li,
+    .attributes-list li {
+        margin-bottom: 8px;
+        font-size: 16px;
+        padding-left: 24px;
+        position: relative;
+    }
+
+    .skills-list li::before {
+        content: '🔹';
+        position: absolute;
+        left: 0;
+    }
+
+    .attributes-list li::before {
+        content: '⚬';
+        position: absolute;
+        left: 0;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<h1>🎮 Analyzing... Character Map of Skills and Attributes 🌟</h1>
+
+<div class="map-container">
+    <div class="user-card">
+        <h2>John Doe</h2>
+        <h3>Skills</h3>
+        <ul class="skills-list">
+            <li>Leadership</li>
+            <li>Project Management</li>
+            <li>Communication</li>
+        </ul>
+        <h3>Attributes</h3>
+        <ul class="attributes-list">
+            <li>Driven</li>
+            <li>Analytical</li>
+            <li>Team Player</li>
+        </ul>
+    </div>
+
+    <div class="user-card">
+        <h2>Jane Smith</h2>
+        <h3>Skills</h3>
+        <ul class="skills-list">
+            <li>Software Development</li>
+            <li>Problem Solving</li>
+            <li>Data Analysis</li>
+        </ul>
+        <h3>Attributes</h3>
+        <ul class="attributes-list">
+            <li>Creative</li>
+            <li>Detail-Oriented</li>
+            <li>Resilient</li>
+        </ul>
+    </div>
+
+    <div class="user-card">
+        <h2>Emily Johnson</h2>
+        <h3>Skills</h3>
+        <ul class="skills-list">
+            <li>Graphic Design</li>
+            <li>UX/UI Design</li>
+            <li>Marketing</li>
+        </ul>
+        <h3>Attributes</h3>
+        <ul class="attributes-list">
+            <li>Innovative</li>
+            <li>Organized</li>
+            <li>Collaborative</li>
+        </ul>
+    </div>
+
+    <!-- Additional user cards can be added here -->
+</div>
+{% endblock %}
+
+</html>

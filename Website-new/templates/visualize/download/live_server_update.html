@@ -1,0 +1,504 @@
+{% extends "main.html" %}
+
+{% block title %}Discord Live Server Updates{% endblock %}
+
+{% block head %}
+<style>
+
+    #output {
+        white-space: pre-wrap;
+        background-color: #f4f4f4;
+        padding: 10px;
+        border: 1px solid #ccc;
+        max-height: 400px;
+        overflow-y: auto;
+        margin-top: 20px;
+    }
+
+    /* Simple grid layout */
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .grid-item {
+        padding: 20px;
+        text-align: center;
+        background-color: #f1f1f1;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        
+        cursor: pointer;
+    }
+
+    /* Popup styling */
+    .popup {
+        position: absolute;
+        z-index: 1000;
+        width: 300px;
+        padding: 15px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease-in-out;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .popup.open {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .popup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .popup-content a {
+        color: #007BFF !important;
+        cursor: pointer;
+    }
+
+</style>
+
+{% endblock %}
+
+{% block body %}
+<h1>Discord Live Server Updates</h1>
+<form id="tokenForm">
+    <div class="mb-3 row">
+        <label for="auth-token" class="col-sm-2">Discord token</label>
+        <div class="col-sm-10">
+            <input type="text" class="form-control" id="discordToken" name="discordToken" placeholder="Enter your Discord Token" required>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">Load Servers</button>
+    </div>
+</form>
+
+<div class="mb-3 row">
+    <label for="num-messages" class="col-sm-2"># of messages to save</label>
+    <div class="col-sm-10">
+        <input type="number" class="form-control" id="num-messages" min="1" max="10000" value="50">
+    </div>
+</div>
+<button id="download-btn" class="btn btn-success" disabled>Download Messages</button>
+
+
+<div id="output">Waiting for token submission...</div>
+<div id="serverGrid" class="grid-container"></div>
+
+<!-- Popup for showing channels -->
+<div id="popup" class="popup">
+    <div class="popup-header">
+        <h3 id="serverName"></h3>
+        <button id="closePopup" class="btn btn-danger"
+            onclick="(() => document.getElementById('popup').classList.remove('open'))()">Close</button>
+    </div>
+    <div class="popup-content">
+        <ul id="channelList"></ul>
+    </div>
+</div>
+
+
+
+
+<script>
+    // This code is responsible for extracting messages from the discord.
+    var input_url = null;
+    class DiscordAPI {
+        constructor(authToken) {
+            this.DISCORD_EPOCH = 1420070400000n;
+            this.setAuthorization(authToken);
+        }
+        setAuthorization(token) {
+            this.authToken = token;
+        }
+
+        //Snowflake is a epoch-based way of calculating timestamps with more information
+        convertTimestampToSnowflake(timestamp) {
+            return ((BigInt(new Date(timestamp).getTime()) - this.DISCORD_EPOCH) << 22n).toString();
+        }
+
+        constructSearchParams(options) {
+            const params = new URLSearchParams();
+            if (options.author_id) params.append('author_id', options.author_id);
+            if (options.mentions) params.append('mentions', options.mentions);
+            if (options.has && options.has.length > 0) params.append('has', options.has.join(','));
+            if (options.pinned) params.append('pinned', 'true');
+            if (options.before) params.append('before', options.before);
+            if (options.after) params.append('after', options.after);
+            return params.toString();
+        }
+
+
+
+        async fetchMessages(apiUrl) {
+            try {
+                // First attempt using the cors-bypass path
+                const response = await fetch(`/cors-bypass/${apiUrl}`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: this.authToken,  // Make sure this.authToken is set properly
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                // Check if the response is successful
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+
+                return await response.json();  // Return the parsed JSON response
+            }
+            catch (error) {
+                console.log('Trying different route:', error.message);
+
+                try {
+                    // If first attempt fails, try the direct API route
+                    const response = await fetch(`${apiUrl}`, {
+                        method: 'GET',
+                        headers: {
+                            Authorization: this.authToken,  // Ensure the token is available
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    // Check if the second response is successful
+                    if (!response.ok) {
+                        throw new Error(`Request failed with status ${response.status}`);
+                    }
+
+                    return await response.json();
+                }
+                catch (error) {
+                    // Log any final error that occurs
+                    console.error('Error fetching messages on second attempt:', error.message);
+                    return [];  // Return an empty array on failure
+                }
+            }
+        }
+
+
+        async fetchChannelMessages(channelId, options) {
+
+            //TODO: add some logic that verifies channel (or just use response code?)
+            const allMessages = [];
+            let startTime, endTime;
+            options.limit = options.limit || 100;
+
+            // Start timing
+            startTime = performance.now();
+
+            while (options.limit > 0) {
+                const apiUrl = `https://discord.com/api/v9/channels/${channelId}/messages?limit=${Math.min(options.limit, 100)}&${this.constructSearchParams(options)}`;
+                console.log(`API URL: ${apiUrl}`);
+                const messages = await this.fetchMessages(apiUrl);
+                allMessages.push(...messages);
+
+                if (messages.length < 100) break;
+
+                const lastMessage = messages[messages.length - 1];
+                options.before = this.convertTimestampToSnowflake(lastMessage.timestamp);
+                options.limit -= messages.length;
+            }
+
+            // End timing
+            endTime = performance.now();
+            console.log(`Time taken: ${(endTime - startTime).toFixed(2)} milliseconds`);
+
+            console.log(`Fetched ${allMessages.length} messages`);
+            return allMessages;
+        }
+
+
+
+        saveMessagesToFile(messages) {
+            // Reverse the order of the messages
+            console.log(messages);
+
+            // Serialize the entire array of reversed messages as a JSON string
+            const reversedMessages = JSON.stringify(messages.reverse(), null, 2);  // Proper JSON format with indentation
+
+            // Create a Blob from the JSON string
+            const blob = new Blob([reversedMessages], { type: 'application/json' });  // Save as JSON, not plain text
+
+            // Create a link element for downloading the Blob
+            const a = window.parent.document.createElement('a');  // Create link in the parent document
+            a.style.display = 'none';  // Hide the link element
+            a.href = window.parent.URL.createObjectURL(blob);  // Create a URL for the Blob
+            a.download = 'discord_messages.json';  // Save the file as a JSON file
+            a.innerText = "Download Discord Messages";
+
+            // Append the link to the parent document
+            window.parent.document.body.appendChild(a);
+
+            // Trigger the download
+            a.click();
+
+            // Cleanup after the download
+            window.parent.URL.revokeObjectURL(a.href);  // Revoke the Blob URL to free memory
+            window.parent.document.body.removeChild(a);  // Remove the link from the document
+
+            console.log('Messages saved to discord_messages.json in reversed order.');
+        }
+
+
+    }
+
+</script>
+
+
+
+<script>
+    const SCRIPT_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.0/pako.js';
+    const WS_URL = 'wss://gateway.discord.gg/?encoding=json&v=9&compress=zlib-stream';
+
+    const outputElement = document.getElementById('output');
+    const form = document.getElementById('tokenForm');
+    const tokenInput = document.getElementById('discordToken');
+
+    const serverGrid = document.getElementById('serverGrid');
+    const popup = document.getElementById('popup');
+    const serverNameElement = document.getElementById('serverName');
+    const channelListElement = document.getElementById('channelList');
+    const closePopupButton = document.getElementById('closePopup');
+
+
+
+    // Asynchronously load external script
+    const loadScript = async (url) => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to load script: ${response.statusText}`);
+            const scriptElement = document.createElement('script');
+            scriptElement.textContent = await response.text();
+            document.head.appendChild(scriptElement);
+            console.log('Pako.js loaded successfully.');
+        } catch (error) {
+            console.log(`Error loading script: ${error}`);
+        }
+    };
+
+    function onReceivedServers(json) {
+        console.log(json);
+
+        // Clear exsiting data
+        serverGrid.innerHTML = '';
+
+        // Iterate over the servers in the received JSON object
+        json.d.guilds.forEach(server => {
+            // Create a new div for each server
+            const serverItem = document.createElement('div');
+            serverItem.classList.add('grid-item');
+            serverItem.innerText = server.properties.name;
+
+            // Create a hidden link for the server
+            const serverURL = `https://discord.com/channels/${server.properties.id}`;
+            serverItem.dataset.serverUrl = serverURL;
+
+            // Add hidden channel data
+            serverItem.dataset.channels = JSON.stringify(server.channels);
+
+            // Handle server item click event
+            serverItem.addEventListener('click', (event) => {
+                // Show the popup and display the server's name
+                serverNameElement.innerText = server.properties.name;
+
+                // Clear any previous channel list
+                channelListElement.innerHTML = '';
+
+                // Add channels to the list
+                const channels = JSON.parse(serverItem.dataset.channels);
+                channels.forEach(channel => {
+                    const channelItem = document.createElement('li');
+                    const channelLink = document.createElement('a');
+
+                    //channelLink.href = `https://discord.com/channels/${server.properties.id}/${channel.id}`;
+                    channelLink.onclick = () => {
+                        // const input_url = window.document.getElementById("channel-url")
+                        input_url = `https://discord.com/channels/${server.properties.id}/${channel.id}`
+
+                        const download_btn = window.document.getElementById("download-btn");
+                        download_btn.disabled = false
+
+                        outputElement.innerHTML = `Selected ${server.properties.name} > ${channel.name} (${channel.id})`
+
+                        popup.classList.remove('open');
+                        //download_btn.disabled=true
+
+                    }
+                    channelLink.innerText = channel.name;
+                    //channelLink.target = '_blank'; // Open in a new tab
+
+                    channelItem.appendChild(channelLink);
+                    channelListElement.appendChild(channelItem);
+                });
+
+                // Show popup to the right or left of the clicked server item
+                const serverItemRect = serverItem.getBoundingClientRect();
+                const popupWidth = 300; // Popup width defined in CSS
+                const spaceOnRight = window.innerWidth - serverItemRect.right;
+                const spaceOnLeft = serverItemRect.left;
+
+                // Position the popup based on available space
+                if (spaceOnRight >= popupWidth) {
+                    popup.style.left = `${serverItemRect.right + 10}px`;
+                    popup.style.top = `${serverItemRect.top}px`;
+                    popup.style.transform = 'translateX(0)';
+                } else if (spaceOnLeft >= popupWidth) {
+                    popup.style.left = `${serverItemRect.left - popupWidth - 10}px`;
+                    popup.style.top = `${serverItemRect.top}px`;
+                    popup.style.transform = 'translateX(0)';
+                } else {
+                    // Default to expanding downwards if not enough space
+                    popup.style.left = `${serverItemRect.left}px`;
+                    popup.style.top = `${serverItemRect.bottom + 10}px`;
+                    popup.style.transform = 'translateY(0)';
+                }
+
+                // Make the popup visible
+                popup.classList.add('open');
+            });
+
+            // Append the server item to the grid
+            serverGrid.appendChild(serverItem);
+        });
+
+        outputElement.innerHTML = 'Please select a channel';
+    }
+
+    // Handles WebSocket and compression logic
+    class DiscordClient {
+        constructor(wsUrl, token) {
+            this.wsUrl = wsUrl;
+            this.token = token;
+            this.ws = null;
+            this.seq = null;
+            this.heartbeatInterval = null;
+            this.inflater = new pako.Inflate({ chunkSize: 65536, to: 'string' });
+            this.inflater.onEnd = this.afterDataDecompressed.bind(this);
+            this.result = null;
+        }
+
+        connect() {
+            this.ws = new WebSocket(this.wsUrl);
+            this.ws.binaryType = 'arraybuffer';
+            this.ws.onopen = () => { console.log('WebSocket connected.'); this.sayHello(); }
+            this.ws.onmessage = this.handleMessage.bind(this);
+            this.ws.onclose = () => console.log('WebSocket closed.');
+        }
+
+
+
+        handleMessage(event) {
+            if (event.data instanceof ArrayBuffer) {
+                this.inflater.push(new Uint8Array(event.data), pako.Z_SYNC_FLUSH);
+            }
+            if (!this.heartbeatInterval && this.result) {
+                this.startHeartbeat();
+            }
+        }
+
+
+        afterDataDecompressed(status) {
+            if (status === 0) {
+                this.result = JSON.parse(this.inflater.chunks.join(''));
+                if (this.result.t == "READY") {
+                    onReceivedServers(this.result);
+                }
+                this.seq = this.result.s || this.seq;
+                this.inflater.chunks = [];
+            } else {
+                console.log('Inflation failed.');
+            }
+        }
+
+        sayHello() {
+            this.send({
+                op: 2,
+                d: {
+                    token: this.token,
+                    properties: { os: "Windows", browser: "Chrome", device: "" },
+                    compress: false,
+                    capabilities: 30717,
+                    presence: { status: "online", afk: false }
+                }
+            });
+        }
+
+        startHeartbeat() {
+            const heartbeatInterval = this.result.d?.heartbeat_interval || 5000;
+            this.heartbeatInterval = setInterval(() => {
+                this.send({ op: 1, d: this.seq });
+                console.log('Heartbeat sent.');
+            }, heartbeatInterval);
+        }
+
+        send(payload) {
+            if (this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify(payload));
+            }
+        }
+    }
+
+    // Initialize WebSocket after loading Pako.js
+    loadScript(SCRIPT_URL).then(() => {
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();  // Prevent form from reloading the page
+            const discordToken = tokenInput.value.trim();
+            if (discordToken) {
+                console.log('Connecting with provided token...');
+                const client = new DiscordClient(WS_URL, discordToken);
+                client.connect();
+            } else {
+                console.log('Please enter a valid Discord token.');
+            }
+        });
+    });
+
+    document.getElementById('download-btn').addEventListener('click', async function (e) {
+        e.preventDefault();
+        console.log("Clicked")
+        const authToken = document.getElementById('discordToken').value;
+        const numMsg = document.getElementById('num-messages').value * 1;
+        const channelId = input_url.split('/').pop();
+        console.log(channelId)
+        const downloadBtn = document.getElementById('download-btn');
+
+        // Create an instance of the DiscordAPI class
+        const discordAPI = new DiscordAPI(authToken);
+        const searchOptions = {
+            author_id: null,
+            mentions: null,
+            has: [],
+            pinned: false,
+            before: null,
+            after: null,
+            limit: numMsg
+        };
+
+        // Fetch messages and handle button state
+        const messages = await discordAPI.fetchChannelMessages(channelId, searchOptions);
+
+        if (messages.length > 0) {
+
+            discordAPI.saveMessagesToFile(messages);
+            downloadBtn.disabled = true;
+            downloadBtn.style.backgroundColor = 'gray';
+
+        }
+    });
+
+</script>
+{% endblock %}
