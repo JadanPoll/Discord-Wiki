@@ -119,57 +119,56 @@
         }
 
         details {
-        margin-bottom: 15px;
-        border: 1px solid #ddd;
-        padding: 10px;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-
-    /* Styling for the <summary> and <h3> */
-    summary {
-        font-weight: bold;
-        font-size: 1.2em;
-        list-style: none;
-    }
-
-    summary h3 {
-        display: inline;
-        margin: 0;
-    }
-
-    .grid-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        margin-top: 20px;
-    }
-
-    .step {
-        display: flex;
-        flex-direction: column;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        padding: 15px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        background-color: #fafafa;
-    }
-
-    /* Center the image horizontally */
-    .step img {
-        max-width: 100%;
-        height: auto;
-        margin: 10px auto 0;
-        display: block;
-    }
-
-    /* Optional: Make it responsive for smaller screens */
-    @media (max-width: 768px) {
-        .grid-container {
-            grid-template-columns: 1fr;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
         }
-    }
 
+        /* Styling for the <summary> and <h3> */
+        summary {
+            font-weight: bold;
+            font-size: 1.2em;
+            list-style: none;
+        }
+
+        summary h3 {
+            display: inline;
+            margin: 0;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background-color: #fafafa;
+        }
+
+        /* Center the image horizontally */
+        .step img {
+            max-width: 100%;
+            height: auto;
+            margin: 10px auto 0;
+            display: block;
+        }
+
+        /* Optional: Make it responsive for smaller screens */
+        @media (max-width: 768px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
@@ -183,31 +182,34 @@
 
         <div class="grid-container">
             <div class="step">
-                <p>1. Open a new browser window and go to <a href="https://www.discord.com">discord.com</a>                    and go to any channel. Then open the console dev
-                    tools with Option+Command+J on Mac or Control+Shift+J on Windows. The picture shows 
+                <p>1. Open a new browser window and go to <a href="https://www.discord.com">discord.com</a> and go to
+                    any channel. Then open the console dev
+                    tools with Option+Command+J on Mac or Control+Shift+J on Windows. The picture shows
                     what you should see.</p>
                 <img class="tut-image" src="discord-tut-images/discord-token-tut-img1.webp" alt="Dev tools example">
             </div>
 
             <div class="step">
-                <p>2. Click the 2 arrows that are on the top bar (the same one as console, application, etc) and click on 
+                <p>2. Click the 2 arrows that are on the top bar (the same one as console, application, etc) and click
+                    on
                     "network". The 2nd picture is what you should see after clicking on network.</p>
                 <img class="tut-image" src="discord-tut-images/discord-token-tut-img2.webp" alt="Network tab example">
             </div>
 
             <div class="step">
-                <p>3. Scroll through the discord channel you're in until you see an element that has "messages" in its name. 
+                <p>3. Scroll through the discord channel you're in until you see an element that has "messages" in its
+                    name.
                     Click on this. If you don't see any, then go to another channel and try again.</p>
                 <img class="tut-image" src="discord-tut-images/discord-token-tut-img3.webp" alt="Messages example">
             </div>
 
             <div class="step">
-                <p>4. Scroll down (on the right side) until you see where it says "authorization." It's covered in the picture 
-                    but those 2 lines are your authorization key. Copy this key.</p>
-    
+                <p>4. Scroll down (on the right side) until you see where it says "authorization." It's covered in the
+                    picture but those 2 lines are your authorization key. Copy this key.</p>
+
                 <img class="tut-image" src="discord-tut-images/discord-token-tut-img4.webp" alt="Example">
             </div>
-    
+
             <div class="step">
                 <p>5. Paste this key in the textbox below.</p>
             </div>
@@ -632,7 +634,7 @@
 
             }
 
-            window.location.href="Analysis.html";
+            window.location.href = "Analysis.html";
         });
 
     </script>
