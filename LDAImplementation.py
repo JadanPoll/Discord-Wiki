@@ -11,6 +11,8 @@ import nltk
 from nltk.corpus import stopwords
 from pprint import pprint
 
+#NOTE: Check Line 94 and 95 for path to the input/output files
+
 # gets username from the OS
 username = os.environ.get('USER')
 print(username)

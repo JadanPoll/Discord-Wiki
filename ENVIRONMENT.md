@@ -29,5 +29,5 @@ Now when you run the file, it will run with the packages in the environment.
     ```
 3. To go back to your computer's base environment:
     ```bash
-    conda deactivate discord-wikis
+    conda deactivate
     ```
