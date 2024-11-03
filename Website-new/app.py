@@ -93,10 +93,6 @@ def visualize():
 def analyze():
     return render_template('visualize/analysis.html', group='dev')
 
-@app.route("/visualize/download_messages")
-def dl_msg():
-    return render_template('visualize/download/download_messages.html', group='dev')
-
 @app.route("/visualize/live_server_update")
 def live_update():
     return render_template('visualize/download/live_server_update.html', group='dev')

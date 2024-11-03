@@ -181,7 +181,7 @@
 <div class="mb-3 row">
     <label for="num-messages" class="col-sm-2"># of messages to save</label>
     <div class="col-sm-10">
-        <input type="number" class="form-control" id="num-messages" min="1" max="100000000" value="50">
+        <input type="number" class="form-control" id="num-messages" min="1" max="100000000" value="5000">
     </div>
 </div>
 <button id="download-btn" class="btn btn-success" disabled>Download Messages</button>
@@ -296,11 +296,14 @@
                 const apiUrl = `https://discord.com/api/v9/channels/${channelId}/messages?limit=${Math.min(options.limit, 100)}&${this.constructSearchParams(options)}`;
                 console.log(`API URL: ${apiUrl}`);
                 const messages = await this.fetchMessages(apiUrl);
+                console.log(messages);
                 allMessages.push(...messages);
 
                 if (messages.length < 100) break;
 
                 const lastMessage = messages[messages.length - 1];
+                console.log(lastMessage);
+
                 options.before = this.convertTimestampToSnowflake(lastMessage.timestamp);
                 options.limit -= messages.length;
             }
@@ -592,7 +595,7 @@
             // need to add query for server ID (or POST incl data)?
             // or we might think of saving data on the server for a short period
 
-            window.location.href="/visualize/analysis";
+            //window.location.href="/visualize/analysis";
         }
     });
 
