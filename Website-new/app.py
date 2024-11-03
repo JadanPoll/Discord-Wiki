@@ -60,7 +60,7 @@ def cors_bypass(target_url):
         print(headers)
         response = requests.request(
             method=request.method,
-            url=target_url,
+            url=target_url + "?" + request.query_string,
             headers=headers,
             data=request.get_data()
         )
