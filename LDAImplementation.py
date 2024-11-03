@@ -2,6 +2,7 @@ import os
 import re
 import gensim
 import pyLDAvis
+print(pyLDAvis.__version__)
 import pyLDAvis.gensim
 import pickle
 import string
@@ -9,6 +10,10 @@ from gensim.utils import simple_preprocess
 import nltk
 from nltk.corpus import stopwords
 from pprint import pprint
+
+# gets username from the OS
+username = os.environ.get('USER')
+print(username)
 
 # Download the stopwords if not already done
 nltk.download('stopwords')
@@ -84,8 +89,8 @@ def process_for_lda(input_path):
     return dictionary, corpus, data_words
 
 # Paths to input and output files
-input_path = '/Users/samarthsreenivas/Documents/Discord-Wiki/TextExample.txt'
-output_path = '/Users/samarthsreenivas/Documents/Discord-Wiki/CleanTextExample.txt'
+input_path = '/Users/' + username + '/Discord-Wiki/TextExample.txt'
+output_path = '/Users/' + username + '/Discord-Wiki/CleanTextExample.txt'
 
 # Create a clean text file
 process_file(input_path, output_path)
