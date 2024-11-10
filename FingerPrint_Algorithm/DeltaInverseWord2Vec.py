@@ -1,19 +1,21 @@
 import tkinter as tk
 from tkinter import messagebox
-from gensim.models import Word2Vec
-
-# Load the pre-trained Word2Vec model (make sure 'word2vec.model' is in the same directory or provide the correct path)
-model = Word2Vec.load("word2vec.model")
-
+from gensim.models import KeyedVectors
+import time
+# Load the pre-trained Word2Vec model (make sure 'GoogleNews-vectors-negative300.bin' is in the correct path)
+model_path = "../../../NLP_DataSet/GoogleNews-vectors-negative300.bin"
+start=time.time()
+model = KeyedVectors.load_word2vec_format(model_path, binary=True)
+print(time.time()-start)
 # Function to find similar words
 def find_similar_words():
     input_word = entry.get()
     
     # Check if the word exists in the model's vocabulary
-    if input_word in model.wv:
+    if input_word in model:
         try:
             # Get the most similar words
-            similar_words = model.wv.most_similar(input_word, topn=10)
+            similar_words = model.most_similar(input_word, topn=50)
             result_text = "\n".join([f"{word}: {similarity:.4f}" for word, similarity in similar_words])
             result_label.config(text=result_text)
         except KeyError:

@@ -5,19 +5,47 @@ import random
 from nltk.stem import PorterStemmer
 from rapidfuzz import fuzz
 
+#Create Hierachal dictionary
+
 # Initialize stemmer and load stopwords
 word_stemmer = PorterStemmer()
 with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
 
 # Load and parse Discord message data
-with open('./SigPWNY_discord_messages.json', encoding="utf-8") as discord_messages_file:
+with open('./ECE120_Lab_9_discord_messages.json', encoding="utf-8") as discord_messages_file:
     discord_message_data = json.load(discord_messages_file)
 
-# Function to preprocess message text: removes stopwords and applies optional stemming
-def preprocess_message_text(message_text, apply_stemming=False):
-    words_without_stopwords = [word for word in message_text.split() if word.lower() not in loaded_stopwords]
+import string
+from spellchecker import SpellChecker
+import time
+# Initialize the spell checker
+spell = SpellChecker()
+
+
+
+
+# Function to preprocess message text: removes stopwords, strips punctuation, and applies optional stemming
+def preprocess_message_text(message_text, apply_stemming=True):
+    start = time.time()
+
+    # Remove punctuation from the message text
+    message_text = message_text.translate(str.maketrans('', '', string.punctuation))
+
+    # Split the message into words
+    words = message_text.split()
+
+    # Correct spelling for each word (if implemented) and filter out None values
+    corrected_words = [word for word in words]
+
+    # Remove stopwords
+    words_without_stopwords = [word for word in corrected_words if word.lower() not in loaded_stopwords]
+    
+    print("Processing time:", time.time() - start)
+    
+    # Apply stemming if needed
     return [word_stemmer.stem(word) for word in words_without_stopwords] if apply_stemming else words_without_stopwords
+
 
 # Group messages by each author to form conversation blocks
 #What it actually does it  A2 A1 A1  A1 A3. Then message will be A2 -> A1 together -> A3
@@ -84,7 +112,7 @@ def construct_context_chain(word_list, search_radius, message_index, visited_ind
         if i not in visited_indices:
             if find_query_in_message_block(word_list, processed_conversation_blocks[i]):
                 visited_indices.add(i)
-                context_chain.append((i, processed_conversation_blocks[i], recursion_level))
+                context_chain.append((i, conversation_blocks[i], recursion_level))
                 construct_context_chain(word_list+processed_conversation_blocks[i].split(), max(search_radius // 2, 1), i, visited_indices, context_chain, recursion_level + 1)
 
 # Determine background color based on recursion level (depth) for display
@@ -139,8 +167,11 @@ context_radius_input.pack(pady=5)
 tk.Label(app_main_window, text="Generate a context chain from random Discord messages", font=("Arial", 14)).pack(pady=10)
 tk.Button(app_main_window, text="Generate Context Chain", command=generate_and_display_random_context_chain, font=("Arial", 12), bg="#4CAF50", fg="white").pack(pady=10)
 
-output_text_display = scrolledtext.ScrolledText(app_main_window, wrap=tk.WORD, width=80, height=25, font=("Arial", 10))
-output_text_display.pack(padx=10, pady=10)
+
+# Create a ScrolledText widget that will resize with the window
+output_text_display = scrolledtext.ScrolledText(app_main_window, wrap=tk.WORD, font=("Arial", 10))
+output_text_display.pack(padx=10, pady=10, expand=True, fill='both')  # Enable resizing with the window
+
 
 output_text_display.tag_configure("highlight_selected", background="#DDEEFF", foreground="#003366")
 output_text_display.tag_configure("highlight_processed", background="#E0FFE0", foreground="#006600")
