@@ -1,6 +1,7 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, scrolledtext
 from gensim.models import KeyedVectors
+
 import time
 # Load the pre-trained Word2Vec model (make sure 'GoogleNews-vectors-negative300.bin' is in the correct path)
 model_path = "../../../NLP_DataSet/GoogleNews-vectors-negative300.bin"
@@ -31,7 +32,7 @@ root.title("Word2Vec Similar Words Finder")
 label = tk.Label(root, text="Enter a word:")
 label.pack(pady=5)
 
-entry = tk.Entry(root, width=30)
+entry = tk.scrolledtext(root, width=30)
 entry.pack(pady=5)
 
 button = tk.Button(root, text="Find Similar Words", command=find_similar_words)

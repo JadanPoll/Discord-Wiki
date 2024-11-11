@@ -13,7 +13,7 @@ with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
 
 # Load and parse Discord message data
-with open('./ECE120_Lab_9_discord_messages.json', encoding="utf-8") as discord_messages_file:
+with open('./CEMU_discord_messages.json', encoding="utf-8") as discord_messages_file:
     discord_message_data = json.load(discord_messages_file)
 
 import string
