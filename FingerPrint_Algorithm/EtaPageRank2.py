@@ -88,7 +88,7 @@ with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
 
 # Load and parse Discord message data
-with open('./DiscServers/CEMU_discord_messages.json', encoding="utf-8") as discord_messages_file:
+with open('./DiscServers/ECE120_Lab_9_discord_messages.json', encoding="utf-8") as discord_messages_file:
     discord_message_data = json.load(discord_messages_file)
 
 import string
@@ -100,7 +100,7 @@ spell = SpellChecker()
 
 
 
-punctuations=r"""",!?.)("""
+punctuations=r"""",!?.)(:"""
 
 
 # Function to preprocess message text: removes stopwords, strips punctuation, and applies stemming
@@ -163,23 +163,32 @@ conversation_blocks, processed_conversation_blocks = group_and_preprocess_messag
 
 
 
-# Optimized function to search for a query within a message block using word-by-word processing
-def find_query_in_message_block(query_set, message_block_word_list):
-    match_results = {}
-
-    # Directly iterate through message words and match against query set
-    for word in message_block_word_list:
-        if word in query_set:
-            # Collect all other words except the matched query word
-            bag_of_words = [w for w in message_block_word_list if w != word]
-            if bag_of_words:
-                match_results[word] = bag_of_words  # Store the matched words
-
-    return match_results
 
 
-# Recursive function to construct context chain with probability updates and caching
-def construct_context_chain(inherited_words_set, search_radius, current_message_index, visited_indices, context_chain, probability_tree, split_cache, recursion_depth=1):
+# Function to search for a query within a message block using word-by-word processing
+def find_query_in_message_block(query_list, message_block):
+    match_results = {
+        "exact_matches": {}  # Dictionary to store matched words for each query word
+    }
+
+    # Split the message into words
+    message_block_word_list = message_block.split()
+    
+    # Loop through each query word and search for matches in the message block
+    for query_word in query_list:
+        # Exact match
+        if query_word in message_block_word_list:
+            bag_of_words_child_message_if_one_word_in_it_matched_query = [word for word in message_block_word_list if word != query_word]
+            if bag_of_words_child_message_if_one_word_in_it_matched_query:
+                # Store matches in the dictionary under the query word
+                match_results["exact_matches"][query_word] = bag_of_words_child_message_if_one_word_in_it_matched_query
+
+    return match_results["exact_matches"]
+
+
+
+# Recursive function to construct context chain with probability updates
+def construct_context_chain(inherited_words_bag, search_radius, current_message_index, visited_indices, context_chain, probability_tree, recursion_depth=1):
     # Calculate the range of messages to search within based on the search radius
     start_index = max(0, current_message_index - search_radius)
     end_index = min(len(processed_conversation_blocks), current_message_index + search_radius + 1)
@@ -187,65 +196,67 @@ def construct_context_chain(inherited_words_set, search_radius, current_message_
     # Iterate through the conversation blocks within the search range
     for block_index in range(start_index, end_index):
         if block_index not in visited_indices:
-            visited_indices.add(block_index)
-
-            # Use cached split words for the current block if available, otherwise split and cache it
-            if block_index not in split_cache:
-                split_cache[block_index] = processed_conversation_blocks[block_index].split()
-            current_block_words = split_cache[block_index]
-
             # Find the words that match the query in the current block
-            matched_words = find_query_in_message_block(inherited_words_set, current_block_words)
+            matched_words = find_query_in_message_block(inherited_words_bag, processed_conversation_blocks[block_index])
 
             if matched_words:
+                visited_indices.add(block_index)
                 context_chain.append((block_index, conversation_blocks[block_index], recursion_depth))
 
                 # Update the probability tree for each matched word in the block
-                for query_word, surrounding_words in matched_words.items():
+                for query_word, bag_of_words_around_matched_query_in_child_message_block in matched_words.items():
                     # Update the probability tree with the new matched words
-                    probability_tree = update_probability_tree(probability_tree, surrounding_words, query_word)
+                    probability_tree = update_probability_tree(probability_tree, bag_of_words_around_matched_query_in_child_message_block, query_word)
 
-                    # Compute new words only once by subtracting inherited words and updating set in-place
-                    new_words = set(current_block_words) - inherited_words_set
-                    inherited_words_set.update(new_words)
+                    # Expand the list of current words for further recursion (avoiding duplicates)
+                    expanded_word_bag = inherited_words_bag + list(set(processed_conversation_blocks[block_index].split()) - set(inherited_words_bag))
 
                     # Recursively process the next message block with reduced search radius
-                    construct_context_chain(inherited_words_set, max(search_radius // 2, 1), block_index, visited_indices, context_chain, probability_tree[query_word], split_cache, recursion_depth + 1)
+                    # Pass the updated probability tree correctly here
+                    construct_context_chain(expanded_word_bag, max(search_radius // 2, 1), block_index, visited_indices, context_chain, probability_tree[query_word], recursion_depth + 1)
 
+# Function to update the probability tree with matched words and maintain the hierarchical structure
+def update_probability_tree(probability_tree, bag_of_words_around_matched_query_in_child_message_block, query_word):
 
-# Optimized function to update the probability tree with matched words
-def update_probability_tree(probability_tree, surrounding_words, query_word):
-    # Rename "probability" to avoid conflicts
+    # If "probability" is used as a key, ensure it won't cause conflicts with actaul float "probability" by renaming
     if query_word == "probability":
-        query_word = "base_probability"
+        query_word = "base_probability"  # Rename if the query word is "probability" to avoid conflicts
 
-    # Cache the length of surrounding words
-    num_words = len(surrounding_words)
-
-    # If the query word is not in the tree, add it with initial probabilities
+    # If the query word is not in the tree, add it with an initial probability based on the matched words
     if query_word not in probability_tree:
         probability_tree[query_word] = {
-            word: {"probability": 1 / num_words}
-            for word in surrounding_words
+            word: 
+            {
+                "probability": 1 / len(bag_of_words_around_matched_query_in_child_message_block)
+            } 
+            for word in bag_of_words_around_matched_query_in_child_message_block
         }
 
-        # Cache the number of keys excluding "probability"
-        num_keys = len(probability_tree) - (1 if "probability" in probability_tree else 0)
+        # Calculate the new probability for each key in the probability tree
+        num_keys = len(probability_tree)-1 if "probability" in probability_tree else len(probability_tree) # Also we dont want to count probability itself as extra key
 
-        # Update probabilities for all keys except "probability"
+        # This will thus override that.
         for key in probability_tree:
-            if key != "probability":
-                probability_tree[key]["probability"] = 1 / num_keys
+            if key != "probability":  # Avoid indexing  the key "probability" which is actually a float not a dict!
+                print(key)
+                probability_tree[key]["probability"] = 1 / num_keys  # Update the probability
 
+        #print(query_word,num_keys,json.dumps(probability_tree, indent=4))
     else:
 
-        # Update the query word entry, keeping original probability and adding new words
-        for word in surrounding_words:
-            if word not in probability_tree[query_word]:
-                probability_tree[query_word][word] = {"probability": 1 / num_words}
 
+        # Store the existing probability for query_word
+        temp_probability = probability_tree[query_word]["probability"]
+        #print("INteresting set",query_word)
+        # Update the query_word entry by keeping the original probability and adding new words
+        probability_tree[query_word] = {
+            "probability": temp_probability,  # Keep the original probability for query_word
+            **{word: {  # Add new words with their probabilities
+                "probability": 1 / len(bag_of_words_around_matched_query_in_child_message_block)
+            } for word in bag_of_words_around_matched_query_in_child_message_block}
+        }
+        #print("INtereresting set",query_word,json.dumps(probability_tree, indent=4))
     return probability_tree
-
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -256,6 +267,7 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
 import io
 import os
+
 
 
 
@@ -279,19 +291,18 @@ def visualize_probability_tree_networkx(probability_tree):
                     add_nodes_and_edges(child_word, child_details)
 
     # Start recursion with the provided tree structure without assuming a root node
-
     for key, value in probability_tree.items():
         add_nodes_and_edges(key, value)
 
-    # Define layout and edge labels
-    pos = nx.spring_layout(G, seed=42)  # Seed ensures consistent layout
+    # Define layout with parameters to reduce overcrowding
+    pos = nx.spring_layout(G, seed=42, k=1.5, iterations=50)  # Increase 'k' for more space, adjust iterations for layout stability
     edge_labels = nx.get_edge_attributes(G, 'label')
 
     # Plot the graph and save to a Tkinter-compatible image
-    plt.figure(figsize=(8, 8))  # Adjust figure size for better visibility
+    plt.figure(figsize=(12, 12))  # Adjust figure size for better visibility
     nx.draw(G, pos, with_labels=True, node_size=3000, node_color='lightblue', font_size=10, font_weight='bold')
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    
+
     # Save the plot to a buffer
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
@@ -301,7 +312,7 @@ def visualize_probability_tree_networkx(probability_tree):
     img = Image.open(buf)  # Open the image from the buffer
 
     # Scale down the image by a factor, e.g., 90%
-    scale_factor = 0.8
+    scale_factor = 0.6
     new_width = int(img.width * scale_factor)
     new_height = int(img.height * scale_factor)
     img = img.resize((new_width, new_height), Image.LANCZOS)
@@ -326,14 +337,14 @@ def generate_and_display_random_context_chain():
 
     if processed_conversation_blocks:
         random_block_index = random.choice(range(len(processed_conversation_blocks)))
-        random_block_words = set(processed_conversation_blocks[random_block_index].split())
+        random_block_words = processed_conversation_blocks[random_block_index].split()
         visited_block_indices = {random_block_index}
         context_chain = [(random_block_index, conversation_blocks[random_block_index], 1)]
 
         probability_tree={}
         split_cache={}
         os.system("cls")
-        construct_context_chain(random_block_words, search_radius, random_block_index, visited_block_indices, context_chain, probability_tree,split_cache)
+        construct_context_chain(random_block_words, search_radius, random_block_index, visited_block_indices, context_chain, probability_tree)
 
         # Pretty print the probability_tree with indentation of 4 spaces
         #print(json.dumps(probability_tree, indent=4))
