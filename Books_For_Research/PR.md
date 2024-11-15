@@ -27,7 +27,7 @@ Creating useful functionality for the user.
 
 
 
-<img src="https://github.com/JadanPoll/Discord-Wiki/blob/dcbe1da6528fba314d5b738a173ea0846490ac03/Books_For_Research/DesktopApp.png?raw=true" alt="App" width="600" height="300"> 
+<img src="https://github.com/JadanPoll/Discord-Wiki/blob/0d3234702e58432bb4d3a784516cdd59e5bc674e/Books_For_Research/DesktopApp.png?raw=true" alt="App" width="600" height="300"> 
 
 ### About Contributions?
 We are not currently accepting any new additions to the team, but we are `always` welcoming ideas. 
