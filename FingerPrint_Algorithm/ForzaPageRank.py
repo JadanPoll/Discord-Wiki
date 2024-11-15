@@ -5,6 +5,7 @@ import random
 from nltk.stem import PorterStemmer
 from rapidfuzz import fuzz
 from sklearn.feature_extraction.text import TfidfVectorizer
+from Special import OpenAICMD,HTMLStyling
 
 
 
@@ -456,19 +457,45 @@ def generate_and_display_random_context_chain():
         #graph_label.configure(image=graph_image)
         #graph_label.image = graph_image
 
+import tkinter as tk
+from tkinter import scrolledtext
+from tkinter import messagebox
+from tkinterweb import HtmlFrame  # Import HtmlFrame from tkinterweb
+
 
 # Initialize Tkinter GUI
 app_main_window = tk.Tk()
 app_main_window.title("Discord Conversation Context Chain Generator")
 app_main_window.geometry("1200x600")  # Wider window for side-by-side display
 
+# Create widgets for GUI
 tk.Label(app_main_window, text="Enter context chain search radius:").pack(pady=5)
 context_radius_input = tk.Entry(app_main_window)
-context_radius_input.insert(0, "10")
+context_radius_input.insert(0, "50")
 context_radius_input.pack(pady=5)
 
 tk.Label(app_main_window, text="Generate a context chain from random Discord messages", font=("Arial", 14)).pack(pady=10)
 tk.Button(app_main_window, text="Generate Context Chain", command=generate_and_display_random_context_chain, font=("Arial", 12), bg="#4CAF50", fg="white").pack(pady=10)
+
+# Function to handle Summarize button click
+def summarize_context_chain():
+    # Get all text from the output_text_display (Assuming it's the context chain text)
+    context_chain_text = output_text_display.get("1.0", tk.END).strip()
+
+    if not context_chain_text:
+        messagebox.showerror("Error", "No context chain to summarize.")
+        return
+
+    try:
+
+        # Send the context chain to ChatGPT for summarization
+        ChatGPT.send_message("sendGPT","Summarize this combining abstractive and high quality extractive:"+context_chain_text,learn=True)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
+# Summarize Button (Trigger summarize_context_chain function)
+tk.Button(app_main_window, text="Summarize", command=summarize_context_chain, font=("Arial", 12), bg="#FF9800", fg="white").pack(pady=10)
 
 # Text display for the context chain
 output_text_display = scrolledtext.ScrolledText(app_main_window, wrap=tk.WORD, font=("Arial", 10))
@@ -477,10 +504,47 @@ output_text_display.pack(side=tk.LEFT, padx=10, pady=10, expand=True, fill='both
 output_text_display.tag_configure("highlight_selected", background="#DDEEFF", foreground="#003366")
 output_text_display.tag_configure("highlight_processed", background="#E0FFE0", foreground="#006600")
 
-
-
-# Label for displaying the graph on the right side
+# Label for displaying the graph on the right side (assuming graph rendering code is elsewhere)
 graph_frame = tk.Frame(app_main_window)
 graph_frame.pack(side=tk.RIGHT, padx=10, pady=10, fill='y', expand=False)
 
+# Initialize ChatGPT WebSocket client
+ChatGPT = OpenAICMD.WebSocketClientApp("https://ninth-swamp-orangutan.glitch.me")
+
+
+generator = HTMLStyling.HTMLGenerator()
+
+
+
+
+# Function to handle the response and display it in an HTMLFrame
+def handle_summary_response(summary, app_main_window):
+    if summary:
+        # Generate HTML content for the summary (this can be modified as needed)
+        html_result = generator.generate_and_display_html("", summary,theme="ocean")
+        print(html_result)
+
+        # Schedule the display of the summary popup to run in the main thread
+        app_main_window.after(0, display_summary_popup, html_result, app_main_window)
+    else:
+        messagebox.showwarning("Warning", "No summary received from ChatGPT.")
+
+def display_summary_popup(html_result, app_main_window):
+    # Create a new popup window to display the summary
+    summary_popup = tk.Toplevel(app_main_window)
+    summary_popup.title("Summary")
+    summary_popup.geometry("500x300")
+    
+    # Create an HTMLFrame widget in the popup for displaying the summary
+    summary_display = HtmlFrame(summary_popup, horizontal_scrollbar="auto")
+
+    # Set the HTML content (Summary) to be displayed
+    summary_display.load_html(html_result)  # Use the HTML content generated
+    summary_display.pack(padx=10, pady=10, fill="both", expand=True)
+
+
+# Register the callback with lambda function
+ChatGPT.register_callback(callback=lambda summary, app_main_window=app_main_window: handle_summary_response(summary, app_main_window))
+
+# Start the Tkinter GUI
 app_main_window.mainloop()
