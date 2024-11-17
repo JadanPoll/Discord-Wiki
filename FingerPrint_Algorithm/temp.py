@@ -1,41 +1,20 @@
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-import mplcursors
+def hex_to_formatted_binary(hex_string):
+    # Remove any whitespace from the input
+    hex_string = hex_string.strip().replace(" ", "").replace("\n", "")
+    
+    # Process the hex string in chunks of 4 characters (16 bits each)
+    formatted_binaries = []
+    for i in range(0, len(hex_string), 4):
+        hex_chunk = hex_string[i:i+4]  # Take 4 hex characters
+        # Convert the chunk to binary and format it
+        binary_representation = bin(int(hex_chunk, 16))[2:].zfill(16)
+        formatted_binary = " ".join([binary_representation[j:j+4] for j in range(0, 16, 4)])
+        formatted_binaries.append(formatted_binary)
+    
+    # Join all formatted binary chunks with newlines for readability
+    return "\n".join(formatted_binaries)
 
-# Load a font that supports emojis
-# You can specify the path to your emoji font if needed
-emoji_font_path = r"C:/Windows/Fonts/seguiemj.ttf"  # Update this path as needed
-emoji_font = fm.FontProperties(fname=emoji_font_path)
-
-def wrap_text(text, max_words):
-    """Wraps text to a maximum number of words."""
-    words = text.split()
-    wrapped_lines = []
-    for i in range(0, len(words), max_words):
-        wrapped_lines.append(' '.join(words[i:i + max_words]))
-    return '\n'.join(wrapped_lines)
-
-# Sample conversation history with emojis
-conversation_history = [
-    {'content': 'Hello 😊, how are you doing today?', 'user': 'User1'},
-    {'content': 'This is a sample message that will be wrapped to demonstrate the text wrapping functionality. 👍', 'user': 'User2'},
-    {'content': 'Another message that is quite long and needs to be wrapped properly. 🚀', 'user': 'User3'}
-]
-
-# Sample scatter plot
-x = [1, 2, 3]
-y = [3, 2, 1]
-scatter = plt.scatter(x, y)
-
-# mplcursors setup
-cursor = mplcursors.cursor(scatter, hover=True)
-
-@cursor.connect("add")
-def on_add(sel):
-    message_content = wrap_text(conversation_history[sel.index]['content'], 10)
-    author = conversation_history[sel.index]['user']
-    # Use the emoji font in the annotation
-    sel.annotation.set(text=f'{author}: {message_content}', fontsize=10, fontproperties=emoji_font)
-    sel.annotation.get_bbox_patch().set(fc="lightblue", alpha=0.8)
-
-plt.show()
+# Example usage
+hex_string = "300054a059202614e2fc604008011480126119211b360bf974c0220b54a0604006039c3f0403148012610ff974c1f02540003200"
+formatted_binary = hex_to_formatted_binary(hex_string)
+print(formatted_binary)

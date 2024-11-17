@@ -16,7 +16,7 @@ with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
 
 # Load and parse Discord message data
-with open('./DiscServers/SigPWNY_discord_messages.json', encoding="utf-8") as discord_messages_file:
+with open('./DiscServers/ECE 120 Fall 2024 - exams - mt3 [1275789619954323534].json', encoding="utf-8") as discord_messages_file:
     discord_message_data = json.load(discord_messages_file)
 
 import string
@@ -49,8 +49,8 @@ def group_and_preprocess_messages_by_author(message_data):
     author_messages = []
 
     for message_entry in message_data:
-        if "content" in message_entry and "author" in message_entry and "username" in message_entry["author"]:
-            author_name = message_entry["author"]["username"]
+        if "content" in message_entry and "author" in message_entry and "name" in message_entry["author"]:
+            author_name = message_entry["author"]["name"]
 
             # If the author changes, process and save the previous block
             if author_name != current_author:
@@ -489,7 +489,7 @@ def summarize_context_chain():
     try:
 
         # Send the context chain to ChatGPT for summarization
-        ChatGPT.send_message("sendGPT","Summarize this combining abstractive and high quality extractive:"+context_chain_text,learn=True)
+        ChatGPT.send_message("sendGPT","Summarize this combining abstractive and high quality extractive. Don't miss any details in it:"+context_chain_text,learn=True)
 
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
@@ -533,7 +533,7 @@ def display_summary_popup(html_result, app_main_window):
     # Create a new popup window to display the summary
     summary_popup = tk.Toplevel(app_main_window)
     summary_popup.title("Summary")
-    summary_popup.geometry("500x300")
+    summary_popup.geometry("800x500")
     
     # Create an HTMLFrame widget in the popup for displaying the summary
     summary_display = HtmlFrame(summary_popup, horizontal_scrollbar="auto")
