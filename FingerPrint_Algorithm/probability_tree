@@ -1,0 +1,791 @@
+digraph {
+	root [label=root]
+	play
+	read
+	play -> read [label=0.25]
+	guid
+	play -> guid [label=0.25]
+	onlin
+	play -> onlin [label=0.25]
+	probability
+	onlin
+	dump
+	onlin -> dump [label=0.07]
+	stuff
+	onlin -> stuff [label=0.07]
+	wii
+	onlin -> wii [label=0.07]
+	basic
+	onlin -> basic [label=0.07]
+	ident
+	onlin -> ident [label=0.07]
+	connect
+	onlin -> connect [label=0.07]
+	safeti
+	onlin -> safeti [label=0.07]
+	includ
+	onlin -> includ [label=0.07]
+	authent
+	onlin -> authent [label=0.07]
+	emul
+	onlin -> emul [label=0.07]
+	special
+	onlin -> special [label=0.07]
+	defeated845347376238428200
+	onlin -> defeated845347376238428200 [label=0.07]
+	onlin
+	concern
+	onlin -> concern [label=0.11]
+	cemu
+	onlin -> cemu [label=0.11]
+	unnecessarili
+	onlin -> unnecessarili [label=0.11]
+	cautiou
+	onlin -> cautiou [label=0.11]
+	delay
+	onlin -> delay [label=0.11]
+	4
+	onlin -> 4 [label=0.11]
+	month
+	onlin -> month [label=0.11]
+	own
+	onlin -> own [label=0.11]
+	consol
+	onlin -> consol [label=0.11]
+	merg
+	ensur
+	merg -> ensur [label=0.20]
+	consol
+	merg -> consol [label=0.20]
+	httpsgithubcomcitraemucitrapull7050
+	merg -> httpsgithubcomcitraemucitrapull7050 [label=0.20]
+	answer
+	merg -> answer [label=0.20]
+	"🙂"
+	merg -> "🙂" [label=0.20]
+	merg
+	reason
+	merg -> reason [label=0.10]
+	add
+	merg -> add [label=0.10]
+	dummi
+	merg -> dummi [label=0.10]
+	data
+	merg -> data [label=0.10]
+	consol
+	merg -> consol [label=0.10]
+	uniqu
+	merg -> uniqu [label=0.10]
+	concern
+	merg -> concern [label=0.10]
+	aain
+	merg -> aain [label=0.10]
+	lawyer
+	merg -> lawyer [label=0.10]
+	play
+	wanna
+	play -> wanna [label=0.17]
+	sm4sh
+	play -> sm4sh [label=0.17]
+	parsec
+	play -> parsec [label=0.17]
+	reason
+	merg
+	reason -> merg [label=0.10]
+	add
+	reason -> add [label=0.10]
+	dummi
+	reason -> dummi [label=0.10]
+	data
+	reason -> data [label=0.10]
+	consol
+	reason -> consol [label=0.10]
+	uniqu
+	reason -> uniqu [label=0.10]
+	concern
+	reason -> concern [label=0.10]
+	aain
+	reason -> aain [label=0.10]
+	lawyer
+	reason -> lawyer [label=0.10]
+	lawyer
+	reason
+	lawyer -> reason [label=0.10]
+	merg
+	lawyer -> merg [label=0.10]
+	add
+	lawyer -> add [label=0.10]
+	dummi
+	lawyer -> dummi [label=0.10]
+	data
+	lawyer -> data [label=0.10]
+	consol
+	lawyer -> consol [label=0.10]
+	uniqu
+	lawyer -> uniqu [label=0.10]
+	concern
+	lawyer -> concern [label=0.10]
+	aain
+	lawyer -> aain [label=0.10]
+	add
+	reason
+	add -> reason [label=0.10]
+	merg
+	add -> merg [label=0.10]
+	dummi
+	add -> dummi [label=0.10]
+	data
+	add -> data [label=0.10]
+	consol
+	add -> consol [label=0.10]
+	uniqu
+	add -> uniqu [label=0.10]
+	concern
+	add -> concern [label=0.10]
+	aain
+	add -> aain [label=0.10]
+	lawyer
+	add -> lawyer [label=0.10]
+	concern
+	reason
+	concern -> reason [label=0.10]
+	merg
+	concern -> merg [label=0.10]
+	add
+	concern -> add [label=0.10]
+	dummi
+	concern -> dummi [label=0.10]
+	data
+	concern -> data [label=0.10]
+	consol
+	concern -> consol [label=0.10]
+	uniqu
+	concern -> uniqu [label=0.10]
+	aain
+	concern -> aain [label=0.10]
+	lawyer
+	concern -> lawyer [label=0.10]
+	cemu
+	concern
+	cemu -> concern [label=0.10]
+	unnecessarili
+	cemu -> unnecessarili [label=0.10]
+	cautiou
+	cemu -> cautiou [label=0.10]
+	delay
+	cemu -> delay [label=0.10]
+	4
+	cemu -> 4 [label=0.10]
+	month
+	cemu -> month [label=0.10]
+	onlin
+	cemu -> onlin [label=0.10]
+	own
+	cemu -> own [label=0.10]
+	consol
+	cemu -> consol [label=0.10]
+	concern
+	cemu
+	concern -> cemu [label=0.10]
+	unnecessarili
+	concern -> unnecessarili [label=0.10]
+	cautiou
+	concern -> cautiou [label=0.10]
+	delay
+	concern -> delay [label=0.10]
+	4
+	concern -> 4 [label=0.10]
+	month
+	concern -> month [label=0.10]
+	onlin
+	concern -> onlin [label=0.10]
+	own
+	concern -> own [label=0.10]
+	consol
+	concern -> consol [label=0.10]
+	basic
+	dump
+	basic -> dump [label=0.07]
+	stuff
+	basic -> stuff [label=0.07]
+	wii
+	basic -> wii [label=0.07]
+	ident
+	basic -> ident [label=0.07]
+	connect
+	basic -> connect [label=0.07]
+	safeti
+	basic -> safeti [label=0.07]
+	onlin
+	basic -> onlin [label=0.07]
+	includ
+	basic -> includ [label=0.07]
+	authent
+	basic -> authent [label=0.07]
+	emul
+	basic -> emul [label=0.07]
+	special
+	basic -> special [label=0.07]
+	defeated845347376238428200
+	basic -> defeated845347376238428200 [label=0.07]
+	connect
+	dump
+	connect -> dump [label=0.07]
+	stuff
+	connect -> stuff [label=0.07]
+	wii
+	connect -> wii [label=0.07]
+	basic
+	connect -> basic [label=0.07]
+	ident
+	connect -> ident [label=0.07]
+	safeti
+	connect -> safeti [label=0.07]
+	onlin
+	connect -> onlin [label=0.07]
+	includ
+	connect -> includ [label=0.07]
+	authent
+	connect -> authent [label=0.07]
+	emul
+	connect -> emul [label=0.07]
+	special
+	connect -> special [label=0.07]
+	defeated845347376238428200
+	connect -> defeated845347376238428200 [label=0.07]
+	httpscemucfwguideonlineplayhtml
+	play -> httpscemucfwguideonlineplayhtml [label=0.25]
+	play
+	219052590791524352
+	play -> 219052590791524352 [label=0.20]
+	onlin
+	play -> onlin [label=0.20]
+	mh3u
+	play -> mh3u [label=0.20]
+	code
+	play -> code [label=0.20]
+	error
+	play -> error [label=0.20]
+	play
+	mario
+	play -> mario [label=0.17]
+	kart
+	play -> kart [label=0.17]
+	8
+	play -> 8 [label=0.17]
+	onlin
+	play -> onlin [label=0.17]
+	httpsparsecggg2ay6lfytgasvujo9mlvlsezjdwca0045f3b
+	play -> httpsparsecggg2ay6lfytgasvujo9mlvlsezjdwca0045f3b [label=0.17]
+	parsec
+	play -> parsec [label=0.17]
+	probability
+	play
+	wanna
+	play -> wanna [label=0.33]
+	sm4sh
+	play -> sm4sh [label=0.33]
+	parsec
+	play -> parsec [label=0.33]
+	probability
+	play
+	wanna
+	play -> wanna [label=0.33]
+	sm4sh
+	play -> sm4sh [label=0.33]
+	parsec
+	play -> parsec [label=0.33]
+	play
+	wii
+	play -> wii [label=0.25]
+	onlin
+	play -> onlin [label=0.25]
+	nintendo
+	play -> nintendo [label=0.25]
+	switch
+	play -> switch [label=0.25]
+	onlin
+	wii
+	onlin -> wii [label=0.25]
+	play
+	onlin -> play [label=0.25]
+	nintendo
+	onlin -> nintendo [label=0.25]
+	switch
+	onlin -> switch [label=0.25]
+	nintendo
+	wii
+	nintendo -> wii [label=0.25]
+	play
+	nintendo -> play [label=0.25]
+	onlin
+	nintendo -> onlin [label=0.25]
+	switch
+	nintendo -> switch [label=0.25]
+	parsec
+	wanna
+	parsec -> wanna [label=0.33]
+	play
+	parsec -> play [label=0.33]
+	sm4sh
+	parsec -> sm4sh [label=0.33]
+	sm4sh
+	wanna
+	sm4sh -> wanna [label=0.33]
+	play
+	sm4sh -> play [label=0.33]
+	parsec
+	sm4sh -> parsec [label=0.33]
+	wanna
+	play
+	wanna -> play [label=0.33]
+	sm4sh
+	wanna -> sm4sh [label=0.33]
+	parsec
+	wanna -> parsec [label=0.33]
+	mario
+	"3d"
+	mario -> "3d" [label=0.50]
+	parsec
+	mario -> parsec [label=0.50]
+	"3d"
+	mario
+	"3d" -> mario [label=0.50]
+	parsec
+	"3d" -> parsec [label=0.50]
+	parsec
+	wanna
+	parsec -> wanna [label=0.33]
+	play
+	parsec -> play [label=0.33]
+	sm4sh
+	parsec -> sm4sh [label=0.33]
+	cemu
+	link
+	cemu -> link [label=0.50]
+	nnid
+	cemu -> nnid [label=0.50]
+	play
+	read
+	play -> read [label=0.25]
+	onlin
+	play -> onlin [label=0.25]
+	probability
+	play
+	onlin
+	play -> onlin [label=0.10]
+	cemu
+	play -> cemu [label=0.10]
+	wii
+	play -> wii [label=0.10]
+	file
+	play -> file [label=0.10]
+	switch
+	play -> switch [label=0.10]
+	seper
+	play -> seper [label=0.10]
+	network
+	play -> network [label=0.10]
+	crosscompad
+	play -> crosscompad [label=0.10]
+	server
+	hay
+	server -> hay [label=0.17]
+	pretendo
+	server -> pretendo [label=0.17]
+	run
+	server -> run [label=0.17]
+	cemu
+	server -> cemu [label=0.17]
+	experement
+	server -> experement [label=0.17]
+	2065
+	server -> 2065 [label=0.17]
+	nintendo
+	option
+	nintendo -> option [label=0.12]
+	chang
+	nintendo -> chang [label=0.12]
+	pretendo
+	nintendo -> pretendo [label=0.12]
+	server
+	nintendo -> server [label=0.12]
+	probability
+	splatoon
+	pretendo
+	splatoon -> pretendo [label=0.20]
+	server
+	splatoon -> server [label=0.20]
+	manag
+	splatoon -> manag [label=0.20]
+	connect
+	splatoon -> connect [label=0.20]
+	player
+	splatoon -> player [label=0.20]
+	server
+	pretendo
+	server -> pretendo [label=0.20]
+	splatoon
+	server -> splatoon [label=0.20]
+	manag
+	server -> manag [label=0.20]
+	connect
+	server -> connect [label=0.20]
+	player
+	server -> player [label=0.20]
+	pretendo
+	server
+	pretendo -> server [label=0.20]
+	splatoon
+	pretendo -> splatoon [label=0.20]
+	manag
+	pretendo -> manag [label=0.20]
+	connect
+	pretendo -> connect [label=0.20]
+	player
+	pretendo -> player [label=0.20]
+	account
+	nintendo -> account [label=0.12]
+	tab
+	nintendo -> tab [label=0.12]
+	cemu
+	pretendo
+	cemu -> pretendo [label=0.06]
+	file
+	cemu -> file [label=0.06]
+	moment
+	cemu -> moment [label=0.06]
+	cheater
+	cemu -> cheater [label=0.06]
+	instal
+	cemu -> instal [label=0.06]
+	wii
+	cemu -> wii [label=0.06]
+	dump
+	cemu -> dump [label=0.06]
+	account
+	cemu -> account [label=0.06]
+	otp
+	cemu -> otp [label=0.06]
+	seeprom
+	cemu -> seeprom [label=0.06]
+	server
+	cemu -> server [label=0.06]
+	option
+	cemu -> option [label=0.06]
+	wii
+	pretendo
+	wii -> pretendo [label=0.06]
+	file
+	wii -> file [label=0.06]
+	moment
+	wii -> moment [label=0.06]
+	cheater
+	wii -> cheater [label=0.06]
+	instal
+	wii -> instal [label=0.06]
+	dump
+	wii -> dump [label=0.06]
+	account
+	wii -> account [label=0.06]
+	otp
+	wii -> otp [label=0.06]
+	seeprom
+	wii -> seeprom [label=0.06]
+	cemu
+	wii -> cemu [label=0.06]
+	server
+	wii -> server [label=0.06]
+	option
+	wii -> option [label=0.06]
+	file
+	pretendo
+	file -> pretendo [label=0.07]
+	moment
+	file -> moment [label=0.07]
+	cheater
+	file -> cheater [label=0.07]
+	instal
+	file -> instal [label=0.07]
+	wii
+	file -> wii [label=0.07]
+	dump
+	file -> dump [label=0.07]
+	account
+	file -> account [label=0.07]
+	otp
+	file -> otp [label=0.07]
+	seeprom
+	file -> seeprom [label=0.07]
+	cemu
+	file -> cemu [label=0.07]
+	server
+	file -> server [label=0.07]
+	option
+	file -> option [label=0.07]
+	server
+	option
+	server -> option [label=0.14]
+	chang
+	server -> chang [label=0.14]
+	pretendo
+	server -> pretendo [label=0.14]
+	nintendo
+	server -> nintendo [label=0.14]
+	account
+	server -> account [label=0.14]
+	tab
+	server -> tab [label=0.14]
+	onlin
+	play
+	onlin -> play [label=0.11]
+	cemu
+	onlin -> cemu [label=0.11]
+	wii
+	onlin -> wii [label=0.11]
+	file
+	onlin -> file [label=0.11]
+	switch
+	onlin -> switch [label=0.11]
+	seper
+	onlin -> seper [label=0.11]
+	network
+	onlin -> network [label=0.11]
+	crosscompad
+	onlin -> crosscompad [label=0.11]
+	cemu
+	play
+	cemu -> play [label=0.10]
+	onlin
+	cemu -> onlin [label=0.10]
+	wii
+	cemu -> wii [label=0.10]
+	file
+	cemu -> file [label=0.10]
+	switch
+	cemu -> switch [label=0.10]
+	seper
+	cemu -> seper [label=0.10]
+	network
+	cemu -> network [label=0.10]
+	crosscompad
+	cemu -> crosscompad [label=0.10]
+	network
+	play
+	network -> play [label=0.10]
+	onlin
+	network -> onlin [label=0.10]
+	cemu
+	network -> cemu [label=0.10]
+	wii
+	network -> wii [label=0.10]
+	file
+	network -> file [label=0.10]
+	switch
+	network -> switch [label=0.10]
+	seper
+	network -> seper [label=0.10]
+	crosscompad
+	network -> crosscompad [label=0.10]
+	wii
+	play
+	wii -> play [label=0.11]
+	onlin
+	wii -> onlin [label=0.11]
+	cemu
+	wii -> cemu [label=0.11]
+	file
+	wii -> file [label=0.11]
+	switch
+	wii -> switch [label=0.11]
+	seper
+	wii -> seper [label=0.11]
+	network
+	wii -> network [label=0.11]
+	crosscompad
+	wii -> crosscompad [label=0.11]
+	guid
+	play -> guid [label=0.25]
+	messag
+	play -> messag [label=0.25]
+	nintendo
+	gonna
+	nintendo -> gonna [label=0.05]
+	host
+	nintendo -> host [label=0.05]
+	sonic
+	nintendo -> sonic [label=0.05]
+	allstar
+	nintendo -> allstar [label=0.05]
+	race
+	nintendo -> race [label=0.05]
+	transform
+	nintendo -> transform [label=0.05]
+	wii
+	nintendo -> wii [label=0.05]
+	network
+	nintendo -> network [label=0.05]
+	onlin
+	nintendo -> onlin [label=0.05]
+	event
+	nintendo -> event [label=0.05]
+	week
+	nintendo -> week [label=0.05]
+	wednesday
+	nintendo -> wednesday [label=0.05]
+	shutdown
+	nintendo -> shutdown [label=0.05]
+	httpsdiscordcomevents3468607754257039671201787084193398804
+	nintendo -> httpsdiscordcomevents3468607754257039671201787084193398804 [label=0.05]
+	link
+	nintendo -> link [label=0.05]
+	sasrt
+	nintendo -> sasrt [label=0.05]
+	"230pm"
+	nintendo -> "230pm" [label=0.05]
+	pst
+	nintendo -> pst [label=0.05]
+	link
+	gonna
+	link -> gonna [label=0.05]
+	host
+	link -> host [label=0.05]
+	sonic
+	link -> sonic [label=0.05]
+	allstar
+	link -> allstar [label=0.05]
+	race
+	link -> race [label=0.05]
+	transform
+	link -> transform [label=0.05]
+	wii
+	link -> wii [label=0.05]
+	nintendo
+	link -> nintendo [label=0.05]
+	network
+	link -> network [label=0.05]
+	onlin
+	link -> onlin [label=0.05]
+	event
+	link -> event [label=0.05]
+	week
+	link -> week [label=0.05]
+	wednesday
+	link -> wednesday [label=0.05]
+	shutdown
+	link -> shutdown [label=0.05]
+	httpsdiscordcomevents3468607754257039671201787084193398804
+	link -> httpsdiscordcomevents3468607754257039671201787084193398804 [label=0.05]
+	sasrt
+	link -> sasrt [label=0.05]
+	"230pm"
+	link -> "230pm" [label=0.05]
+	pst
+	link -> pst [label=0.05]
+	onlin
+	read
+	onlin -> read [label=0.25]
+	play
+	onlin -> play [label=0.25]
+	guid
+	onlin -> guid [label=0.25]
+	messag
+	onlin -> messag [label=0.25]
+	server
+	281902301818519562
+	server -> 281902301818519562 [label=0.02]
+	concern
+	server -> concern [label=0.02]
+	legal
+	server -> legal [label=0.02]
+	issu
+	server -> issu [label=0.02]
+	implement
+	server -> implement [label=0.02]
+	onlin
+	server -> onlin [label=0.02]
+	cemu
+	server -> cemu [label=0.02]
+	citra
+	server -> citra [label=0.02]
+	situat
+	server -> situat [label=0.02]
+	connect
+	server -> connect [label=0.02]
+	offici
+	server -> offici [label=0.02]
+	basic
+	server -> basic [label=0.02]
+	dev
+	server -> dev [label=0.02]
+	name
+	server -> name [label=0.02]
+	pablomk7
+	server -> pablomk7 [label=0.02]
+	contribut
+	server -> contribut [label=0.02]
+	add
+	server -> add [label=0.02]
+	function
+	server -> function [label=0.02]
+	final
+	server -> final [label=0.02]
+	readi
+	server -> readi [label=0.02]
+	merg
+	server -> merg [label=0.02]
+	main
+	server -> main [label=0.02]
+	admin
+	server -> admin [label=0.02]
+	oppos
+	server -> oppos [label=0.02]
+	cite
+	server -> cite [label=0.02]
+	reason
+	server -> reason [label=0.02]
+	consult
+	server -> consult [label=0.02]
+	lawyer
+	server -> lawyer [label=0.02]
+	occur
+	server -> occur [label=0.02]
+	octob
+	server -> octob [label=0.02]
+	2023
+	server -> 2023 [label=0.02]
+	respond
+	server -> respond [label=0.02]
+	pablo
+	server -> pablo [label=0.02]
+	maintain
+	server -> maintain [label=0.02]
+	fork
+	server -> fork [label=0.02]
+	april
+	server -> april [label=0.02]
+	close
+	server -> close [label=0.02]
+	2017
+	server -> 2017 [label=0.02]
+	mistaken
+	server -> mistaken [label=0.02]
+	troubl
+	server -> troubl [label=0.02]
+	splatoon
+	play
+	splatoon -> play [label=0.33]
+	onlin
+	splatoon -> onlin [label=0.33]
+	cemu
+	splatoon -> cemu [label=0.33]
+	onlin
+	read
+	onlin -> read [label=0.25]
+	guid
+	onlin -> guid [label=0.25]
+	play
+	onlin -> play [label=0.25]
+	httpscemucfwguideonlineplayhtml
+	onlin -> httpscemucfwguideonlineplayhtml [label=0.25]
+}

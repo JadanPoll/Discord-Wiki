@@ -1,0 +1,45 @@
+.ORIG x3000
+    AND     R2, R2, #0            ; Clear R2 (sum accumulator for positives)
+    AND     R4, R4, #0            ; Clear R4 (loop counter)
+    LD      R3, STORAGE1          ; Load x4000 into R3 for storing positives
+    LEA     R1, ARRAY_10          ; Load address of array at x3100 into R1
+LOOP1 LDR     R0, R1, #0            ; Load the next element of ARRAY_10
+    BRn     SKIP1                 ; Skip if the number is negative
+    ADD     R2, R2, R0            ; Add positive number to the sum
+SKIP1 ADD   R1, R1, #1            ; Move to the next element
+    ADD     R4, R4, #1            ; Increment loop counter
+    ADD     R5, R4, #-10          ; Check if we've processed 10 elements
+    BRnp      LOOP1                 ; Repeat the loop
+END1 STR     R2, R3, #0            ; Store the sum of positives at x4000
+    LD     R1, ARRAY_X_LOC           ; Load address of array at x3200 into R1
+    AND     R2, R2, #0            ; Clear R2 (sum accumulator for negatives)
+LOOP2 LDR     R0, R1, #0            ; Load the next element of ARRAY_X
+    BRzp    SKIP2
+    NOT     R6, R0                ; Check if value is -1
+    BRz     END2                  ; Exit loop if value is -1
+    ADD     R2, R2, R0            ; Add negative number to the sum
+SKIP2 ADD   R1,R1,#1
+    BR      LOOP2                 ; Repeat the loop
+END2 STR     R2, R3, #1            ; Store the sum of negatives at x4001
+HALT                              ; Stop the program
+STORAGE1    .FILL x4000           ; Address to store sum of positives
+ARRAY_X_LOC    .FILL x3200
+.BLKW xE7
+ARRAY_10  .FILL   x0001         ; Value 1 at POSITIVES
+.FILL   x0001         ; Value 2 at POSITIVES + 1
+.FILL   x0001
+.FILL   x0001
+.FILL   x0001
+.FILL   x0001
+.FILL   x0001
+.FILL   x0002
+.FILL   x0001
+.FILL   xFFFF
+.FILL   xFFFF
+.BLKW xF5
+ARRAY_X .FILL   xFFFE        ; -2
+           .FILL   xFFFE        ; -2
+          .FILL   xFFFF         ; -1 (Sentinel value indicating end of array)
+.END                    ; End of program
+
+

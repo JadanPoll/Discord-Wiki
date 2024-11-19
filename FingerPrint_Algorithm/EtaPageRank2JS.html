@@ -1,0 +1,339 @@
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Conversation Context Chain Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            height: 600px;
+        }
+        .left-panel {
+            width: 50%;
+        }
+        .right-panel {
+            width: 45%;
+            border-left: 1px solid #ccc;
+            padding-left: 20px;
+        }
+        #outputTextDisplay {
+            width: 100%;
+            height: 400px;
+            white-space: pre-wrap;
+            overflow-y: scroll;
+            background-color: #f9f9f9;
+            padding: 10px;
+        }
+        .highlight-selected {
+            background-color: #DDEEFF;
+            color: #003366;
+        }
+        .highlight-processed {
+            background-color: #E0FFE0;
+            color: #006600;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Discord Conversation Context Chain Generator</h2>
+
+<div>
+    <label for="contextRadiusInput">Enter context chain search radius:</label>
+    <input type="number" id="contextRadiusInput" value="10">
+</div>
+
+<div>
+    <button id="generateButton">Generate Context Chain</button>
+</div>
+
+<div class="container">
+    <div class="left-panel">
+        <div id="outputTextDisplay"></div>
+    </div>
+    <div class="right-panel">
+        <canvas id="graphCanvas" width="400" height="400"></canvas>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+    // Assuming you have a list of stopwords and a function for stemming
+    const stopwords = fetch('discord-stopword-en.json')
+    const punctuations = /[.,!?\)\(:"'’''*🙏🤔💀😈😭😩😖🤔🥰🥴😩🙂😄'“`]/g;
+    
+    // Function to stem words (you can use a library like 'natural' for this)
+    function stemWord(word) {
+        // Placeholder stemmer function
+        return word.toLowerCase(); // Simple example, replace with actual stemming logic
+    }
+    
+    // Function to preprocess message text
+    function preprocessMessageText(messageText) {
+        return messageText.replace(punctuations, '')
+            .split(' ')
+            .filter(word => !stopwords.has(word.toLowerCase()))
+            .map(stemWord);
+    }
+    
+    
+    function groupAndPreprocessMessagesByAuthor(messages) {
+        let conversationBlocks = [];
+        let processedConversationBlocks = [];
+        let currentAuthor = null;
+        let authorMessages = [];
+    
+        messages.forEach(messageEntry => {
+            const authorName = messageEntry.author.username;
+            if (authorName !== currentAuthor) {
+                if (authorMessages.length > 0) {
+                    let joinedMessageBlock = authorMessages.join(' ');
+                    conversationBlocks.push(joinedMessageBlock);
+                    processedConversationBlocks.push(preprocessMessageText(joinedMessageBlock).join(' '));
+                }
+                currentAuthor = authorName;
+                authorMessages = [];
+            }
+            authorMessages.push(messageEntry.content);
+        });
+    
+        if (authorMessages.length > 0) {
+            let joinedMessageBlock = authorMessages.join(' ');
+            conversationBlocks.push(joinedMessageBlock);
+            processedConversationBlocks.push(preprocessMessageText(joinedMessageBlock).join(' '));
+        }
+    
+        return { conversationBlocks, processedConversationBlocks };
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    function findQueryInMessageBlock(queryList, messageBlock) {
+        const matchResults = { exact_matches: {} };
+        const messageBlockWords = messageBlock.split(' ');
+    
+        queryList.forEach(queryWord => {
+            if (messageBlockWords.includes(queryWord)) {
+                matchResults.exact_matches[queryWord] = messageBlockWords.filter(word => word !== queryWord);
+            }
+        });
+    
+        return matchResults.exact_matches;
+    }
+    
+    
+    
+    
+    
+    
+    // Recursive function to construct context chain with probability updates
+    function constructContextChain(inheritedWordsBag, searchRadius, currentMessageIndex, visitedIndices, contextChain, probabilityTree, recursionDepth = 1) {
+        // Calculate the range of messages to search within based on the search radius
+        const startIndex = Math.max(0, currentMessageIndex - searchRadius);
+        const endIndex = Math.min(processedConversationBlocks.length, currentMessageIndex + searchRadius + 1);
+    
+        // Iterate through the conversation blocks within the search range
+        for (let blockIndex = startIndex; blockIndex < endIndex; blockIndex++) {
+            if (!visitedIndices.has(blockIndex)) {
+                // Find the words that match the query in the current block
+                const matchedWords = findQueryInMessageBlock(inheritedWordsBag, processedConversationBlocks[blockIndex]);
+    
+                if (matchedWords) {
+                    visitedIndices.add(blockIndex);
+                    contextChain.push([blockIndex, conversationBlocks[blockIndex], recursionDepth]);
+    
+                    // Update the probability tree for each matched word in the block
+                    for (const [queryWord, bagOfWordsAroundMatchedQueryInChildMessageBlock] of Object.entries(matchedWords)) {
+                        // Update the probability tree with the new matched words
+                        probabilityTree = updateProbabilityTree(probabilityTree, bagOfWordsAroundMatchedQueryInChildMessageBlock, queryWord);
+    
+                        // Expand the list of current words for further recursion (avoiding duplicates)
+                        const expandedWordBag = inheritedWordsBag.concat(
+                            Array.from(new Set(processedConversationBlocks[blockIndex].split()).difference(new Set(inheritedWordsBag)))
+                        );
+    
+                        // Recursively process the next message block with reduced search radius
+                        constructContextChain(expandedWordBag, Math.max(Math.floor(searchRadius / 2), 1), blockIndex, visitedIndices, contextChain, probabilityTree[queryWord], recursionDepth + 1);
+                    }
+                }
+            }
+        }
+    }
+    
+    // Function to update the probability tree with matched words and maintain the hierarchical structure
+    function updateProbabilityTree(probabilityTree, bagOfWordsAroundMatchedQueryInChildMessageBlock, queryWord) {
+        // If "probability" is used as a key, ensure it won't cause conflicts with actual float "probability" by renaming
+        if (queryWord === "probability") {
+            queryWord = "base_probability";  // Rename if the query word is "probability" to avoid conflicts
+        }
+    
+        // If the query word is not in the tree, add it with an initial probability based on the matched words
+        if (!(queryWord in probabilityTree)) {
+            probabilityTree[queryWord] = {};
+            const numWords = bagOfWordsAroundMatchedQueryInChildMessageBlock.length;
+    
+            for (const word of bagOfWordsAroundMatchedQueryInChildMessageBlock) {
+                probabilityTree[queryWord][word] = { "probability": 1 / numWords };
+            }
+    
+            // Calculate the new probability for each key in the probability tree
+            const numKeys = Object.keys(probabilityTree).length - ("probability" in probabilityTree ? 1 : 0);
+    
+            for (const key in probabilityTree) {
+                if (key !== "probability") {
+                    probabilityTree[key]["probability"] = 1 / numKeys;  // Update the probability
+                }
+            }
+        } else {
+            // Store the existing probability for query_word
+            const tempProbability = probabilityTree[queryWord]["probability"];
+    
+            // Update the query_word entry by keeping the original probability and adding new words
+            const newEntries = {};
+            for (const word of bagOfWordsAroundMatchedQueryInChildMessageBlock) {
+                newEntries[word] = { "probability": 1 / bagOfWordsAroundMatchedQueryInChildMessageBlock.length };
+            }
+    
+            probabilityTree[queryWord] = {
+                "probability": tempProbability,
+                ...newEntries,
+            };
+        }
+    
+        return probabilityTree;
+    }
+    
+</script>
+    
+
+
+
+
+
+
+
+
+<script>
+
+conversationBlocks,processedConversationBlocks=groupAndPreprocessMessagesByAuthor(discord_Data)
+// Function to determine background color based on recursion level (depth)
+function getColorForDepthLevel(depthLevel, maximumDepth) {
+    const colorIntensity = Math.floor(255 * (depthLevel / maximumDepth));
+    return depthLevel > 1 ? `#ff${colorIntensity.toString(16).padStart(2, '0')}${colorIntensity.toString(16).padStart(2, '0')}` : "#a6a6a6";
+}
+
+// Function to generate and display a random context chain
+function generateAndDisplayRandomContextChain() {
+    const outputTextDisplay = document.getElementById("outputTextDisplay");
+    outputTextDisplay.innerHTML = ''; // Clear previous output
+
+    let searchRadius = parseInt(document.getElementById("contextRadiusInput").value);
+    
+    if (isNaN(searchRadius)) {
+        outputTextDisplay.innerHTML = "Please enter a valid number for context search radius.\n";
+        return;
+    }
+
+    if (processedConversationBlocks.length > 0) {
+        const randomBlockIndex = Math.floor(Math.random() * processedConversationBlocks.length);
+        const randomBlockWords = processedConversationBlocks[randomBlockIndex].split(' ');
+        let visitedBlockIndices = new Set([randomBlockIndex]);
+        let contextChain = [[randomBlockIndex, conversationBlocks[randomBlockIndex], 1]];
+
+        let probabilityTree = {};
+        
+        // Simulate constructContextChain function (you can implement your own logic)
+        constructContextChain(randomBlockWords, searchRadius, randomBlockIndex, visitedBlockIndices, contextChain, probabilityTree);
+
+        contextChain.sort((a, b) => a[2] - b[2]); // Sort by recursion level
+
+        if (contextChain.length < searchRadius / 4) {
+            console.log("Rerun Random");
+            generateAndDisplayRandomContextChain();
+            return;
+        }
+
+        const maxRecursionLevel = Math.max(...contextChain.map(([, , level]) => level));
+
+        outputTextDisplay.innerHTML += "<p class='highlight-selected'>Selected Message:</p>";
+        outputTextDisplay.innerHTML += `<p class='highlight-selected'>${conversationBlocks[randomBlockIndex]}</p><br>`;
+
+        outputTextDisplay.innerHTML += "<p class='highlight-processed'>Processed Version:</p>";
+        outputTextDisplay.innerHTML += `<p class='highlight-processed'>${processedConversationBlocks[randomBlockIndex]}</p><br>`;
+
+        outputTextDisplay.innerHTML += "<p>Context Chain:</p>";
+
+        for (const [_, message, level] of contextChain) {
+            const depthColor = getColorForDepthLevel(level, maxRecursionLevel);
+            const messageElement = document.createElement('p');
+            messageElement.style.backgroundColor = depthColor;
+            messageElement.textContent = `${message}\n--------------------------------------------------\n`;
+            outputTextDisplay.appendChild(messageElement);
+        }
+
+         // Display the probability tree on canvas
+         visualizeProbabilityTree(probabilityTree);
+    }
+}
+
+
+
+// Function to visualize the probability tree using Canvas
+function visualizeProbabilityTree(probabilityTree) {
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Clear previous drawing
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Example of drawing simple nodes and edges (you can customize this)
+    ctx.fillStyle = '#000';
+    
+    ctx.beginPath();
+    ctx.arc(200, 200, 20, 0, Math.PI * 2); // Draw a circle node
+    ctx.fill();
+
+    ctx.moveTo(200, 200);
+    ctx.lineTo(300, 300); // Draw an edge to another node
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(300, 300, 20, 0, Math.PI * 2); // Another node
+    ctx.fill();
+}
+
+// Add event listener to generate button
+document.getElementById("generateButton").addEventListener("click", generateAndDisplayRandomContextChain);
+
+</script>
+
+</body>
+</html>

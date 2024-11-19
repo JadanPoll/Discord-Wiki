@@ -60,7 +60,7 @@ def cors_bypass(target_url):
         print(headers)
         response = requests.request(
             method=request.method,
-            url=target_url,
+            url=target_url + "?" + request.query_string.decode("utf-8"),
             headers=headers,
             data=request.get_data()
         )
@@ -89,9 +89,9 @@ def main():
 def visualize():
     return render_template('visualize/index.html', group='dev')
 
-@app.route("/visualize/download_messages")
-def dl_msg():
-    return render_template('visualize/download/download_messages.html', group='dev')
+@app.route('/visualize/analysis')
+def analyze():
+    return render_template('visualize/analysis.html', group='dev')
 
 @app.route("/visualize/live_server_update")
 def live_update():
