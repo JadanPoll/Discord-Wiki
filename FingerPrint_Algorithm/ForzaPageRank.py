@@ -259,7 +259,7 @@ from community import community_louvain
 
 canvas_widget = None
 # Function to visualize the NetworkX probability tree and return either node graph or bar graph
-def visualize_probability_tree_networkx(probability_tree, option='node'):
+def visualize_probability_tree_networkx(probability_tree, option='bar'):
     G = nx.DiGraph()
 
     global canvas_widget
@@ -489,7 +489,7 @@ def summarize_context_chain():
     try:
 
         # Send the context chain to ChatGPT for summarization
-        ChatGPT.send_message("sendGPT","Summarize this combining abstractive and high quality extractive. Don't miss any details in it:"+context_chain_text,learn=True)
+        ChatGPT.send_message("sendGPT","Summarize this combining abstractive and high quality extractive. Don't miss any details in it. Referecne specific messages in your response:"+context_chain_text,learn=True)
 
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
