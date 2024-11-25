@@ -2,7 +2,7 @@ import os
 import json
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
-
+#Calculate TF-IFG scores on a discord server
 # Function to load message content from each JSON file
 def load_messages_from_json(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
