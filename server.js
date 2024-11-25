@@ -6,7 +6,7 @@ const path = require("path");
 const cmd = require('node-cmd');
 const crypto = require('crypto');
 const fastify = require("fastify")({
-  logger: false,
+  logger: false ,
 });
 
 const axios = require("axios");
