@@ -18,7 +18,7 @@ if user_platform == "Windows":
 else:
     root = "/Users/"
 
-pc = Pinecone(api_key="pcsk_68RpQp_U1uWtNsxDGA7sh6tEVtbQz1kDPprmSogeCr74nRWtBNCNuUkyQQQZnADxtC6fw")
+pc = Pinecone(api_key="")
 
 index_name = "rag-test"
 
