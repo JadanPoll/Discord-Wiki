@@ -6,6 +6,17 @@ from tkinter import scrolledtext
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModel
+from Special import HTMLStyling
+
+import getpass
+import platform
+user_platform = platform.uname().system
+username = getpass.getuser()
+root = ""
+if user_platform == "Windows":
+    root = "C:/Users/"
+else:
+    root = "/Users/"
 
 pc = Pinecone(api_key="pcsk_68RpQp_U1uWtNsxDGA7sh6tEVtbQz1kDPprmSogeCr74nRWtBNCNuUkyQQQZnADxtC6fw")
 
@@ -22,12 +33,12 @@ if not pc.has_index(index_name):
         ) 
     )
 
-file_path = '/Users/shubhan/Discord-Wiki/FingerPrint_Algorithm/DiscServers/ECE 120 Fall 2024 - exams - mt3 [1275789619954323534].json'
+file_path = root+username+'/Discord-Wiki/FingerPrint_Algorithm/DiscServers/ECE 120 Fall 2024 - Labs - lab10 [1275789619480498319].json'
 index = pc.Index(index_name)
 
 # Initialize stemmer and load stopwords
 word_stemmer = PorterStemmer()
-with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
+with open(root+username+'/Discord-Wiki/FingerPrint_Algorithm/discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
 
 import string
@@ -111,19 +122,8 @@ data = load_messages_from_json(file_path)
 
 # Load and preprocess conversation blocks in one step
 conversation_blocks, processed_conversation_blocks = group_and_preprocess_messages_by_author(data)
+total_characters = sum(len(message) for message in processed_conversation_blocks)
 
-for i, entry in enumerate(data):
-    content = entry["content"]
-    
-    # Generate embedding for the message content
-    content_embedding = generate_embedding(content)
-    
-    vectors = []
-    for d, e in zip(data, content_embedding):
-        vectors.append({
-            "id": entry['id'],
-            "values": e['values'],
-            "metadata": {'text': entry['content']}
-        })
-    # Insert into Pinecone using the message id
-    index.upsert(vectors=vectors, namespace="ECE 120 Fall 2024 exams")
+print(conversation_blocks)
+print(len(conversation_blocks))
+print(total_characters)

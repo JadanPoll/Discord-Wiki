@@ -38,7 +38,7 @@ def get_response(user_query):
         model="multilingual-e5-large",
         inputs=[user_query],
         parameters={
-            "input_type": "query"
+            "input_type": "passage"
         }
     )
     # Query Pinecone for similar messages (retrieve the top 5 closest matches)
@@ -62,4 +62,5 @@ def get_response(user_query):
     #return responses[0]  # Or apply additional ranking logic
     return results
 
-print(get_response(user_query))
+results = get_response(user_query)
+print(results)
