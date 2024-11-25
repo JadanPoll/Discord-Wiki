@@ -216,7 +216,7 @@ import io
 from PIL import Image, ImageTk
 
 tfidf_dict = {}
-with open('./Physics/Study Together - 💭 Community - general [595999872222756888] (after 2024-11-01)_tfidf.json', 'r', encoding='utf-8') as file:
+with open('./TF-IDF/Study Together - 💭 Community - general [595999872222756888] (after 2024-11-01)_tfidf.json', 'r', encoding='utf-8') as file:
     tfidf_dict = json.load(file)
 
 
