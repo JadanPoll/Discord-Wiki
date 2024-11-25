@@ -90,7 +90,7 @@
         if (!response.ok) throw new Error('Folder not found or access denied');
         return response.json();
     }
-  async function fetchTextFile(url, retries = 3, delay = 1000) {
+  async  function fetchTextFile(url, retries = 3, delay = 1000) {
       for (let attempt = 1; attempt <= retries; attempt++) {
           try {
               const response = await fetch(url);

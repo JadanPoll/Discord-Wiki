@@ -11,6 +11,7 @@ const fastify = require("fastify")({
 
 const axios = require("axios");
 
+
 // Webhook handler
 const onWebhook = (req, reply) => {
   let hmac = crypto.createHmac('sha1', process.env.SECRET);
