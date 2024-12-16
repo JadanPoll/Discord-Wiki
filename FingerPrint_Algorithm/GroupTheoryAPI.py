@@ -103,7 +103,7 @@ groups = load_glossary_data(file_path)
 
 if not groups:
     print("No valid group data found. Exiting...")
-    exit()
+    
 # Initialize the group hierarchy with loaded data
 group_hierarchy = GroupHierarchyWithTreeview(groups)
 

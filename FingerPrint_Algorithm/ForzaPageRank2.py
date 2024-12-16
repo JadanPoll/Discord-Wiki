@@ -675,16 +675,18 @@ def display_selected_glossary(item,conversation_number):
 
 
 
-def process_topic_node(item_id):
+def process_topic_node(item_id,gui_on=True):
+
     """Callback to process and display values of the selected topic node and its children."""
     output_text_display.delete('1.0', tk.END)  # Clear the text display
 
     # Retrieve the topic name for the selected parent item
     topic = topic_tree.tree.item(item_id, "text")  # Topic name (column #0)
 
-    # Display parent node's topic
-    output_text_display.insert(tk.END, f"Topic: {topic}\n")
-    output_text_display.insert(tk.END, "-"*50 + "\n")
+    if gui_on:
+        # Display parent node's topic
+        output_text_display.insert(tk.END, f"Topic: {topic}\n")
+        output_text_display.insert(tk.END, "-"*50 + "\n")
 
     # Get child IDs of the parent node (item_id)
     child_ids = topic_tree.tree.get_children(item_id)  # Correct method to get children
@@ -724,11 +726,12 @@ def process_topic_node(item_id):
             for id, message, level in full_message:
                 total+=processed_conversation_blocks[id]+'\n'
                 # Define depth_tag and configure the tag for display
-                depth_tag = f"depth_{level}"
-                output_text_display.tag_configure(depth_tag, background=get_color_for_depth_level(level, max_recursion_level))  # Set color based on depth
+                if gui_on:
+                    depth_tag = f"depth_{level}"
+                    output_text_display.tag_configure(depth_tag, background=get_color_for_depth_level(level, max_recursion_level))  # Set color based on depth
 
 
-                output_text_display.insert(tk.END, f"{message}\n{'-'*50}\n", depth_tag)
+                    output_text_display.insert(tk.END, f"{message}\n{'-'*50}\n", depth_tag)
 
 
     else:
@@ -736,9 +739,18 @@ def process_topic_node(item_id):
 
 
     description = extract_topics(total)
-    print(description)
+    #print(description)
     topic_tree.add_topic_description(item_id,f"    \t  {' , '.join([word for word in description])}  ")
-    output_text_display.after(0,lambda :(update_glossary(), update_clustering(tree,float(0.0),glossary)) )
+
+    def update_ui():
+        update_glossary_compression()
+        if gui_on:
+            update_clustering(tree, float(0.0), glossary)
+
+    if gui_on:
+        output_text_display.after(0, update_ui)
+    else:
+        update_ui()
 
 class TopicTreeview:
     def __init__(self, parent):
@@ -960,6 +972,8 @@ app_main_window.geometry("1200x600")
 
 
 glossary = {}
+
+
 def update_glossary():
     global glossary
 
@@ -989,6 +1003,198 @@ def update_glossary():
                     glossary[keyword] = []
                 glossary[keyword].append(numerical_ids)
 
+
+
+
+
+#from glossary_compression import merge_arrays, efficient_overlap_and_merge, compress_glossary_entries
+
+def 2update_glossary_compression000():
+    global glossary
+
+    updated_keywords = set()  # Track which keywords are updated
+
+    # Loop through all items in the Treeview
+    for item_id in topic_tree.tree.get_children():
+        description = topic_tree.tree.set(item_id, "Description")  # Get description of the topic
+        if description:
+            # Split the description by commas and strip each keyword
+            keywords = [kw.strip() for kw in description.split(',') if kw.strip() != "..."]
+
+            numerical_ids = []
+            # Loop through each child of the current item
+            for child_id in topic_tree.tree.get_children(item_id):
+                # Extract the HiddenInfo column (numerical ID)
+                hidden_info = topic_tree.tree.set(child_id, "HiddenInfo")
+                if hidden_info:
+                    try:
+                        hidden_info_data = json.loads(hidden_info)  # Assuming it's in JSON format
+                        numerical_id = hidden_info_data['message_id']  # Directly assuming it's the numerical ID
+                        numerical_ids.append(numerical_id)
+                    except json.JSONDecodeError:
+                        continue  # In case there is an issue with the HiddenInfo data
+
+            # Add the numerical IDs to the keywords in the glossary
+            for keyword in keywords:
+                if keyword not in glossary:
+                    glossary[keyword] = []
+                glossary[keyword].append(numerical_ids)
+                updated_keywords.add(keyword)  # Mark keyword as updated
+
+    # Compress entries only for updated keywords
+    for keyword in updated_keywords:
+        glossary[keyword] = compress_glossary_entries(keyword, glossary[keyword])
+
+def update_glossary_compression():
+    global glossary
+
+    def merge_arrays(arr1, arr2):
+        return list(set(arr1) | set(arr2))
+
+    def efficient_overlap_and_merge(arr1, arr2, threshold=0.9):
+        arr1, arr2 = sorted(arr1), sorted(arr2)
+        i, j = 0, 0
+        intersection = 0
+        len1, len2 = len(arr1), len(arr2)
+        required_intersection = int(threshold * max(len1, len2))
+
+        # Two-pointer technique to count intersections with early exit
+        while i < len1 and j < len2:
+            if arr1[i] == arr2[j]:
+                intersection += 1
+                i += 1
+                j += 1
+            elif arr1[i] < arr2[j]:
+                i += 1
+            else:
+                j += 1
+
+            # Early exit if the intersection won't reach threshold
+            if intersection + min(len1 - i, len2 - j) < required_intersection:
+                return False
+
+        return intersection >= required_intersection
+
+    def compress_glossary_entries(keyword, entries):
+        n = len(entries)
+        merged_flags = [False] * n  # Track whether an entry is already merged
+
+        for i in range(n):
+            if merged_flags[i]:
+                continue  # Skip already merged entries
+
+            for j in range(i + 1, n):
+                if merged_flags[j]:
+                    continue  # Skip already merged entries
+
+                if efficient_overlap_and_merge(entries[i], entries[j]):
+                    # Merge arrays and mark as merged
+                    entries[i] = merge_arrays(entries[i], entries[j])
+                    merged_flags[j] = True
+
+        # Filter out merged entries
+        return [entries[i] for i in range(n) if not merged_flags[i]]
+
+    updated_keywords = set()  # Track which keywords are updated
+
+    # Loop through all items in the Treeview
+    for item_id in topic_tree.tree.get_children():
+        description = topic_tree.tree.set(item_id, "Description")  # Get description of the topic
+        if description:
+            # Split the description by commas and strip each keyword
+            keywords = [kw.strip() for kw in description.split(',') if kw.strip() != "..."]
+
+            numerical_ids = []
+            # Loop through each child of the current item
+            for child_id in topic_tree.tree.get_children(item_id):
+                # Extract the HiddenInfo column (numerical ID)
+                hidden_info = topic_tree.tree.set(child_id, "HiddenInfo")
+                if hidden_info:
+                    try:
+                        hidden_info_data = json.loads(hidden_info)  # Assuming it's in JSON format
+                        numerical_id = hidden_info_data['message_id']  # Directly assuming it's the numerical ID
+                        numerical_ids.append(numerical_id)
+                    except json.JSONDecodeError:
+                        continue  # In case there is an issue with the HiddenInfo data
+
+            # Add the numerical IDs to the keywords in the glossary
+            for keyword in keywords:
+                if keyword not in glossary:
+                    glossary[keyword] = []
+                glossary[keyword].append(numerical_ids)
+                updated_keywords.add(keyword)  # Mark keyword as updated
+
+    # Compress entries only for updated keywords
+    for keyword in updated_keywords:
+        glossary[keyword] = compress_glossary_entries(keyword, glossary[keyword])
+
+def update_glossary_compression00():
+    global glossary
+
+    def intersection_over_union(arr1, arr2):
+        set1, set2 = set(arr1), set(arr2)
+        intersection = len(set1 & set2)
+        union = len(set1 | set2)
+        return intersection / union
+
+    def merge_arrays(arr1, arr2):
+        return list(set(arr1) | set(arr2))
+
+    def compress_glossary_entries(keyword,entries):
+        n = len(entries)
+        merged_flags = [False] * n  # Track whether an entry is already merged
+
+        for i in range(n):
+            if merged_flags[i]:
+                continue  # Skip already merged entries
+
+            for j in range(i + 1, n):
+                if merged_flags[j]:
+                    continue  # Skip already merged entries
+
+                iou = intersection_over_union(entries[i], entries[j])
+                if iou > 0.9:
+                    #print(f"Compressing {keyword} {i}:{j} IOU:{iou}")
+                    # Merge arrays and mark as merged
+                    entries[i] = merge_arrays(entries[i], entries[j])
+                    merged_flags[j] = True
+
+        # Filter out merged entries
+        return [entries[i] for i in range(n) if not merged_flags[i]]
+
+    updated_keywords = set()  # Track which keywords are updated
+
+    # Loop through all items in the Treeview
+    for item_id in topic_tree.tree.get_children():
+        description = topic_tree.tree.set(item_id, "Description")  # Get description of the topic
+        if description:
+            # Split the description by commas and strip each keyword
+            keywords = [kw.strip() for kw in description.split(',') if kw.strip() != "..."]
+
+            numerical_ids = []
+            # Loop through each child of the current item
+            for child_id in topic_tree.tree.get_children(item_id):
+                # Extract the HiddenInfo column (numerical ID)
+                hidden_info = topic_tree.tree.set(child_id, "HiddenInfo")
+                if hidden_info:
+                    try:
+                        hidden_info_data = json.loads(hidden_info)  # Assuming it's in JSON format
+                        numerical_id = hidden_info_data['message_id']  # Directly assuming it's the numerical ID
+                        numerical_ids.append(numerical_id)
+                    except json.JSONDecodeError:
+                        continue  # In case there is an issue with the HiddenInfo data
+
+            # Add the numerical IDs to the keywords in the glossary
+            for keyword in keywords:
+                if keyword not in glossary:
+                    glossary[keyword] = []
+                glossary[keyword].append(numerical_ids)
+                updated_keywords.add(keyword)  # Mark keyword as updated
+
+    # Compress entries only for updated keywords
+    for keyword in updated_keywords:
+        glossary[keyword] = compress_glossary_entries(keyword,glossary[keyword])
+
 def generate_glossary():
     global glossary
     # Save the glossary to a file
@@ -997,7 +1203,17 @@ def generate_glossary():
 
     print("Glossary generated and saved to glossary.json")
 
+def auto_glossary():
+    # Get all top-level items in the Treeview
+    i=0
+    for key_item_id in topic_tree.tree.get_children():
+        start = time.time()
+        # Process the top-level item and recursively process its children
 
+        process_topic_node(key_item_id,gui_on=False)
+        
+        print(f"{i} : {time.time()-start}")
+        i+=1
 
 def show_glossary():
     hide_all_frames()
@@ -1022,26 +1238,27 @@ def hide_all_frames():
 
 
 
+
 # Initialize Menu bar
 menu_bar = tk.Menu(app_main_window)
 
 # Create 'Generate' menu
 generate_menu = tk.Menu(menu_bar, tearoff=0)
-generate_menu.add_command(label="Generate Context Chain", command=generate_context_chain)
-generate_menu.add_command(label="Generate Glossary", command=generate_glossary)
-
+generate_menu.add_command(label="Generate Context Chain", command=generate_context_chain, accelerator="Ctrl+L")
+generate_menu.add_command(label="Generate Glossary", command=generate_glossary, accelerator="Ctrl+S")
+generate_menu.add_command(label="Auto Gloss", command=auto_glossary)
 # Create 'Summarize' menu
 summarize_menu = tk.Menu(menu_bar, tearoff=0)
-summarize_menu.add_command(label="Summarize", command=summarize_context_chain)
+summarize_menu.add_command(label="Summarize", command=summarize_context_chain, accelerator="Ctrl+G")
 
 # Create 'File' menu (for exiting)
 file_menu = tk.Menu(menu_bar, tearoff=0)
 file_menu.add_separator()
-file_menu.add_command(label="Exit", command=app_main_window.quit)
+file_menu.add_command(label="Exit", command=app_main_window.quit, accelerator="Ctrl+Q")
 
 # Create 'Tools' menu with cascading options (Show Glossary, Show Graphs)
 tools_menu = tk.Menu(menu_bar, tearoff=0)
-tools_menu.add_radiobutton(label="Show Glossary",value="Show Glossary", command=show_glossary)
+tools_menu.add_radiobutton(label="Show Glossary", value="Show Glossary", command=show_glossary)
 tools_menu.add_radiobutton(label="Show Graphs", command=show_graphs)
 
 # Add menus to the menu bar
@@ -1053,8 +1270,16 @@ menu_bar.add_cascade(label="Tools", menu=tools_menu)
 # Configure the menu bar for the main window
 app_main_window.config(menu=menu_bar)
 
+# Bind the shortcuts to the commands
+app_main_window.bind('<Control-l>', lambda event: generate_context_chain())
+app_main_window.bind('<Control-s>', lambda event: generate_glossary())
+app_main_window.bind('<Control-g>', lambda event: summarize_context_chain())
+app_main_window.bind('<Control-q>', lambda event: app_main_window.quit())
+
+
 # Topic Treeview setup (assuming TopicTreeview is defined elsewhere)
 topic_tree = TopicTreeview(app_main_window)
+"""
 topic_id = topic_tree.add_topic("Microbits as topic")
 descriptions = [
     "Microbits are small programmable devices.",
@@ -1065,7 +1290,7 @@ descriptions = [
 ]
 for description in descriptions:
     topic_tree.add_description(topic_id, description)
-
+"""
 topic_tree.add_double_click_callback_value(lambda metadata: (print(metadata), generate_and_display_random_context_chain(metadata['message_id'])))
 topic_tree.add_select_callback_key(process_topic_node)
 
@@ -1109,6 +1334,9 @@ def on_glossary_treeview_select(event):
         item_name = tree.item(selected_item[0])['text']  # Get the text (name) of the selected item
         gl_len=len(glossary[item_name])-1
         update_glossary_upper_limit(gl_len)
+        gl_now = min(int(spinbox.get()),gl_len)
+        spinbox.delete(0, "end")  # Clear the current value
+        spinbox.insert(0, gl_now)  # Insert the new value
 
         display_selected_glossary(item_name,int(spinbox.get()))  # Call the function with the selected item name
 
@@ -1127,7 +1355,7 @@ def update_glossary_upper_limit(limit_num):
 
 
 # Create a Spinbox widget for selecting numbers
-spinbox = tk.Spinbox(glossary_frame, from_=0, to=1, increment=1, width=5)
+spinbox = tk.Spinbox(glossary_frame, from_=0, to=1, increment=1, width=5, command=lambda event=None:on_glossary_treeview_select(event))
 spinbox.pack(fill="x")
 
 # Create a slider widget
