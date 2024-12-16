@@ -11,6 +11,8 @@ from io import BytesIO
 from PIL import Image
 import functools
 from halo import Halo
+import time
+
 def halo_spinner(text="Loading", spinner="dots", color="cyan"):
     def decorator(func):
         @functools.wraps(func)
@@ -300,7 +302,6 @@ def extract_structured_json(message):
 
 # main.py
 
-import time
 
 def custom_callback(message):
     """Custom callback function to process received messages."""

@@ -1,0 +1,119 @@
+.ORIG x3000
+
+GETC                    
+ADD R5, R0, #0         
+GETC                    
+ADD R6, R0, #0         
+
+LEA R1, ADDR_CHARACTERS
+
+FETCH_CHARACTER:
+GETC                   
+STR R0, R1, #0
+ADD R1, R1, #1
+ADD R3, R0, #-13
+BRz END_LOOP_ADDR_CHARACTERS
+BRnzp FETCH_CHARACTER
+
+END_LOOP_ADDR_CHARACTERS:
+
+LEA R1, ADDR_CHARACTERS        
+LD R4, BLOCK            
+AND R0, R0, #0
+
+FIND_NEXT_CHAR:
+
+LDR R3, R1, #0
+ADD R2, R3, #-13 ; Dummy R2 for intermediate newline calculation
+BRz START_PRINT
+
+
+LD R0, BASE_ADDR
+FIND_CHAR:              
+ADD R3, R3, #-1 
+BRzp SKIP        
+STR R0, R1, #0
+ADD R1, R1, #1
+BRnzp FIND_NEXT_CHAR
+
+SKIP:
+ADD R0, R0, R4          
+BRnzp FIND_CHAR
+
+;RO for OUT and temp -7 op
+;R1 for address
+;R2 for store for bit shift
+;R3 for column count
+;R4 for row count
+;R5-R6
+;R7 not used because of JSR
+
+
+START_PRINT:
+ADD R2, R2, #-1 ; Since R2 = 0 and I want -1
+STR R2, R1, #0    ; So newline not printed as char
+
+LEA R1, ADDR_CHARACTERS
+
+LOOP_COLUMN:
+AND R3, R3, #0 
+LDR R2, R1, #0
+BRn NEXT_LINE ; If it's a newline character, skip
+
+; Offset calculation - 10-R4
+NOT R7, R4
+ADD R7, R7, #1
+ADD R7, R7, #15
+ADD R7, R7, #1
+
+
+LDR R2,R1,#0   ;Use LDI
+ADD R2, R2, R7 ; Offset for next string for characters
+LDR R2,R2,#0  
+      
+BRzp SET_OUTPUT_R5      
+BRn SET_OUTPUT_R6       
+
+LOOP_SAME_LINE:
+ADD R3, R3, #1          
+ADD R2, R2, R2          
+
+BRzp SET_OUTPUT_R5      
+BRn SET_OUTPUT_R6       
+
+SET_OUTPUT_R5:
+ADD R0, R5, #0          
+BRnzp OUTPUT
+
+SET_OUTPUT_R6:
+ADD R0, R6, #0          
+
+OUTPUT:
+OUT                     
+
+SHOULD_END_SUB_LOOP:
+ADD R0, R3, #-7        
+BRz NEXT_CHAR           
+BRn LOOP_SAME_LINE          
+
+NEXT_CHAR:
+ADD R1, R1, #1                 
+BRnzp LOOP_COLUMN          
+
+NEXT_LINE:
+LD R0, NEWLINE          
+OUT                      
+LEA R1, ADDR_CHARACTERS          
+ADD R4, R4, #-1         
+BRp LOOP_COLUMN         
+
+HALT                    
+
+BASE_ADDR  .FILL x4000  
+BLOCK      .FILL x0010  
+NEWLINE    .FILL x000A  
+
+ADDR_CHARACTERS .BLKW 10 
+ADDRESSES .BLKW x0000        
+
+.END

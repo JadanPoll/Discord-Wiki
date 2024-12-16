@@ -70,29 +70,6 @@ def group_and_preprocess_messages_by_author(message_data):
             # Append current message content to the author's block
             author_messages.append(message_entry["content"])
 
-        elif "content" in message_entry and "author" in message_entry and "username" in message_entry["author"]:
-            author_name = message_entry["author"]["username"]
-
-            # If the author changes, process and save the previous block
-            if author_name != current_author:
-                if author_messages:
-                    # Join the author's messages into one block
-                    joined_message_block = " ".join(author_messages)
-
-                    # Store the original conversation block
-                    conversation_blocks.append(joined_message_block)
-
-                    # Store the preprocessed conversation block
-                    preprocessed_block = " ".join(preprocess_message_text(joined_message_block))
-                    processed_conversation_blocks.append(preprocessed_block)
-
-                # Reset for the new author
-                current_author = author_name
-                author_messages = []
-
-            # Append current message content to the author's block
-            author_messages.append(message_entry["content"])
-
     # Append the last block of messages
     if author_messages:
         joined_message_block = " ".join(author_messages)
@@ -280,8 +257,7 @@ from community import community_louvain
 
 canvas_widget = None
 # Function to visualize the NetworkX probability tree and return either node graph or bar graph
-def visualize_probability_tree_networkx(probability_tree):
-    option = combobox.get()
+def visualize_probability_tree_networkx(probability_tree, option='bar'):
     G = nx.DiGraph()
 
     global canvas_widget
@@ -501,7 +477,7 @@ app_main_window.geometry("1200x600")  # Wider window for side-by-side display
 
 
 combobox = ttk.Combobox(app_main_window, values=["bar", "node"])
-combobox.set("node")
+combobox.set("bar")
 combobox.pack(side=tk.RIGHT, padx=5)
 
 # Bind the combobox selection change event to a function
