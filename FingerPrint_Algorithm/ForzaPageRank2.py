@@ -671,11 +671,6 @@ def display_selected_glossary(item,conversation_number):
             
             # Display the message with separator
             output_text_display.insert(tk.END, f"{message}\n{'-' * 50}\n")
-                
-        # Insert heavier separation after displaying all blocks
-        output_text_display.insert(tk.END, "=" * 100 + "\n")
-        output_text_display.insert(tk.END, "=" * 100 + "\n")
-        output_text_display.insert(tk.END, "=" * 100 + "\n")
 
 
 
@@ -932,7 +927,7 @@ def summarize_context_chain():
     try:
         ChatGPT.send_message(
             "sendGPT",
-            "Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response:" + context_chain_text,
+            "Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response. If possible break it into subheadings:" + context_chain_text,
             learn=True
         )
     except Exception as e:
@@ -1112,7 +1107,8 @@ def on_glossary_treeview_select(event):
     selected_item = tree.selection()  # Get the selected item (ID or name)
     if selected_item:
         item_name = tree.item(selected_item[0])['text']  # Get the text (name) of the selected item
-        update_glossary_upper_limit(len(glossary[item_name])-1)
+        gl_len=len(glossary[item_name])-1
+        update_glossary_upper_limit(gl_len)
 
         display_selected_glossary(item_name,int(spinbox.get()))  # Call the function with the selected item name
 
