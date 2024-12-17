@@ -9,7 +9,7 @@ What's Discords AI Solution for 2025? My team and I are working on code to turn 
 
 
 #### Glossary:
-Explore any topic from a web of info!
+Explore any topic from a web of info, right from your Discord Community!
 
 <img src="https://github.com/JadanPoll/Discord-Wiki/blob/d58c5f8fa13aaf40069e71196655340e7eecf2d4/Books_For_Research/DFinalVisuals.png?raw=true" alt="App" width="600" height="300"> 
 
