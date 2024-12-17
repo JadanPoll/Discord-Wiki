@@ -6,6 +6,13 @@ What's Discords AI Solution for 2025? My team and I are working on code to turn 
 
 <img src="https://github.com/JadanPoll/Discord-Wiki/blob/dcbe1da6528fba314d5b738a173ea0846490ac03/Books_For_Research/DWikis.png?raw=true" alt="Landing Page" width="600" height="300"> 
 
+
+
+#### Glossary:
+Explore any topic from a web of info!
+
+<img src="https://github.com/JadanPoll/Discord-Wiki/blob/d58c5f8fa13aaf40069e71196655340e7eecf2d4/Books_For_Research/DFinalVisuals.png?raw=true" alt="App" width="600" height="300"> 
+
 ## Insights:
 Every great search engine boasts a host of cool unique features, and so do we! We call these **Insights**—special tools that add fun functionality to elevate your search experience.  
 
@@ -30,11 +37,6 @@ Creating useful functionality for the user.
 <img src="https://github.com/JadanPoll/Discord-Wiki/blob/0d3234702e58432bb4d3a784516cdd59e5bc674e/Books_For_Research/DesktopApp.png?raw=true" alt="App" width="600" height="300"> 
 
 
-#### Glossary:
-All relevant informaiton. Easy access.
-
-
-<img src="https://github.com/JadanPoll/Discord-Wiki/blob/d58c5f8fa13aaf40069e71196655340e7eecf2d4/Books_For_Research/DFinalVisuals.png?raw=true" alt="App" width="600" height="300"> 
 
 ### About Contributions?
 We are not currently accepting any new additions to the team, but we are `always` welcoming ideas. 
