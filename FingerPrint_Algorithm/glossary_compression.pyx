@@ -1,47 +1,43 @@
 # cython: boundscheck=False, wraparound=False, cdivision=True
-from libc.stdlib cimport malloc, free
-from libc.string cimport memcpy
 from cython cimport inline
+import cython
 
-# Declare types
-cdef inline int max(int a, int b):
-    return a if a > b else b
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def efficient_overlap_and_merge(arr1: list, arr2: list, float threshold=0.9) -> list:
+    """
+    Checks if `arr1` and `arr2` have sufficient overlap based on `threshold`.
+    If they do, returns the merged array directly; otherwise, returns None.
+    """
+    cdef int len1 = len(arr1)
+    cdef int len2 = len(arr2)
 
-# Efficient merge of sorted arrays
-def merge_arrays(arr1, arr2):
-    cdef set merged_set = set(arr1)
-    merged_set.update(arr2)
-    return list(merged_set)
+    # Create a shadow copy of arr1 as a set
+    cdef set shadow_arr1_set = set(arr1)
+    cdef int overlap = 0
 
-# Two-pointer technique for efficient array comparison
-def efficient_overlap_and_merge(arr1, arr2, float threshold=0.9):
-    cdef int i = 0, j = 0
-    cdef int intersection = 0
-    cdef int len1 = len(arr1), len2 = len(arr2)
-    cdef int required_intersection = int(threshold * max(len1, len2))
+    # Check overlap and modify the shadow copy inline
+    for x in arr2:
+        if x in shadow_arr1_set:
+            overlap += 1
+            shadow_arr1_set.remove(x)  # Remove matched element from the shadow copy
 
-    arr1, arr2 = sorted(arr1), sorted(arr2)
+    # Check if overlap satisfies the threshold
+    if overlap >= threshold * len1 or overlap >= threshold * len2:
+        # Merge arr2 with the remaining elements of shadow_arr1_set
+        return sorted(arr2 + list(shadow_arr1_set))  # Sorted to maintain order
 
-    while i < len1 and j < len2:
-        if arr1[i] == arr2[j]:
-            intersection += 1
-            i += 1
-            j += 1
-        elif arr1[i] < arr2[j]:
-            i += 1
-        else:
-            j += 1
+    return None  # No sufficient overlap
 
-        # Early exit if the intersection won't reach threshold
-        if intersection + min(len1 - i, len2 - j) < required_intersection:
-            return False
 
-    return intersection >= required_intersection
-
-# Compress glossary entries using efficient merging
-def compress_glossary_entries(keyword, entries):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def compress_glossary_entries(keyword: str, entries: list, float threshold=0.9) -> list:
+    """
+    Compresses glossary entries by merging overlapping arrays.
+    """
     cdef int i, j, n = len(entries)
-    merged_flags = [False] * n  # Track whether an entry is already merged
+    cdef list merged_flags = [False] * n  # Track whether an entry is already merged
 
     for i in range(n):
         if merged_flags[i]:
@@ -51,10 +47,15 @@ def compress_glossary_entries(keyword, entries):
             if merged_flags[j]:
                 continue  # Skip already merged entries
 
-            if efficient_overlap_and_merge(entries[i], entries[j]):
-                # Merge arrays and mark as merged
-                entries[i] = merge_arrays(entries[i], entries[j])
+            # Pass the threshold parameter to efficient_overlap_and_merge
+            merged_result = efficient_overlap_and_merge(entries[i], entries[j], threshold)
+            if merged_result is not None:
+                # Replace arr1 with the merged result and mark arr2 as merged
+                entries[i] = merged_result
                 merged_flags[j] = True
 
     # Filter out merged entries
     return [entries[i] for i in range(n) if not merged_flags[i]]
+
+
+

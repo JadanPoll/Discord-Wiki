@@ -83,6 +83,7 @@ class WebSocketClientApp:
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.loop_thread = threading.Thread(target=self.run_event_loop)
+        self.loop_thread.daemon = True
         self.loop_thread.start()
         print(self,base_url)
         self.websocket_client = FetchWebSocket(self, base_url)

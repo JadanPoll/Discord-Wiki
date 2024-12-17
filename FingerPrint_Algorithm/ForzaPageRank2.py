@@ -148,7 +148,7 @@ def visualize_elbow_and_knee(scores, cutoff):
     return cutoff
 
 
-def extract_topics(text):
+def extract_topics(text,visualize=False):
     """
     Extract keywords from the text and visualize the elbow/knee for keyword selection.
     
@@ -171,9 +171,10 @@ def extract_topics(text):
     knee_locator = KneeLocator(x, scores, curve="convex", direction="decreasing")
     cutoff = knee_locator.knee or len(scores)  # Default to all if no knee is found
 
-    # Visualize elbow/knee and get the cutoff point
-    visualize_elbow_and_knee(scores,cutoff)
-    
+    if visualize:
+        # Visualize elbow/knee and get the cutoff point
+        visualize_elbow_and_knee(scores,cutoff)
+
     # Select keywords up to the cutoff point
     optimal_keywords = [kw.word for kw in keywords[:cutoff]]
     return optimal_keywords
@@ -185,7 +186,7 @@ with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
 
 # Load and parse Discord message data
-with open('./DiscServers/CEMU_discord_messages.json', encoding="utf-8") as discord_messages_file:
+with open('./DiscServers/ECE 120 Fall 2024 - Labs - lab10 [1275789619480498319].json', encoding="utf-8") as discord_messages_file:
     discord_message_data = json.load(discord_messages_file)
 
 tfidf_dict = {}
@@ -338,171 +339,19 @@ def construct_context_chain(inherited_words_bag, search_radius, current_message_
 
 
 
-# Function to compute the combined score
-def compute_combined_score(tfidf_score, pagerank_score, alpha=0.5, beta=2):
-    normalized_tfidf = tfidf_score
-    normalized_pagerank = pagerank_score / max(pagerank_score, 1)
-    combined_score = alpha * normalized_tfidf + beta * normalized_pagerank
-    return combined_score
 
 
-
-
-# Function to visualize the NetworkX probability tree and return either node graph or bar graph
-def visualize_probability_tree_networkx(probability_tree):
-    option = combobox.get()
-    G = nx.DiGraph()
-
-    global canvas_widget
-
-    # Helper function to add nodes and edges recursively
-    def add_nodes_and_edges(parent, sub_tree):
-        if isinstance(sub_tree, dict):
-            if "probability" in sub_tree:
-                G.add_node(parent, probability=sub_tree["probability"])
-            for child_word, child_details in sub_tree.items():
-                if child_word != "probability":
-                    G.add_edge(parent, child_word, label=f"{child_details.get('probability', 'N/A'):.2f}")
-                    add_nodes_and_edges(child_word, child_details)
-
-    # Build the graph from the probability tree
-    for key, value in probability_tree.items():
-        add_nodes_and_edges(key, value)
-
-    G = G.to_undirected()
-    
-
-    # Calculate PageRank scores and normalize them
-    pagerank_scores = nx.pagerank(G)
-    max_pagerank = max(pagerank_scores.values())
-    min_pagerank = min(pagerank_scores.values())
-    pagerank_range = max_pagerank - min_pagerank if max_pagerank != min_pagerank else 1
-    normalized_pagerank_scores = {node: (pagerank_scores[node] - min_pagerank) / pagerank_range for node in pagerank_scores}
-
-    # Sort normalized pagerank scores by value
-    sorted_pagerank_scores = dict(sorted(normalized_pagerank_scores.items(), key=lambda item: item[1], reverse=True))
-
-    # Calculate TF-IDF scores and normalize them
-    words_in_graph = list(G.nodes)
-    tfidf_scores = {word: tfidf_dict.get(word.lower(), 0.0) for word in words_in_graph}
-    max_tfidf = max(tfidf_scores.values())
-    min_tfidf = min(tfidf_scores.values())
-    tfidf_range = max_tfidf - min_tfidf if max_tfidf != min_tfidf else 1
-    normalized_tfidf_scores = {word: 1 - ((tfidf_scores[word] - min_tfidf) / tfidf_range) for word in tfidf_scores}
-
-    # Sort normalized TF-IDF scores by value
-    sorted_tfidf_scores = dict(sorted(normalized_tfidf_scores.items(), key=lambda item: item[1], reverse=True))
-
-    pagerank_positions = {node: idx if sorted_pagerank_scores[node] != 0.0 else len(sorted_pagerank_scores) - 1 for idx, (node, _) in enumerate(sorted_pagerank_scores.items())}
-    tfidf_positions = {
-        node: (idx if sorted_tfidf_scores[node] != 1.0 else 0) 
-        for idx, (node, _) in enumerate(sorted_tfidf_scores.items())
-    }
-
-    print(pagerank_positions)
-    print(tfidf_positions)
-    # Combine ranks based on PageRank and TF-IDF positions
-    combined_rank = {
-        node: (pagerank_positions.get(node, 0) + tfidf_positions.get(node, 0)) / 2 
-        for node in G.nodes
-    }
-    
-    # Sort combined rank for further use
-    sorted_combined_rank = sorted(combined_rank.items(), key=lambda item: item[1])
-
-    # Get partition using Louvain method for community detection
-    partition = community_louvain.best_partition(G)
-
-    # Precompute node positions based on combined rank (for 'node' option)
-    score_range = max(combined_rank.values()) - min(combined_rank.values()) if combined_rank else 1
-    pos = {
-        node: (np.random.uniform(0, 2 * np.pi), 1 - (score - min(combined_rank.values())) / score_range)
-        for node, score in combined_rank.items()
-    }
-    
-    spring_pos = nx.spring_layout(G, pos=pos, weight='weight', k=0.1, iterations=50)
-
-    # Visualization option: 'node' or 'bar'
-    fig, ax = plt.subplots(figsize=(8, 8))
-    
-    if option == 'node':
-        cmap = plt.get_cmap("viridis", max(partition.values()) + 1)
-        for community_num in set(partition.values()):
-            nodes_in_community = [node for node, comm in partition.items() if comm == community_num]
-            nx.draw_networkx_nodes(G, spring_pos, nodelist=nodes_in_community,
-                                   node_size=500,
-                                   node_color=[cmap(community_num)], ax=ax)
-        nx.draw_networkx_edges(G, spring_pos, alpha=0.7, ax=ax)
-        nx.draw_networkx_labels(G, spring_pos, font_size=8, font_weight="bold", font_color="black", ax=ax)
-
-    elif option == 'bar':
-        words = [word for word, _ in sorted_combined_rank]
-        combined_values = [combined_rank[word] for word in words]
-        
-        bar_width = 0.5
-        index = np.arange(len(words))
-        
-        bars = ax.bar(index, combined_values, bar_width, color='skyblue', label="Combined Score")
-        
-        ax.set_xlabel('Words')
-        ax.set_ylabel('Combined Scores')
-        ax.set_title('Words Ranked by Combined Scores')
-        ax.set_xticks(index)
-        ax.set_xticklabels(words, rotation=60, ha='right')
-        ax.legend()
-
-        # Create text annotations for each bar (initially hidden)
-        texts = [ax.text(bar.get_x() + bar.get_width() / 2,
-                         bar.get_height() + 0.05,
-                         word,
-                         ha='center',
-                         va='bottom',
-                         visible=False,
-                         fontsize=10) for bar, word in zip(bars, words)]
-
-        # Function to highlight bars on hover and display label
-        def on_hover(event):
-            for bar in bars:
-                bar.set_color('skyblue')
-            for text in texts:
-                text.set_visible(False)
-
-            for i, bar in enumerate(bars):
-                if bar.contains(event)[0]:
-                    bar.set_color('orange')
-                    texts[i].set_visible(True)
-                    break
-
-            fig.canvas.draw_idle()
-
-        fig.canvas.mpl_connect('motion_notify_event', on_hover)
-
-    # Ensure the figure size is consistent across calls
-    fig.set_size_inches((10, 8))
-
-    # Update the canvas with the new figure (destroy and repack)
-    #canvas_widget = getattr(graph_frame.master.winfo_children()[0], 'canvas', None)
-    
-    if canvas_widget:
-        canvas_widget.get_tk_widget().destroy()
-
-    canvas_widget = FigureCanvasTkAgg(fig, master=graph_frame)
-    
-    canvas_widget.draw()
-    
-    canvas_widget.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
 # Determine background color based on recursion level (depth) for display
 def get_color_for_depth_level(depth_level, maximum_depth):
     color_intensity = int(255 * (depth_level / maximum_depth))
     return f"#{255:02x}{color_intensity:02x}{color_intensity:02x}" if depth_level > 1 else "#a6a6a6"
 
-probability_tree={}
 
 
 
 found_id = set()  # Tracks all processed conversation IDs
-
+import cProfile
 def generate_and_display_all_random_context_chain():
     """
     Autonomously finds and generates context chains for all conversations.
@@ -511,60 +360,112 @@ def generate_and_display_all_random_context_chain():
     cold_start = time.time()
     global found_id
     print(len(processed_conversation_blocks))
+
     for index in range(len(processed_conversation_blocks)):
 
         if index not in found_id:
+            
             generate_and_display_random_context_chain2(index)
 
 
-
+    auto_glossary()
+    print(f"Number of Chains:{i}")
 
     print(f"Cold Start 5: {time.time()-cold_start}")
 
+i = 0 
+conversation_topic_tree = {}
+def generate_and_display_random_context_chain2(index=None):
+    global i
+    global found_id
+    global conversation_topic_tree
 
-# Generate and display a context chain for a random conversation block
-def generate_and_display_random_context_chain2(index):
     """
-    Generates and displays a context chain for a specific or random conversation block.
+    Generates and displays a context chain for a specific conversation block.
     If `index` is provided, it processes that specific conversation block; otherwise, 
     it picks a random block to process.
     """
-    global found_id
-    global probability_tree
-
     try:
+        # Get the context search radius from the input field
         search_radius = int(context_radius_input.get())
     except ValueError:
         output_text_display.insert(tk.END, "Please enter a valid number for context search radius.\n")
         return
 
     if processed_conversation_blocks:
-        # Select block by index or randomly
-        random_block_index = index if index is not None else random.choice(range(len(processed_conversation_blocks)))
-        random_block_words = processed_conversation_blocks[random_block_index].split()
-        visited_block_indices = {random_block_index}
-        context_chain = [(random_block_index, conversation_blocks[random_block_index], 1)]
+        block_index = index
+        block_words = processed_conversation_blocks[block_index].split()
+        visited_block_indices = {block_index}  # Keep track of visited blocks to avoid cycles
+        context_chain = [(block_index, conversation_blocks[block_index], 1)]  # Initialize the context chain
 
-        probability_tree = {}
+        # Construct the context chain using the helper function
+        construct_context_chain(block_words, search_radius, block_index, visited_block_indices, context_chain)
 
-
-        # Construct context chain
-        construct_context_chain(random_block_words, search_radius, random_block_index, visited_block_indices, context_chain)
-
-
+        # If the chain is too short and `index` was specified, stop processing this block
         if len(context_chain) < search_radius // 4 and index is not None:
-
+            found_id.add(index)
             return
 
+
         context_chain.sort()
+        topic_id = str(block_index)
+        conversation_topic_tree[topic_id] = [
+            {"message": msg, "message_id": blk_id} for blk_id, msg,_ in context_chain
+        ]
+        found_id.update(blk_id for blk_id, _,_ in context_chain)
+        i += 1
 
 
-        # Add topic and descriptions to the tree
-        topic_id = topic_tree.add_topic(conversation_blocks[random_block_index])
-        for block_id, message, level in context_chain:
-            found_id.add(block_id)
 
-            topic_tree.add_description(topic_id, message, {"message_id": block_id,"level":level})
+
+def auto_process_topic_node():
+    """
+    Processes topics in the conversation tree and extracts descriptions.
+    """
+    global conversation_topic_tree
+
+    if not conversation_topic_tree:
+        output_text_display.insert(tk.END, "\nNo topics available to process.\n")
+        return
+    
+    i = 0
+    for topic_id, convo in conversation_topic_tree.items():
+        total = "\n".join(
+            processed_conversation_blocks[entry["message_id"]] for entry in convo
+        )
+        description = extract_topics(total)
+        convo.append({"description": description})
+        print(f"Next: {i}")
+        i+=1
+
+
+
+def auto_update_glossary():
+    """
+    Updates the glossary with keywords mapped to message IDs.
+    """
+    global conversation_topic_tree, glossary
+
+    if not conversation_topic_tree:
+        return
+
+    for topic_id, topic_data in conversation_topic_tree.items():
+        description = topic_data[-1].get("description", "")  # Assume last entry is the description
+        if not description:
+            print("not here")
+            continue
+
+        print(f"{topic_data} : {description}")
+        keywords = description
+        message_ids = [entry["message_id"] for entry in topic_data if "message_id" in entry]
+
+        for keyword in keywords:
+            if keyword not in glossary:
+                glossary[keyword] = []  # Initialize as an empty list
+            glossary[keyword].append(message_ids)  # Append the message_ids array to the list
+
+
+
 
 
 # Generate and display a context chain for a random conversation block
@@ -578,7 +479,7 @@ def generate_and_display_random_context_chain(index=None):
     save = True
     if index is not None:
         save = True
-    global probability_tree
+
     output_text_display.delete('1.0', tk.END)
     
     try:
@@ -594,7 +495,7 @@ def generate_and_display_random_context_chain(index=None):
         visited_block_indices = {random_block_index}
         context_chain = [(random_block_index, conversation_blocks[random_block_index], 1)]
 
-        probability_tree = {}
+
         split_cache = {}
 
         # Construct context chain
@@ -743,7 +644,7 @@ def process_topic_node(item_id,gui_on=True):
     topic_tree.add_topic_description(item_id,f"    \t  {' , '.join([word for word in description])}  ")
 
     def update_ui():
-        update_glossary_compression()
+        update_glossary()
         if gui_on:
             update_clustering(tree, float(0.0), glossary)
 
@@ -915,13 +816,6 @@ class TopicTreeview:
 
 
 
-# Function to handle combobox selection
-def on_combobox_select(event):
-    if combobox.get() == "bar":
-        visualize_probability_tree_networkx(probability_tree)
-    else:
-        visualize_probability_tree_networkx(probability_tree)
-
 # Function to handle the Generate Context Chain command
 def generate_context_chain():
     try:
@@ -974,6 +868,10 @@ app_main_window.geometry("1200x600")
 glossary = {}
 
 
+
+
+
+
 def update_glossary():
     global glossary
 
@@ -1007,9 +905,7 @@ def update_glossary():
 
 
 
-#from glossary_compression import merge_arrays, efficient_overlap_and_merge, compress_glossary_entries
-
-def 2update_glossary_compression000():
+def update_glossary_compression():
     global glossary
 
     updated_keywords = set()  # Track which keywords are updated
@@ -1045,7 +941,7 @@ def 2update_glossary_compression000():
     for keyword in updated_keywords:
         glossary[keyword] = compress_glossary_entries(keyword, glossary[keyword])
 
-def update_glossary_compression():
+def update_glossary_compression01():
     global glossary
 
     def merge_arrays(arr1, arr2):
@@ -1193,7 +1089,7 @@ def update_glossary_compression00():
 
     # Compress entries only for updated keywords
     for keyword in updated_keywords:
-        glossary[keyword] = compress_glossary_entries(keyword,glossary[keyword])
+        glossary[keyword] =glossary[keyword]
 
 def generate_glossary():
     global glossary
@@ -1203,17 +1099,34 @@ def generate_glossary():
 
     print("Glossary generated and saved to glossary.json")
 
-def auto_glossary():
-    # Get all top-level items in the Treeview
-    i=0
-    for key_item_id in topic_tree.tree.get_children():
-        start = time.time()
-        # Process the top-level item and recursively process its children
+import cProfile
 
-        process_topic_node(key_item_id,gui_on=False)
-        
+from glossary_compression import  efficient_overlap_and_merge, compress_glossary_entries
+import cProfile
+def intersect_compressor(data):
+    print("Compressing...")
+    # Iterate through the data and compress each glossary entry
+    i=0
+    complete_start = time.time()
+    for keyword in data:
+        start = time.time()
+        data[keyword] = compress_glossary_entries(keyword, data[keyword],0.9)
         print(f"{i} : {time.time()-start}")
         i+=1
+
+    print(f"End of end: {time.time() - complete_start}")
+    return data  # Ensure the modified data is returned
+
+def auto_glossary():
+    global glossary
+
+    start = time.time()
+    auto_process_topic_node()
+    auto_update_glossary()
+    glossary = intersect_compressor(glossary)
+    update_clustering(tree, 0.0, glossary)
+
+    print(f"{i} : {time.time()-start}")
 
 def show_glossary():
     hide_all_frames()
@@ -1246,7 +1159,8 @@ menu_bar = tk.Menu(app_main_window)
 generate_menu = tk.Menu(menu_bar, tearoff=0)
 generate_menu.add_command(label="Generate Context Chain", command=generate_context_chain, accelerator="Ctrl+L")
 generate_menu.add_command(label="Generate Glossary", command=generate_glossary, accelerator="Ctrl+S")
-generate_menu.add_command(label="Auto Gloss", command=auto_glossary)
+generate_menu.add_command(label="Auto Gloss", command=lambda: cProfile.run("""auto_glossary()"""))
+
 # Create 'Summarize' menu
 summarize_menu = tk.Menu(menu_bar, tearoff=0)
 summarize_menu.add_command(label="Summarize", command=summarize_context_chain, accelerator="Ctrl+G")
