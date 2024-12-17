@@ -31,7 +31,9 @@ Creating useful functionality for the user.
 
 
 #### Glossary:
-All relevant informaiton. Easy access
+All relevant informaiton. Easy access.
+
+
 <img src="https://github.com/JadanPoll/Discord-Wiki/blob/d58c5f8fa13aaf40069e71196655340e7eecf2d4/Books_For_Research/DFinalVisuals.png?raw=true" alt="App" width="600" height="300"> 
 
 ### About Contributions?
