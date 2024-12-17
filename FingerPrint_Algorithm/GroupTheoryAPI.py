@@ -84,7 +84,7 @@ def update_clustering(tree,slider_value,custom_groups = None):
     """ Update clustering based on the slider value. """
     global groups
     print("UPdated CLUSTERINGGGGGGGGGGG")
-    if custom_groups:
+    if custom_groups is not None:
 
         group_hierarchy.reset( custom_groups)
     # Recompute hierarchy with new slider value

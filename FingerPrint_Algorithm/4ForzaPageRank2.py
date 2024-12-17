@@ -1,4 +1,6 @@
 import time
+import os
+
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, ttk
 from tkinterweb import HtmlFrame
@@ -134,11 +136,12 @@ def extract_topics(text,visualize=False):
 
 
 
-
+FILEPATH='./DiscServers/ECE 120 Fall 2024 - Labs - lab10 [1275789619480498319].json'
+GLOSSARY_FILEPATH = f"GLOSSARY_{os.path.basename(FILEPATH)}"
 with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
 # Load and parse Discord message data
-with open('./DiscServers/ECE 120 Fall 2024 - Labs - lab10 [1275789619480498319].json', encoding="utf-8") as discord_messages_file:
+with open(FILEPATH, encoding="utf-8") as discord_messages_file:
     discord_message_data = json.load(discord_messages_file)
 punctuations=r"""",!?.)(:”’''*🙏🤔💀😈😭😩😖🤔🥰🥴😩🙂😄'“`"""
 
@@ -229,27 +232,43 @@ conversation_blocks, processed_conversation_blocks = group_and_preprocess_messag
 def load_conversation():
     global conversation_blocks
     global processed_conversation_blocks
+    global FILEPATH
+    global GLOSSARY_FILEPATH
+    global glossary
     # Open the file dialog for selecting a file
-    file_path = filedialog.askopenfilename(
+    FILEPATH = filedialog.askopenfilename(
         title="Select Discord Messages File",
         filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
     )
+    GLOSSARY_FILEPATH = f"GLOSSARY/GLOSSARY_{os.path.basename(FILEPATH)}"
+
     output_text_display.delete('1.0', tk.END)  # Clear the text display
-    
-    output_text_display.insert(tk.END, f"Loaded {file_path}!")
+    output_text_display.insert(tk.END, f"Loaded {os.path.basename(FILEPATH)}!\n")
 
     # Check if a file was selected
-    if not file_path:
+    if not FILEPATH:
         print("No file selected.")
         return
     
 
-    with open(file_path, encoding="utf-8") as discord_messages_file:
+    with open(FILEPATH, encoding="utf-8") as discord_messages_file:
         discord_message_data = json.load(discord_messages_file)
     
     # Load and preprocess conversation blocks in one step
     conversation_blocks, processed_conversation_blocks = group_and_preprocess_messages_by_author(discord_message_data)
-    
+
+    try:
+        glossary = {}
+        with open(GLOSSARY_FILEPATH, 'r', encoding='utf-8') as file:
+            glossary = json.load(file)
+            output_text_display.insert(tk.END, f"Loaded {os.path.basename(GLOSSARY_FILEPATH)}!\n")
+            print("Glossary FOUND!")
+            update_clustering(glossary_tree, 0.0, glossary)
+        return
+    except:
+        glossary = {}
+        update_clustering(glossary_tree, 0.0, glossary)
+        pass
     
 
 # Function to search for a query within a message block using word-by-word processing
@@ -305,6 +324,7 @@ def generate_and_display_all_random_context_chain():
     found_id = set()
     conversation_topic_tree = {}
     print(len(processed_conversation_blocks))
+
 
     for index in range(len(processed_conversation_blocks)):
 
@@ -494,9 +514,9 @@ app_main_window.geometry("1200x600")
 
 glossary = {}
 def save_glossary():
-    with open('glossary.json', 'w') as f:
+    with open(GLOSSARY_FILEPATH, 'w') as f:
         json.dump(glossary, f, indent=4)
-    print("Glossary generated and saved to glossary.json")
+    print(f"Glossary generated and saved to {GLOSSARY_FILEPATH}")
 
 
 
@@ -548,13 +568,13 @@ menu_bar = tk.Menu(app_main_window)
 
 generate_menu = tk.Menu(menu_bar, tearoff=0)
 generate_menu.add_command(label="Generate Context Chain", command=generate_context_chain, accelerator="Ctrl+L")
-generate_menu.add_command(label="Save Glossary", command=save_glossary, accelerator="Ctrl+S")
 
 summarize_menu = tk.Menu(menu_bar, tearoff=0)
 summarize_menu.add_command(label="Summarize", command=summarize_context_chain, accelerator="Ctrl+G")
 
 file_menu = tk.Menu(menu_bar, tearoff=0)
 file_menu.add_command(label="Load Conversation", command=load_conversation)
+file_menu.add_command(label="Save Glossary", command=save_glossary, accelerator="Ctrl+S")
 file_menu.add_separator()
 file_menu.add_command(label="Exit", command=app_main_window.quit, accelerator="Ctrl+Q")
 
