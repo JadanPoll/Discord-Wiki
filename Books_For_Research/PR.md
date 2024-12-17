@@ -1,5 +1,5 @@
 
-# D-Wikis
+# D-Search Engine
 
 ### Project Description:
 What's Discords AI Solution for 2025? My team and I are working on code to turn Discord into a powerful search engine for games, RSO information, and much more. Simply type in a topic, and our engine instantly generates a live, dynamic website based on the conversations happening in your Discord servers and channels. No more endless searching – get instant, relevant results from the places where you and your community are already talking.
