@@ -112,7 +112,7 @@ class HierarchyGUI(tk.Tk):
         super().__init__()
         self.title("Group Hierarchy Builder")
         self.geometry("600x500")
-        self.groups = load_glossary_data("Glossary/GLOSSARY_CEMU_discord_messages.json")
+        self.groups = load_glossary_data("Glossary/GLOSSARY_CEMU_hardware_discord_messages.json")
         self.hierarchy = {}
         self.create_sliders()
         self.tree = ttk.Treeview(self)
