@@ -16,6 +16,8 @@ from tkinter import filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
+import objgraph
+
 text_rank = TextRank4Keyword()  # Initialize TextRank globally
 text_rank.analyze("Removing cold start", window=2, lower=True) #Here to reduce cold start
 
@@ -492,7 +494,7 @@ def summarize_context_chain():
 def display_summary_popup(html_result, app_main_window):
     summary_popup = tk.Toplevel(app_main_window)
     summary_popup.title("Summary")
-    summary_popup.geometry("800x500")
+    summary_popup.geometry("1000x700")
     
     summary_display = HtmlFrame(summary_popup, horizontal_scrollbar="auto")
     summary_display.load_html(html_result)
@@ -661,5 +663,7 @@ ChatGPT = OpenAICMD.WebSocketClientApp("https://ninth-swamp-orangutan.glitch.me"
 ChatGPT.register_callback(callback=lambda summary: handle_summary_response(summary, app_main_window))
 generator = HTMLStyling.HTMLGenerator()
 
+
+#objgraph.show_most_common_types()  # This will show the most common types in memory
 # Start the Tkinter GUI loop
 app_main_window.mainloop()
