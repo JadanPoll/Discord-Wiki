@@ -651,10 +651,6 @@ def update_glossary_upper_limit(limit_num):
 spinbox = tk.Spinbox(glossary_frame, from_=0, to=1, increment=1, width=5, command=lambda event=None:on_glossary_treeview_select(event))
 spinbox.pack(fill="x")
 
-slider = tk.Scale(glossary_frame, from_=0.0, to=1.0, orient='horizontal', resolution=0.01,
-                label="Clustering Sensitivity", command=lambda val,glossary_tree=glossary_tree: update_clustering(glossary_tree,float(val)))
-update_clustering(glossary_tree,float(0.0))
-slider.pack(fill="x")
 
 
 
