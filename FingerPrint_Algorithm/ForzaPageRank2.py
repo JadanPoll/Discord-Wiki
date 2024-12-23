@@ -186,7 +186,7 @@ with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
 
 # Load and parse Discord message data
-with open('./DiscServers/ECE 120 Fall 2024 - Labs - lab10 [1275789619480498319].json', encoding="utf-8") as discord_messages_file:
+with open('./DiscServers/CEMU_discord_messages.json', encoding="utf-8") as discord_messages_file:
     discord_message_data = json.load(discord_messages_file)
 
 tfidf_dict = {}
