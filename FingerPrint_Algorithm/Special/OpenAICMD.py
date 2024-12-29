@@ -128,7 +128,6 @@ class WebSocketClientApp:
 
         # Parse the HTML content
         soup = BeautifulSoup(content, 'html.parser')
-        print(soup.get_text())
 
 
         ################################################
@@ -168,7 +167,6 @@ class WebSocketClientApp:
 
             # Parse the HTML content
             soup = BeautifulSoup(content, 'html.parser')
-            print(soup.get_text())
 
             if self._learn:
                 self.send_message("sendGPT", content, learn=True)
@@ -275,7 +273,6 @@ def extract_structured_json(message):
     """
     Callback function to extract structured JSON from the message.
     """
-    print(message)
     try:
         # Load the JSON message
         content=message
@@ -312,7 +309,7 @@ if __name__ == "__main__":
     app = WebSocketClientApp("https://superb-shared-crow.glitch.me")
 
     # Register the custom callback
-    app.register_callback(extract_structured_json)
+    #app.register_callback(extract_structured_json)
 
     # Send a test message
     time.sleep(5)
