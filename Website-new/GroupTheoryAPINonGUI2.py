@@ -1,5 +1,3 @@
-import tkinter as tk
-from tkinter import ttk
 from itertools import chain
 import json
 
