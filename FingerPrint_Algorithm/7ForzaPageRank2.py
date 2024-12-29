@@ -1,119 +1,27 @@
+import re
+import html
 import time
 import os
-
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, ttk
 from tkinterweb import HtmlFrame
 from Special import OpenAICMD, HTMLStyling
 from textrank4zh import TextRank4Keyword
 import json
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from kneed import KneeLocator
 from GroupTheoryAPI2 import *
 import threading
 from tkinter import filedialog
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
 import spacy
-
-import objgraph
-
-
-text_rank = TextRank4Keyword(
-
-
-)  # Initialize TextRank globally
+from ModifiedNotebook import Notebook
+from nltk.stem import PorterStemmer
+text_rank = TextRank4Keyword()  # Initialize TextRank globally
 text_rank.analyze("Removing cold start", window=5, lower=True) #Here to reduce cold start
-
-# Global variable to store canvas widget
-canvas_widget = None
-
-def submit_graph(fig):
-    """Submit the plot figure to the Tkinter canvas in a separate thread."""
-    # Run the plotting code in a separate thread
-    #thread = threading.Thread(target=render_graph, args=(fig,))
-    #thread.start()
-    render_graph(fig)
-
-
-
-
-def render_graph(fig: Figure):
-    """Render the graph on the Tkinter canvas."""
-    global canvas_widget
-    
-    def update_canvas():
-        global canvas_widget
-        """Update the canvas widget on the main thread."""
-        # If there's an existing canvas widget, update the figure if needed
-        if canvas_widget:
-            # Preserve the current canvas size
-            canvas_size = canvas_widget.get_tk_widget().winfo_width(), canvas_widget.get_tk_widget().winfo_height()
-
-            # Update the figure in the existing canvas widget
-            canvas_widget.figure = fig
-            
-            # Set the figure size to match the canvas size
-            fig.set_size_inches(canvas_size[0] / fig.dpi, canvas_size[1] / fig.dpi)
-            
-            canvas_widget.draw()  # Redraw the canvas to reflect the updated figure
-        
-        else:
-            # Create a new canvas widget to display the plot if it doesn't exist yet
-            canvas_widget = FigureCanvasTkAgg(fig, master=graph_frame)
-            canvas_widget.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-            
-            # Set the figure size to match the canvas size when creating it
-            canvas_size = canvas_widget.get_tk_widget().winfo_width(), canvas_widget.get_tk_widget().winfo_height()
-            fig.set_size_inches(canvas_size[0] / fig.dpi, canvas_size[1] / fig.dpi)
-            
-            canvas_widget.draw()  # Initial draw to render the plot
-
-    # Use the `after` method to schedule the `update_canvas` function to run in the main thread
-    graph_frame.after(0, update_canvas)
-
-
-
-def visualize_elbow_and_knee(scores, cutoff):
-    """
-    Visualize the scores against ranks and highlight the elbow/knee point.
-    
-    Args:
-        scores (list): List of keyword scores.
-        cutoff (int): The cutoff point for the knee/elbow.
-        graph_frame (tk.Frame): Tkinter frame to display the graph.
-    """
-
-    # Check if the graph_frame is currently visible (packed)
-    if not graph_frame.winfo_ismapped():
-        print("Graph frame is not currently visible. Skipping visualization.")
-        return None  # Return early if the frame is not visible
-
-    x = range(1, len(scores) + 1)  # X-axis (rank of keywords)
-    
-    # Plot the scores and mark the knee/elbow point
-    plt.figure(figsize=(8, 6))
-    plt.plot(x, scores, label="Keyword Scores", color='b', marker='o')
-    plt.axvline(x=cutoff, color='r', linestyle='--', label=f"Cutoff (Knee) at {cutoff}")
-    plt.xlabel('Keyword Rank')
-    plt.ylabel('Keyword Score')
-    plt.title('Keyword Scores vs Rank (with Knee/Elbow Detection)')
-    plt.legend()
-
-    # Get the current figure
-    fig = plt.gcf()
-
-    # Use submit_graph to render the figure in the Tkinter canvas
-    submit_graph( fig)
-
-    return cutoff
 
 
 
 # Load the spaCy model for English
 nlp = spacy.load("en_core_web_sm")
-
 def filter_words_by_pos(words, pos_tags):
     """
     Filters words from an array based on the given list of POS tags.
@@ -139,7 +47,7 @@ def extract_topics(text,visualize=False):
     
     Args:
         text (str): The input text to analyze.
-        
+        p
     Returns:
         list: List of optimal keywords based on TextRank.
     """
@@ -156,10 +64,6 @@ def extract_topics(text,visualize=False):
     knee_locator = KneeLocator(x, scores, curve="convex", direction="decreasing")
     cutoff = knee_locator.knee or len(scores)  # Default to all if no knee is found
 
-    if visualize:
-        # Visualize elbow/knee and get the cutoff point
-        visualize_elbow_and_knee(scores,cutoff)
-
     # Select keywords up to the cutoff point
     optimal_keywords = [kw.word for kw in keywords[:cutoff]]
 
@@ -171,27 +75,41 @@ def extract_topics(text,visualize=False):
 
 
 
-FILEPATH='./DiscServers/ECE 120 Fall 2024 - Labs - lab10 [1275789619480498319].json'
-GLOSSARY_FILEPATH = f"GLOSSARY/GLOSSARY_{os.path.basename(FILEPATH)}"
-SUMMARIES_FILEPATH = f"SUMMARY/SUMMARY_{os.path.basename(FILEPATH)}"
+FILEPATH = None
+GLOSSARY_FILEPATH = None
+SUMMARIES_FILEPATH = None
 with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
-# Load and parse Discord message data
-with open(FILEPATH, encoding="utf-8") as discord_messages_file:
-    discord_message_data = json.load(discord_messages_file)
+
 punctuations=r"""",!?.)(:”’''*🙏🤔💀😈😭😩😖🤔🥰🥴😩🙂😄'“`"""
 
 print(punctuations)
 
 # Function to preprocess message text: removes stopwords, strips punctuation, and applies stemming
 def preprocess_message_text(message_text):
-    # Remove punctuation, split the message, and filter out stopwords while applying stemming in one pass
-    return [
-        #word_stemmer.stem(word)
-        word
-        for word in message_text.translate(str.maketrans('', '', punctuations)).split()
-        if word.lower() not in loaded_stopwords or (word.isupper() and len(word)>1) 
-    ]
+
+    result = []
+
+    words = message_text.translate(str.maketrans('', '', punctuations)).split()
+
+    # Loop through each word
+    for word in words:
+
+        # If the word starts with 'https' (a URL), split it by '/'
+        if word.lower().startswith('http'):
+            # Translate specified characters into spaces
+            translated_text = word.translate(str.maketrans(":/. -", "     "))
+
+            result.extend(
+                part for part in translated_text.split(' ')
+                if not part.lower().startswith('http') and part.lower() not in {'com', 'www','ai'} and part.lower() not in loaded_stopwords
+            )
+        # If the word is not a stopword or is uppercase (longer than 1 char), add it to the result
+        elif word.lower() not in loaded_stopwords or (word.isupper() and len(word) > 1):
+            result.append(word)
+
+    return result
+
 
 # Group and preprocess messages by author to form conversation blocks
 def group_and_preprocess_messages_by_author(message_data):
@@ -199,6 +117,10 @@ def group_and_preprocess_messages_by_author(message_data):
     processed_conversation_blocks = []  # Will store preprocessed blocks
     current_author = None
     author_messages = []
+
+    #Handle yet another data format
+    if isinstance(message_data, dict) and "messages" in message_data:
+        message_data = message_data["messages"]
 
     for message_entry in message_data:
         if "content" in message_entry and "author" in message_entry and "name" in message_entry["author"]:
@@ -258,12 +180,134 @@ def group_and_preprocess_messages_by_author(message_data):
     return conversation_blocks, processed_conversation_blocks
 
 
-    conversation_blocks, processed_conversation_blocks
-
-
 
 # Load and preprocess conversation blocks in one step
-conversation_blocks, processed_conversation_blocks = group_and_preprocess_messages_by_author(discord_message_data)
+#conversation_blocks, processed_conversation_blocks = group_and_preprocess_messages_by_author(discord_message_data)
+
+def load_multi_conversations():
+    global conversation_blocks
+    global processed_conversation_blocks
+    global glossary
+    global summary_array_html_results
+    global FILEPATHS
+    global GLOSSARY_FILEPATH
+    global SUMMARIES_FILEPATH
+    # Initialize or clear shared variables
+    summary_array_html_results = {}
+    conversation_blocks = []
+    processed_conversation_blocks = []
+    
+    # Open the file dialog for selecting multiple files
+    FILEPATHS = filedialog.askopenfilenames(
+        title="Select Discord Messages Files",
+        filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+    )
+    
+    # Check if files were selected
+    if not FILEPATHS:
+        print("No files selected.")
+        return
+    
+    output_text_display.delete('1.0', tk.END)  # Clear the text display
+    
+    for FILEPATH in FILEPATHS:
+        # Display the selected file name
+        # Define corresponding glossary and summary file paths
+        GLOSSARY_FILEPATH = f"GLOSSARY/GLOSSARY_{os.path.basename(FILEPATH)}"
+        SUMMARIES_FILEPATH = f"SUMMARY/SUMMARY_{os.path.basename(FILEPATH)}"
+        
+        # Load and process the selected file
+        try:
+            with open(FILEPATH, encoding="utf-8") as discord_messages_file:
+                output_text_display.insert(tk.END, f"Loaded {os.path.basename(FILEPATH)}!\n")
+
+                discord_message_data = json.load(discord_messages_file)
+            
+            # Load and preprocess conversation blocks for this file
+            new_conversation_blocks, new_processed_conversation_blocks = group_and_preprocess_messages_by_author(discord_message_data)
+            
+            # Merge with existing conversation blocks
+            conversation_blocks.extend(new_conversation_blocks)
+            processed_conversation_blocks.extend(new_processed_conversation_blocks)
+            
+            # Try to load the glossary for this file
+            try:
+                load_multi_glossary_from_file()
+                load_multi_summary_from_file()
+            except FileNotFoundError:
+                print(f"Glossary not found for {os.path.basename(FILEPATH)}.")
+            
+        except Exception as e:
+            print(f"Error processing file {os.path.basename(FILEPATH)}: {e}")
+    
+    update_clustering(glossary_tree, 0.0, glossary)
+    try:
+        def load():
+            if app_main_window.Discord_Summary_Window_Created:
+                app_main_window.Discord_Summary_Window_Created.event_generate("<Destroy>")
+                app_main_window.Discord_Summary_Window_Created = None
+            display_summary_popup()
+        app_main_window.after(500, load)
+    except Exception as e:
+        print(f"Error loading summaries: {e}")
+
+
+def load_multi_glossary_from_file():
+    global glossary  # Use the global glossary variable
+
+    try:
+        with open(GLOSSARY_FILEPATH, 'r', encoding='utf-8') as file:
+            file_glossary = json.load(file)  # Load JSON data from the glossary file
+            output_text_display.insert(tk.END, f"Loaded {os.path.basename(GLOSSARY_FILEPATH)}!\n")
+            
+            # Process the glossary data
+            for key, value in file_glossary.items():
+                if key in glossary:
+                    # If the existing value is a list of lists, append the new list
+                    glossary[key].extend(value)
+                else:
+                    glossary[key] = value
+            
+            print("Glossary updated successfully!")
+
+    except FileNotFoundError:
+        print(f"Error: The file '{GLOSSARY_FILEPATH}' was not found.")
+    except json.JSONDecodeError as e:
+        print(f"Error: Failed to decode JSON from '{GLOSSARY_FILEPATH}': {e}")
+    except Exception as e:
+        print(f"Error: An unexpected error occurred while loading '{GLOSSARY_FILEPATH}': {e}")
+
+def load_multi_summary_from_file():
+    global summary_array_html_results  # Use the global variable
+
+    try:
+        with open(SUMMARIES_FILEPATH, 'r', encoding='utf-8') as file:
+            # Load JSON data
+            curr_summary_array_html_results = json.load(file)
+            print("Summaries loaded successfully!")
+            output_text_display.insert(tk.END, f"Loaded {os.path.basename(SUMMARIES_FILEPATH)}!\n")
+
+            # Process each key-value pair from the current summary
+            for key, value in curr_summary_array_html_results.items():
+                base_key = key.split("_")[0]  # Extract the base part of the key (e.g., "rtx")
+
+                # Check if the base key already exists in the summary
+                if key in summary_array_html_results:
+                    # Find the next available key number
+                    current_keys = [k for k in summary_array_html_results if k.startswith(base_key)]
+                    next_index = max([int(k.split("_")[1]) for k in current_keys], default=-1) + 1
+                    new_key = f"{base_key}_{next_index}"
+                    summary_array_html_results[new_key] = value
+                else:
+                    # If no existing key, simply add the new key-value pair
+                    summary_array_html_results[key] = value
+
+    except FileNotFoundError:
+        print(f"Error: The file '{SUMMARIES_FILEPATH}' was not found.")
+    except json.JSONDecodeError as e:
+        print(f"Error: Failed to decode JSON from '{SUMMARIES_FILEPATH}': {e}")
+    except Exception as e:
+        print(f"Error: An unexpected error occurred while loading '{SUMMARIES_FILEPATH}': {e}")
 
 def load_conversation():
     global conversation_blocks
@@ -272,6 +316,8 @@ def load_conversation():
     global GLOSSARY_FILEPATH
     global SUMMARIES_FILEPATH
     global glossary
+    global summary_array_html_results
+    summary_array_html_results = {}
     # Open the file dialog for selecting a file
     FILEPATH = filedialog.askopenfilename(
         title="Select Discord Messages File",
@@ -303,6 +349,9 @@ def load_conversation():
             update_clustering(glossary_tree, 0.0, glossary)
             def load():
                 load_summary_from_file()
+                if app_main_window.Discord_Summary_Window_Created:
+                    app_main_window.Discord_Summary_Window_Created.event_generate("<Destroy>")
+                    app_main_window.Discord_Summary_Window_Created = None
                 display_summary_popup()
             app_main_window.after(500,load)
 
@@ -312,22 +361,23 @@ def load_conversation():
         update_clustering(glossary_tree, 0.0, glossary)
         pass
     
+porter_stemmer = PorterStemmer()
+porter_stemmer.stem("Heatup")
+def Null(word):
+    return word
+porter_stemmer.stem = Null
 
-# Function to search for a query within a message block using word-by-word processing
-def find_query_in_message_block(query_list, message_block):
-    match_results = {"exact_matches": {}}
-    message_block_word_set = set(message_block.split())
-    
-    for query_word in query_list:
-        if query_word in message_block_word_set:
-            bag_of_words = [word for word in message_block_word_set if word != query_word]
-            if bag_of_words:
-                match_results["exact_matches"][query_word] = bag_of_words
-    
-    return match_results["exact_matches"]
 
-# Recursive function to construct context chain with probability updates
-def construct_context_chain(inherited_words_bag, search_radius, current_message_index, visited_indices, context_chain, recursion_depth=1):
+# Optimized function to search for a query within a message block using set operations
+def find_query_in_message_block(query_set, message_block):
+    # Split the message block into words and create a set for fast lookup
+    message_block_words = set(message_block.split())
+
+    # Check for any intersection between the query set and the message block words
+    return not query_set.isdisjoint(message_block_words)
+
+# Optimized recursive function to construct context chain with probability updates
+def construct_context_chain(inherited_words_set, search_radius, current_message_index, visited_indices, context_chain, recursion_depth=1):
     # Calculate the range of messages to search within based on the search radius
     start_index = max(0, current_message_index - search_radius)
     end_index = min(len(processed_conversation_blocks), current_message_index + search_radius + 1)
@@ -335,22 +385,18 @@ def construct_context_chain(inherited_words_bag, search_radius, current_message_
     # Iterate through the conversation blocks within the search range
     for block_index in range(start_index, end_index):
         if block_index not in visited_indices:
-            # Find the words that match the query in the current block
-            matched_words = find_query_in_message_block(inherited_words_bag, processed_conversation_blocks[block_index])
-
-            if matched_words:
+            # Find matches in the current block
+            if find_query_in_message_block(inherited_words_set, processed_conversation_blocks[block_index]):
                 visited_indices.add(block_index)
                 context_chain.append((block_index, conversation_blocks[block_index], recursion_depth))
 
+                # Expand the inherited word set for further recursion
+                expanded_word_set = inherited_words_set.union(
+                    processed_conversation_blocks[block_index].split()
+                )
 
-                for query_word, bag_of_words_around_matched_query_in_child_message_block in matched_words.items():
-
-                    # Expand the list of current words for further recursion (avoiding duplicates)
-                    expanded_word_bag = inherited_words_bag + list(set(processed_conversation_blocks[block_index].split()) - set(inherited_words_bag))
-
-                    # Recursively process the next message block with reduced search radius
-
-                    construct_context_chain(expanded_word_bag, max(search_radius // 2, 1), block_index, visited_indices, context_chain,  recursion_depth + 1)
+                # Recursively process the next message block with reduced search radius
+                construct_context_chain(expanded_word_set, max(search_radius // 2, 1), block_index, visited_indices, context_chain, recursion_depth + 1)
 
 
 conversation_topic_tree = {}
@@ -405,7 +451,7 @@ def generate_and_display_random_context_chain2(index=None):
 
     if processed_conversation_blocks:
         block_index = index
-        block_words = processed_conversation_blocks[block_index].split()
+        block_words = set(processed_conversation_blocks[block_index].split())
         visited_block_indices = {block_index}  # Keep track of visited blocks to avoid cycles
         context_chain = [(block_index, conversation_blocks[block_index], 1)]  # Initialize the context chain
 
@@ -500,17 +546,44 @@ def display_selected_glossary(item,conversation_number):
             message = conversation_blocks[message_id]
             
             # Display the message with separator
-            output_text_display.insert(tk.END, f"{message}\n{'-' * 50}\n")
+            output_text_display.insert(tk.END, f"DMessage {message_id}:{message}\n{'-' * 50}\n")
 
 
 
-# Function to handle the Generate Context Chain command
-def generate_context_chain():
-    try:
-        generate_and_display_all_random_context_chain()
-    except Exception as e:
-        messagebox.showerror("Error", f"An error occurred while generating context chain: {e}")
 
+
+def Focus_DText(dmessage):
+    # Extract numbers from the message string (e.g., "capture starting DMessage and an nnumbers after eg:DMessage 198,200 or DMessage 198,DMessage 200")
+    numbers = set(int(num) for num in re.findall(r'\d+', dmessage))  # Use a set for fast lookup
+    print(numbers)
+    if len(numbers)==0:
+        return
+    # Create a list to hold the messages for display
+    output_text_display.delete('1.0', tk.END)  # Clear previous content
+    
+    # Initialize a set to track already displayed message_ids (to avoid duplicates)
+    displayed_message_ids = set()
+
+    # Collect the 5 previous, current, and 5 next messages for each number
+    for number in numbers:
+        start_index = max(0, number - 5)
+        end_index = min(len(conversation_blocks), number + 6)  # end_index should be number + 5 + 1
+
+        # Extract the messages and display them with possible highlighting
+        for idx in range(start_index, end_index):
+
+            displayed_message_ids.add(idx)
+    print(displayed_message_ids)
+    displayed_message_ids = sorted(displayed_message_ids)
+    for idx in displayed_message_ids:    
+        message = conversation_blocks[idx]
+        message_id = idx  # Assuming the index in conversation_blocks corresponds to the message_id
+
+        # Insert the message text
+        if message_id in numbers:
+            output_text_display.insert(tk.END, f"DMessage {message_id}: {message}\n{'-' * 50}\n", "highlight_selected")
+        else:
+            output_text_display.insert(tk.END, f"DMessage {message_id}: {message}\n{'-' * 50}\n")
 
 
 
@@ -526,7 +599,7 @@ def summarize_context_chain():
         if search not in summary_array_html_results:
             ChatGPT.send_message(
                 "sendGPT",
-                "Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response. If possible break it into subheadings:" + context_chain_text,
+                "Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings:" + context_chain_text,
                 learn=True
             )
         else:
@@ -535,46 +608,109 @@ def summarize_context_chain():
         messagebox.showerror("Error", f"An error occurred: {e}")
 
 
+
+
+# Function to wrap all (DMessage) content with the hoverable class
+def wrap_all_dmessages_with_hoverable(content):
+    # Use regex to find all occurrences of (DMessage...) in the content
+    dmessage_pattern = r"\(DMessage.*?\)"
+    
+    # Function to wrap each DMessage match with the hoverable class
+    def wrap_match(match):
+        return f'<span class="hoverable" data-tooltip="DMessage Tooltip">{match.group(0)}</span>'
+
+    # Apply the wrapping to all matches in the content
+    modified_content = re.sub(dmessage_pattern, wrap_match, content)
+
+    return modified_content
+
+
 prev_key = None
-
 # Function to display the summary in a popup window
-def display_summary_popup():
+def display_summary_popup(page_name = None,page_content = None):
 
 
 
-    # Function to handle page navigation
+
+    global notebook
+
     def go_to_page(direction):
-        global prev_key  # Make sure we are using the global prev_key
-
-        if summary_array_html_results is {} or direction == 0:
-            return
         try:
-            # If prev_key is set, navigate to the next page based on it
-            if prev_key is None:
-                # Start from the first page if prev_key is None
-                selected_page = list(summary_array_html_results.keys())[0]
-            else:
-                # Get the next page in the sequence
-                page_keys = list(summary_array_html_results.keys())
-                current_index = page_keys.index(prev_key)
-                selected_page = page_keys[min(len(page_keys)-1,max(0,current_index + direction))]  # Cycle back to the first page after the last one
 
-            prev_key = selected_page  # Update prev_key to the newly selected page
+            if not hasattr(notebook, "summary_index") or notebook.summary_index is None:
+                return
 
-            # Update HTML content for the selected page (dummy logic for now)
-            new_html_result = generator.generate_and_display_html("", summary_array_html_results[selected_page], theme="ocean")
-            summary_display.load_html(new_html_result)
+            selected_text, hidden_index = notebook.summary_index.split('_')
+            hidden_index = int(hidden_index)
+            selected_frame = notebook.summary_frame
+            if not summary_array_html_results or direction == 0:
+                return
 
+            # Calculate the next page index, ensuring it's within bounds
+
+
+            keys = [key for key in summary_array_html_results if key.startswith(selected_text)]
+
+            next_page_index =  min(max(0,hidden_index+direction),len(keys)-1)
+
+            new_html_result = summary_array_html_results.get(f"{keys[next_page_index]}")  # Ensure it's valid
+            
+            if not new_html_result:
+                raise KeyError(f"HTML result not found for {selected_text}_{next_page_index}")
+
+            new_html_result = wrap_all_dmessages_with_hoverable(new_html_result)
+
+            new_html_result = generator.generate_and_display_html("", new_html_result, theme="ocean")
+            
+            selected_frame.load_html(new_html_result)  # Update the HtmlFrame with the new HTML content
+
+            # Update the hidden_index for the HtmlFrame (so we can track the current page)
+            selected_frame.hidden_index = next_page_index
+
+            # Update the title or popup based on the page's content
+            selected_page = f"{selected_text}_{next_page_index}"  # Using the selected tab name for the page title
+            notebook.summary_index = selected_page
             page_parts = selected_page.split('_')
             if len(page_parts) >= 2:
                 summary_popup.title(f"Summary: {page_parts[0].upper()} Conversation: {page_parts[1]}")
 
         except (ValueError, KeyError, IndexError) as e:
+            print(f"Error: {e}")
             messagebox.showerror("Invalid Input", "Please select a valid page.")
+
+
+
+
+    def doubleclick(frame):
+        # Assuming `get_currently_hovered_node_text` is a function or method
+        hovered_text = frame.get_currently_hovered_node_text().strip()
+        if not hovered_text.startswith("(") and not hovered_text.endswith(")") and "DMessage" not in hovered_text:
+            return
+        print(hovered_text)
+        Focus_DText(hovered_text.replace(' ',''))
+
+
 
     if app_main_window.Discord_Summary_Window_Created:
         app_main_window.Discord_Summary_Window_Created.lift()
+        print("AHere")
+        # Check if the page already exists in the notebook
+        for tab in notebook.tabs():
+            print(notebook.tab(tab, "text"),page_name)
+            if notebook.tab(tab, "text") == page_name:
+                return  # Page already exists, no need to add
 
+        print("BHere",page_name)
+        # Create a new HtmlFrame for the page
+        summary_display = HtmlFrame(notebook, horizontal_scrollbar="auto")
+        summary_display.bind("<Button-1>", lambda event, frame=summary_display:  doubleclick(frame),add=True)
+        
+        page_content = wrap_all_dmessages_with_hoverable(page_content)
+        page_content = generator.generate_and_display_html("", page_content, theme="ocean")
+        summary_display.load_html(page_content)
+        summary_display.hidden_index = 0
+        # Add the new page to the notebook
+        notebook.add(summary_display, text=page_name)
 
     else:
         summary_popup = tk.Toplevel(app_main_window)
@@ -584,69 +720,103 @@ def display_summary_popup():
 
         # Define the function to execute when the popup window is closed
         def on_popup_close():
+            app_main_window.Discord_Summary_Window_Created.destroy()
             app_main_window.Discord_Summary_Window_Created = None
-            summary_popup.destroy()
 
         summary_popup.protocol("WM_DELETE_WINDOW", on_popup_close)
 
         # Bind left and right arrow keys to change the page
         def on_left_arrow(event):
-            print("Left")
+
             go_to_page(-1)
 
         def on_right_arrow(event):
-            print("right")
+
             go_to_page(1)
 
         summary_popup.bind("<Left>", on_left_arrow)
         summary_popup.bind("<Right>", on_right_arrow)
 
-        # HTML Frame to display the summary
+        # Create a Notebook widget (for tabs)
+        notebook = Notebook(summary_popup)
+        notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
-        summary_display = HtmlFrame(summary_popup, horizontal_scrollbar="auto")
+        notebook.bind("<<NotebookTabChanged>>", lambda event: ontabchange(event))
+
+        def ontabchange(event):
+            # Get the ID of the currently selected tab
+            selected_tab = notebook.notebook.select()
+            
+            # Get the text (name) of the currently selected tab
+            selected_text = notebook.notebook.tab(selected_tab, "text")
+
+            selected_frame = notebook.pages[notebook.notebook.index(selected_tab)]
+            # You can store the index of the currently selected tab (assuming you want to store the hidden index)
+            selected_index = selected_frame.hidden_index  # This will give you the index of the selected tab
+            notebook.summary_index = f"{selected_text}_{selected_index}"
+            notebook.summary_frame = notebook.pages[notebook.notebook.index(selected_tab)]
+
+            # Update the window title with the selected tab's text and hidden index
+            summary_popup.title(f"Summary: {selected_text.upper()} Conversation: {selected_index}")
+
+
+        # Create a set to track the pages we've already seen (split by '_')
+        seen_pages = set()
+        for page, summaries in summary_array_html_results.items():
+
+            page_name = page.split('_')[0]
+
+            # If the page has not been seen yet, create a new tab
+            if page_name not in seen_pages:
+                seen_pages.add(page_name)  # Mark this page as seen
+
+                #tab_frame = tk.Frame(notebook)
+
+                summary_display = HtmlFrame(notebook, horizontal_scrollbar="auto")
+                summary_display.bind("<Button-1>", lambda event, frame=summary_display:  doubleclick(frame),add=True)
+
+                summary_display.hidden_index = 0
+
+                summaries = wrap_all_dmessages_with_hoverable(summaries)
+                summaries = generator.generate_and_display_html("", summaries, theme="ocean")
+                
+                summary_display.load_html(summaries)
+
+                notebook.add(summary_display, text=page_name)  # Use page_name as the tab text
+
 
 
 
         # Function to scroll the HtmlFrame up
         def scroll_up(event):
-            summary_display.yview_scroll(-1, "units")  # Scroll up by one unit
+
+            selected_tab = notebook.notebook.select()  # Get the ID of the currently selected tab
+            selected_frame = notebook.pages[notebook.notebook.index(selected_tab)]
+            if selected_frame:  # If a tab is selected
+
+                html_frame = selected_frame  # The HtmlFrame is the first widget in the frame
+                html_frame.yview_scroll(-1, "units")  # Scroll up by one unit
 
         # Function to scroll the HtmlFrame down
         def scroll_down(event):
-            summary_display.yview_scroll(1, "units")  # Scroll down by one unit
+            selected_tab = notebook.notebook.select()  # Get the ID of the currently selected tab
+            selected_frame = notebook.pages[notebook.notebook.index(selected_tab)]
+            if selected_frame:  # If a tab is selected
+
+                html_frame = selected_frame  # The HtmlFrame is the first widget in the frame
+                html_frame.yview_scroll(1, "units")  # Scroll up by one unit
 
         # Bind the Up and Down arrow keys to scroll the HtmlFrame
         summary_popup.bind("<Down>", scroll_down)
         summary_popup.bind("<Up>", scroll_up)
 
-        # Frame for navigation controls
-        nav_frame = tk.Frame(summary_popup)
-        nav_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
 
 
+        #summary_display.pack(padx=10, pady=10, fill="both", expand=True)
 
-        # conversation_spinbox for navigating summary pages
-        page_spinbox = ttk.Spinbox(
-            nav_frame,
-            from_=0,
-            to=default_settings["num_pages_summary"]-1,
-            width=5,
-            state="readonly",command=lambda event=None:go_to_page(1)
-        )
-        page_spinbox.config(takefocus=0)    
-        page_spinbox.set(0)  # Set default page to 1
-        page_spinbox.pack(side=tk.RIGHT, padx=5)
+        app_main_window.Discord_Summary_Window_Created=summary_popup
 
-
-
-
-        tk.Label(nav_frame, text="Page:").pack(side=tk.RIGHT, padx=5)
-
-        summary_display.pack(padx=10, pady=10, fill="both", expand=True)
-
-        app_main_window.Discord_Summary_Window_Created=summary_display
-
-        go_to_page(0)
+        #go_to_page(0)
 
 
     #app_main_window.Discord_Summary_Window_Created.load_html(html_result)
@@ -682,7 +852,7 @@ def handle_incoming_summary_response(summary):
             handle_incoming_summary_response.initial = current_page
             # Generate the HTML result
             html_result = generator.generate_and_display_html("", summary, theme="ocean")
-            app_main_window.after(0, display_summary_popup)
+            app_main_window.after(0, display_summary_popup,selected_item, html_result)
 
         summary_array_html_results[f"{selected_item}_{conversation_spinbox.get()}"] = summary
 
@@ -703,7 +873,7 @@ def handle_incoming_summary_response(summary):
 
         # Check if further navigation is possible
         # -1 cause first one in initial
-        if current_page < default_settings["num_pages_summary"] + handle_incoming_summary_response.initial-1 and current_page < max_topic_pages:
+        if current_page < default_settings["num_pages_summary"] + handle_incoming_summary_response.initial-1 and current_page < max_topic_pages - 1:
             app_main_window.after(0, next_page)
         else:
 
@@ -719,12 +889,6 @@ def handle_incoming_summary_response(summary):
 
 
 
-
-# Initialize Tkinter GUI
-app_main_window = tk.Tk()
-app_main_window.title("Discord Conversation Context Chain Generator")
-app_main_window.geometry("1200x600")
-app_main_window.Discord_Summary_Window_Created = None
 
 
 glossary = {}
@@ -761,15 +925,6 @@ def generate_glossary():
     glossary = intersect_compressor(glossary)
     update_clustering(glossary_tree, 0.0, glossary)
 
-def show_glossary():
-    hide_all_frames()
-    print("Showing Glossary")
-    glossary_frame.pack(side=tk.RIGHT, padx=10, pady=10, fill='y', expand=False)
-
-def show_graphs():
-    hide_all_frames()
-    print("Showing Graphs")
-    graph_frame.pack()
 
 
 
@@ -809,7 +964,7 @@ def open_settings_dialog():
                 if isinstance(frame, tk.Frame):
                     # Get all child widgets in the frame
                     children = frame.winfo_children()
-                    print(children)
+
                     # Ensure the frame contains at least a Label and an Entry
                     if len(children) < 2:
                         break
@@ -831,8 +986,7 @@ def open_settings_dialog():
                     
                     # Update the settings dictionary
                     default_settings[setting_name] = new_value
-                    print(f"Updated {setting_name}: {new_value}")
-            
+
             settings_window.destroy()  # Close the settings window
         except ValueError as e:
             messagebox.showerror("Invalid Input", f"Error: {e}")
@@ -848,38 +1002,30 @@ def open_settings_dialog():
 
 
 
-# Function to hide all frames (to be called before showing a new one)
-def hide_all_frames():
-    # Hide graph frame if it's packed
-    if 'graph_frame' in globals() and graph_frame.winfo_ismapped():
-        graph_frame.pack_forget()
-    
-    # Hide glossary frame if it's packed
-    if 'glossary_frame' in globals() and glossary_frame.winfo_ismapped():
-        glossary_frame.pack_forget()
 
-
+# Initialize Tkinter GUI
+app_main_window = tk.Tk()
+app_main_window.title("Discord Conversation Context Chain Generator")
+app_main_window.geometry("1200x600")
+app_main_window.Discord_Summary_Window_Created = None
 
 
 # Initialize Menu bar
 menu_bar = tk.Menu(app_main_window)
 
 generate_menu = tk.Menu(menu_bar, tearoff=0)
-generate_menu.add_command(label="Generate Context Chain", command=generate_context_chain, accelerator="Ctrl+L")
+generate_menu.add_command(label="Generate Context Chain", command=generate_and_display_all_random_context_chain, accelerator="Ctrl+L")
 
 summarize_menu = tk.Menu(menu_bar, tearoff=0)
 summarize_menu.add_command(label="Summarize", command=summarize_context_chain, accelerator="Ctrl+G")
 
 file_menu = tk.Menu(menu_bar, tearoff=0)
 file_menu.add_command(label="Load Conversation", command=load_conversation)
+file_menu.add_command(label="Load Multi Conversations", command=load_multi_conversations)
 file_menu.add_command(label="Save Glossary", command=save_glossary, accelerator="Ctrl+S")
 file_menu.add_command(label="Save Conversation Summaries", command=save_summary, accelerator="Ctrl+Shift+S")
 file_menu.add_separator()
 file_menu.add_command(label="Exit", command=app_main_window.quit, accelerator="Ctrl+Q")
-
-tools_menu = tk.Menu(menu_bar, tearoff=0)
-tools_menu.add_radiobutton(label="Show Glossary", value="Show Glossary", command=show_glossary)
-tools_menu.add_radiobutton(label="Show Graphs", command=show_graphs)
 
 
 # Add the Settings menu
@@ -890,10 +1036,10 @@ settings_menu.add_command(label="General", command=open_settings_dialog)  # Open
 menu_bar.add_cascade(label="File", menu=file_menu)
 menu_bar.add_cascade(label="Generate", menu=generate_menu)
 menu_bar.add_cascade(label="Summarize", menu=summarize_menu)
-menu_bar.add_cascade(label="Tools", menu=tools_menu)
+
 menu_bar.add_cascade(label="Settings",menu=settings_menu)
 app_main_window.config(menu=menu_bar)
-app_main_window.bind('<Control-l>', lambda event: generate_context_chain())
+app_main_window.bind('<Control-l>', lambda event: generate_and_display_all_random_context_chain())
 app_main_window.bind('<Control-s>', lambda event: save_glossary())
 app_main_window.bind('<Control-g>', lambda event: summarize_context_chain())
 app_main_window.bind('<Control-q>', lambda event: app_main_window.quit())
@@ -926,7 +1072,7 @@ def on_left_arrow(event):
             conversation_spinbox.delete(0, "end")  # Clear the current value
             conversation_spinbox.insert(0, str(new_value))  # Insert the new value
             on_glossary_treeview_select(None)
-            print(f"Left Arrow: {new_value}")
+
         else:
             print("Left Arrow: Already at minimum")
     except ValueError:
@@ -941,7 +1087,7 @@ def on_right_arrow(event):
             conversation_spinbox.delete(0, "end")  # Clear the current value
             conversation_spinbox.insert(0, str(new_value))  # Insert the new value
             on_glossary_treeview_select(None)
-            print(f"Right Arrow: {new_value}")
+
         else:
             print("Right Arrow: Already at maximum")
     except ValueError:
@@ -960,10 +1106,6 @@ output_text_display.bind("<Right>", on_right_arrow)
 output_text_display.bind("<Up>", scroll_up)
 output_text_display.bind("<Down>", scroll_down)
 
-# Graph frame (placeholder for graph visualization)
-graph_frame = tk.Frame(app_main_window)
-graph_frame.pack(side=tk.RIGHT, padx=10, pady=10, fill='y', expand=True)
-graph_frame.pack_forget()
 
 # Create a frame to contain the widgets
 glossary_frame = tk.Frame(app_main_window)
@@ -985,6 +1127,10 @@ def on_glossary_treeview_select(event):
         conversation_spinbox.delete(0, "end")  # Clear the current value
         conversation_spinbox.insert(0, gl_now)  # Insert the new value
 
+        num_conversations_widget.delete('1.0', tk.END)  # Clear all text
+        num_conversations_widget.insert(tk.END, str(gl_len+1))  # Insert the selected glossary entry
+
+
         display_selected_glossary(item_name,int(conversation_spinbox.get()))  # Call the function with the selected item name
 
 # Create a Treeview widget
@@ -996,6 +1142,19 @@ glossary_tree.pack(fill="both", expand=True)
 
 def update_glossary_upper_limit(limit_num):
     conversation_spinbox.config(to=limit_num)  # Dynamically set the upper limit
+
+# Create a frame for positioning widgets
+frame = tk.Frame(glossary_frame)
+frame.pack(fill="x", padx=0, pady=10)  # Pack the frame with some padding
+# Label on the left side
+label = tk.Label(frame, text="Num Conversations")
+label.pack(side="left", padx=0)  # Pack the label on the left side with some padding
+
+# Create a non-editable Text widget
+num_conversations_widget = tk.Text(frame, height=1, width=5)  # Set width to 20 for better appearance
+num_conversations_widget.insert(tk.END, "")  # Insert some default text
+#num_conversations_widget.config(state=tk.DISABLED)  # Make the Text widget non-editable
+num_conversations_widget.pack(side="right", fill="x", padx=10)  # Pack it to the right side with horizontal fill
 
 
 # Create a Spinbox widget for selecting numbers
