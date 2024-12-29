@@ -261,6 +261,7 @@ class HTMLGenerator:
 
     def generate_html_response(self, prompt, response_title, colors, section_colors, html_content, theme="default", use_backgrounding=True):
         color1, color2, color3, color4 = colors
+
         soup = BeautifulSoup(html_content, 'html.parser')
 
         # Expanded mapping of tag names to corresponding HTML tags and styles
@@ -292,25 +293,25 @@ class HTMLGenerator:
 
             # Clear existing content and set new formatted HTML
             if section.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-                new_html = f'<div class="sub-section" style="background-color: {section_color};">\n<{tag} style="color: {color};">{section.text}</{tag}></div>'
+                new_html = f'<div class="sub-section" style="background-color: {section_color};">\n<{tag} style="color: {color};">{section.decode_contents()}</{tag}></div>'
                 section.replace_with(BeautifulSoup(new_html, 'html.parser'))
             elif section.name == 'p':
-                new_html = f'<div class="sub-section" style="background-color: {section_color};">\n<{tag}>{section.text}</{tag}>\n</div>'
+                new_html = f'<div class="sub-section" style="background-color: {section_color};">\n<{tag}>{section.decode_contents()}</{tag}>\n</div>'
                 section.replace_with(BeautifulSoup(new_html, 'html.parser'))
             elif section.name in ['ol', 'ul']:
                 new_html = f'<div class="sub-section" style="background-color: {section_color};">\n<{tag}>{section.decode_contents()}</{tag}>\n</div>'
                 section.replace_with(BeautifulSoup(new_html, 'html.parser'))
             elif section.name == 'li':
-                new_html = f'<{tag}>{section.text}</{tag}>'
+                new_html = f'<{tag}>{section.decode_contents()}</{tag}>'
                 section.replace_with(BeautifulSoup(new_html, 'html.parser'))
             elif section.name == 'strong':
-                new_html = f'<{tag} style="color: {color};">{section.text}</{tag}>'
+                new_html = f'<{tag} style="color: {color};">{section.decode_contents()}</{tag}>'
                 section.replace_with(BeautifulSoup(new_html, 'html.parser'))
             elif section.name == 'blockquote':
-                new_html = f'<div class="sub-section" style="background-color: {section_color};">\n<{tag}>{section.text}</{tag}>\n</div>'
+                new_html = f'<div class="sub-section" style="background-color: {section_color};">\n<{tag}>{section.decode_contents()}</{tag}>\n</div>'
                 section.replace_with(BeautifulSoup(new_html, 'html.parser'))
             elif section.name == 'code':
-                new_html = f'<div class="sub-section" style="background-color: {section_color};">\n<{tag}>{section.text}</{tag}>\n</div>'
+                new_html = f'<div class="sub-section" style="background-color: {section_color};">\n<{tag}>{section.decode_contents()}</{tag}>\n</div>'
                 section.replace_with(BeautifulSoup(new_html, 'html.parser'))
             elif section.name in ['table', 'tr', 'th', 'td']:
                 # Leave tables as is but wrap in a styled section
@@ -351,6 +352,31 @@ class HTMLGenerator:
                     padding: 10px;
                     margin-bottom: 8px;
                 }}
+            </style>
+
+            <style>
+            .hoverable2 {{
+                padding: 3px;
+                border-radius: 12px;
+                cursor: pointer;
+            }}
+
+            .hoverable2:hover {{
+                background-color: #c4b3ff; /* Slightly darker purple for hover effect */
+                border-color: #a085ff; /* Accent color for hover border */
+            }}
+
+            /* Hover effect with rounded corners and tooltip */
+            .hoverable {{
+                padding: 3px;
+                border-radius: 12px;
+                cursor: pointer;
+            }}
+
+            .hoverable:hover {{
+                background-color: #ffa500;
+            }}
+
             </style>
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
         <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
