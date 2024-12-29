@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treeview Example</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: space-between;
+        }
+        #treeview-container {
+            width: 30%;
+        }
+        #content-container {
+            width: 65%;
+            padding: 10px;
+            border-left: 2px solid #ccc;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        li {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="treeview-container">
+        <ul id="treeview"></ul>
+    </div>
+
+    <div id="content-container">
+        <h2>Selected Item Content</h2>
+        <div id="content-display">Select an item from the treeview to see the content.</div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        class GroupHierarchyWithTreeview {
+            constructor(hierarchicalRelationships, independentGroups) {
+                this.hierarchicalRelationships = hierarchicalRelationships;
+                this.independentGroups = independentGroups;
+            }
+
+            populateTreeview() {
+                const tree = $("#treeview");
+                const addedGroups = new Set();
+
+                // Add independent groups
+                this.independentGroups.forEach(group => {
+                    if (!addedGroups.has(group)) {
+                        tree.append(`<li id="${group}" class="tree-item">${group}</li>`);
+                        addedGroups.add(group);
+                    }
+                });
+
+                // Add hierarchical relationships
+                for (const [groupName, relationship] of Object.entries(this.hierarchicalRelationships)) {
+                    if (!addedGroups.has(groupName)) {
+                        tree.append(`<li id="${groupName}" class="tree-item">${groupName}<ul id="${groupName}_subgroups"></ul></li>`);
+                        addedGroups.add(groupName);
+                    }
+
+                    relationship.subgroups.forEach(subgroup => {
+                        const subgroupParent = $(`#${groupName}_subgroups`);
+                        if (!subgroupParent.find(`#${subgroup}`).length) {
+                            subgroupParent.append(`<li id="${subgroup}" class="tree-item">${subgroup}</li>`);
+                        }
+                    });
+                }
+
+                // Add event listener for tree item clicks
+                $(".tree-item").on("click", (event) => this.onTreeItemClick(event));
+            }
+
+            onTreeItemClick(event) {
+                const selectedItem = $(event.target).attr('id');  // Get the ID of the selected item
+                this.displaySelectedContent(selectedItem);
+            }
+
+            displaySelectedContent(itemName) {
+                const contentDisplay = $("#content-display");
+
+                // Assuming glossary is an object where item names map to content index arrays
+                const contentIndexArray = glossary[itemName]; 
+
+                if (contentIndexArray && contentIndexArray.length > 0) {
+                    let content = ''; // Initialize content to store all messages
+
+                    // Loop through the content_index_array and build the content from conversation_block
+                    contentIndexArray.forEach(ind => {
+                        const message = conversation_block[ind];
+                        if (message) {
+                            content += `<p><strong>Message ${ind}:</strong> ${message}</p>`;
+                        }
+                    });
+
+                    contentDisplay.html(content); // Display the concatenated content
+                } else if (this.hierarchicalRelationships[itemName]) {
+                    const subgroups = this.hierarchicalRelationships[itemName].subgroups.join(", ");
+                    contentDisplay.html(`<strong>${itemName}</strong><br>Subgroups: ${subgroups}`);
+                } else if (this.independentGroups.includes(itemName)) {
+                    contentDisplay.html(`<strong>${itemName}</strong><br>This is an independent group.`);
+                } else {
+                    contentDisplay.html("No content available for this item.");
+                }
+            }
+        }
+
+        // Make the AJAX call to load the conversation data
+        function loadConversation() {
+            $.ajax({
+                url: '/load-conversation',  // URL to Flask API
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ filename: "./PearAI_General_discord_messages.json" }),  // Adjust file path as needed
+                success: function(response) {
+                    // On successful response, use the returned data to update the treeview and content
+
+                    // Get the relevant data from the response
+                    const { conversation_blocks, glossary, independent_groups, hierarchical_relationships } = response;
+
+                    // Dynamically update the treeview and content
+                    const groupHierarchy = new GroupHierarchyWithTreeview(hierarchical_relationships, independent_groups);
+                    groupHierarchy.populateTreeview();
+
+                    // Store glossary and conversation blocks in global variables to be used later
+                    window.glossary = glossary;
+                    window.conversation_block = conversation_blocks;
+
+                    // Optionally, update initial content display
+                    $("#content-display").html("Conversation loaded. Select an item from the treeview.");
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error loading conversation:", error);
+                    $("#content-display").html("Failed to load conversation.");
+                }
+            });
+        }
+
+        // Load conversation data when the page loads
+        $(document).ready(function() {
+            loadConversation();
+        });
+    </script>
+</body>
+</html>
