@@ -4,7 +4,6 @@ requests
 spacy
 textrank4zh
 kneed
-glossal_compression
 aiohttp
 beautifulsoup4
 pillow
