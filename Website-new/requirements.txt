@@ -1,10 +1,10 @@
 flask
 flask_cors
 requests
-spacy
 textrank4zh
 kneed
 aiohttp
 beautifulsoup4
 pillow
 halo
+spacy
