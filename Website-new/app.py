@@ -7,6 +7,7 @@ from flask_cors import CORS
 import requests
 import GroupTheoryAPINonGUI2
 #import OpenAICMD
+
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
 app.secret_key = 'D-SearchEngine@UIUC'
 
