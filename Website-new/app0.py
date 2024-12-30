@@ -415,6 +415,19 @@ def filter_words_by_pos(words, pos_tags):
     doc = nlp(' '.join(words))
     return [token.text for token in doc if token.pos_ in pos_tags]
 
+
+from textblob import TextBlob
+
+def filter_words_by_pos(words, pos_tags):
+    """
+    Filters words from an array based on the given list of POS tags.
+    
+    :param words: A list of words (strings).
+    :param pos_tags: A list of POS tags to keep (e.g., ['NN', 'VB']).
+    :return: A list of words that match the specified POS tags.
+    """
+    return [word for word, tag in TextBlob(' '.join(words)).tags if tag in pos_tags]
+
 def extract_topics(text):
     text_rank.analyze(text, window=5, lower=True)
     keywords = text_rank.get_keywords(100, word_min_len=3)
@@ -426,7 +439,7 @@ def extract_topics(text):
     knee_locator = KneeLocator(range(1, len(scores) + 1), scores, curve="convex", direction="decreasing")
     cutoff = knee_locator.knee or len(scores)
     optimal_keywords = [kw.word for kw in keywords[:cutoff]]
-    return filter_words_by_pos(optimal_keywords, ['NOUN', 'PROPN'])
+    return filter_words_by_pos(optimal_keywords, ['NN'])
 
 def generate_conversation_topics():
     conversation_topic_tree = session.get(PATHINGS_DICT["CONVERSATION_TOPIC_TREE"], {})
