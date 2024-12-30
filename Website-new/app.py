@@ -157,6 +157,7 @@ def generate_context_chain():
 
 
 
+
 # Register callback for incoming summary responses
 def handle_incoming_summary_response(summary):
     session["SUMMARY_RESPONSE"] = summary
