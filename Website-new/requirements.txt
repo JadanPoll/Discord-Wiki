@@ -3,3 +3,4 @@ flask_cors
 requests
 textrank4zh
 textblob
+kneed

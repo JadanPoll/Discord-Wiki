@@ -133,3 +133,7 @@ def character():
     return render_template('character/content.html', group='char')
 
 print("Yes we are running your app.py")
+
+
+if __name__ == '__main__':
+    app.run()

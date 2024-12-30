@@ -12,8 +12,9 @@ from textrank4zh import TextRank4Keyword
 
 import time
 import glossal_compression
-
+from kneed import KneeLocator
 from textblob import TextBlob
+
 
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
 app.secret_key = 'D-SearchEngine@UIUC'
@@ -110,7 +111,7 @@ def live_update():
 
 @app.route("/visualize/forzapagerank")
 def pagerank():
-    return render_template('visualize/download/forzapagerank', group='dev')
+    return render_template('visualize/download/forzapagerank.html', group='dev')
 
 @app.route('/visualize/wordcloud')
 def wordcloud():
@@ -190,40 +191,44 @@ def summarize():
 
 @app.route('/load-conversation', methods=['POST'])
 def load_conversation():
+    #return jsonify({"message": f"Conversation loaded from "}),200
     # Initialize session variables for conversation blocks
-    session['conversation_blocks'] = None
-    session['processed_conversation_blocks'] = None
 
+    print("A")
     # Get the filename from the request, it should be part of the request body (you can modify this as needed)
     filename = request.json.get("filename", "")
-
+    filename = "./ECE120_Lab_9_discord_messages.json"
     if not filename:
         return jsonify({"error": "Filename is required"}), 400
 
     # Read the content of the file
     try:
+        print("B")
+        print(os.getcwd())
         with open(filename, encoding="utf-8") as discord_messages_file:
+            print("C")
             discord_message_data = json.load(discord_messages_file)
     except Exception as e:
         return jsonify({"error": f"Error reading file: {str(e)}"}), 500
 
+    print("D")
     # Load and preprocess conversation blocks
     conversation_blocks, processed_conversation_blocks = group_and_preprocess_messages_by_author(discord_message_data)
-
+    print("E")
     # Save the processed conversation data in the session
-    session[PATHINGS_DICT["CONVERSATION_BLOCKS"]] = conversation_blocks
-    session[PATHINGS_DICT["PROCESSED_CONVERSATION_BLOCKS"]] = processed_conversation_blocks
 
     # Generate independent groups and hierarchical relationships
-    independent_groups, hierarchical_relationships = generate_and_display_all_random_context_chain()
+    global_state.conversation_blocks = conversation_blocks
+    global_state.processed_conversation_blocks = processed_conversation_blocks
+    global_state.independent_groups, global_state.hierarchical_relationships = generate_and_display_all_random_context_chain()
+    print("F")
 
-    # Return success response along with conversation blocks, glossary, independent groups, and hierarchical relationships
     return jsonify({
         "message": f"Conversation loaded from {filename}",
-        "conversation_blocks": session[PATHINGS_DICT["CONVERSATION_BLOCKS"]],
-        "glossary": session.get(PATHINGS_DICT["GLOSSARY"], {}),
-        "independent_groups": independent_groups,
-        "hierarchical_relationships": hierarchical_relationships
+        "conversation_blocks": global_state.conversation_blocks,
+        "glossary": global_state.glossary,
+        "independent_groups": list(global_state.independent_groups),
+        "hierarchical_relationships": global_state.hierarchical_relationships
     }), 200
 
 
@@ -259,7 +264,6 @@ PATHINGS_DICT = {
     "CONVERSATION_BLOCKS": "CONVERSATION_BLOCKS",
     "PROCESSED_CONVERSATION_BLOCKS": "PROCESSED_CONVERSATION_BLOCKS",
     "CONVERSATION_TOPIC_TREE": "CONVERSATION_TOPIC_TREE",
-    "FOUND_ID": "FOUND_ID",
     "GLOSSARY": "GLOSSARY",
     "SUMMARY": "SUMMARY"
 }
@@ -325,58 +329,54 @@ def generate_and_display_all_random_context_chain():
     Autonomously finds and generates context chains for all conversations.
     Ensures no duplicate processing for conversations already found.
     """
-    processed_conversation_blocks = session.get(PATHINGS_DICT["PROCESSED_CONVERSATION_BLOCKS"], [])
-    found_ids = session.get(PATHINGS_DICT["FOUND_ID"], set())
 
-    session[PATHINGS_DICT["CONVERSATION_TOPIC_TREE"]] = {}
-    session[PATHINGS_DICT["FOUND_ID"]] = found_ids
-
+    processed_conversation_blocks = global_state.processed_conversation_blocks
+    conversation_blocks = global_state.conversation_blocks
+    global_state.conversation_topic_tree = {}
     print(len(processed_conversation_blocks))
-
+    found_ids = set()
     for index in range(len(processed_conversation_blocks)):
         if index not in found_ids:
-            generate_and_display_random_context_chain2(index)
+            found_ids = generate_and_display_random_context_chain2(index,found_ids)
 
     # Start a new thread for glossary generation
     return generate_glossary()
 
 
 
-def generate_and_display_random_context_chain2(index=None):
+def generate_and_display_random_context_chain2(index,found_ids):
     """
     Generates and displays a context chain for a specific conversation block.
     If `index` is provided, it processes that specific conversation block; otherwise, 
     it picks a random block to process.
     """
-    processed_conversation_blocks = session.get(PATHINGS_DICT["PROCESSED_CONVERSATION_BLOCKS"], [])
-    conversation_blocks = session.get(PATHINGS_DICT["CONVERSATION_BLOCKS"], [])
 
     try:
-        search_radius = int(context_radius_input.get())
+        search_radius = int(50)
     except ValueError:
-        output_text_display.insert(tk.END, "Please enter a valid number for context search radius.\n")
+        print( "Please enter a valid number for context search radius.\n")
         return
 
-    if processed_conversation_blocks:
+    if global_state.processed_conversation_blocks:
         block_index = index or 0  # Default to the first block if no index is provided
-        block_words = set(processed_conversation_blocks[block_index].split())
+        block_words = set(global_state.processed_conversation_blocks[block_index].split())
         visited_block_indices = {block_index}
-        context_chain = [(block_index, conversation_blocks[block_index], 1)]
+        context_chain = [(block_index, global_state.conversation_blocks[block_index], 1)]
 
         construct_context_chain(block_words, search_radius, block_index, visited_block_indices, context_chain)
 
         if len(context_chain) < search_radius // 4 and index is not None:
-            session[PATHINGS_DICT["FOUND_ID"]].add(index)
-            return
+            found_ids.add(index)
+            return found_ids
 
         context_chain.sort()
         topic_id = str(block_index)
         
-        session[PATHINGS_DICT["CONVERSATION_TOPIC_TREE"]][topic_id] = [
+        global_state.conversation_topic_tree[topic_id] = [
             {"message": msg, "message_id": blk_id} for blk_id, msg, _ in context_chain
         ]
-        session[PATHINGS_DICT["FOUND_ID"]].update(blk_id for blk_id, _, _ in context_chain)
-
+        found_ids.update(blk_id for blk_id, _, _ in context_chain)
+        return found_ids
 
 
 
@@ -391,9 +391,8 @@ def find_query_in_message_block(query_set, message_block):
 
 
 def construct_context_chain(inherited_words_set, search_radius, current_message_index, visited_indices, context_chain, recursion_depth=1):
-    processed_conversation_blocks = session.get(PATHINGS_DICT["PROCESSED_CONVERSATION_BLOCKS"], [])
-    conversation_blocks = session.get(PATHINGS_DICT["CONVERSATION_BLOCKS"], [])
-
+    processed_conversation_blocks = global_state.processed_conversation_blocks
+    conversation_blocks = global_state.conversation_blocks
     start_index = max(0, current_message_index - search_radius)
     end_index = min(len(processed_conversation_blocks), current_message_index + search_radius + 1)
 
@@ -411,12 +410,6 @@ def construct_context_chain(inherited_words_set, search_radius, current_message_
 
 text_rank = TextRank4Keyword()
 text_rank.analyze("Removing cold start", window=5, lower=True)  # Reducing cold start
-
-nlp = spacy.load("en_core_web_sm")
-
-def filter_words_by_pos(words, pos_tags):
-    doc = nlp(' '.join(words))
-    return [token.text for token in doc if token.pos_ in pos_tags]
 
 
 def filter_words_by_pos(words, pos_tags):
@@ -443,22 +436,23 @@ def extract_topics(text):
     return filter_words_by_pos(optimal_keywords, ['NN'])
 
 def generate_conversation_topics():
-    conversation_topic_tree = session.get(PATHINGS_DICT["CONVERSATION_TOPIC_TREE"], {})
+    conversation_topic_tree = global_state.conversation_topic_tree
     if not conversation_topic_tree:
-        output_text_display.insert(tk.END, "\nNo topics available to process.\n")
+        print( "\nNo topics available to process.\n")
         return
     
     for i, (topic_id, convo) in enumerate(conversation_topic_tree.items()):
         total = "\n".join(
-            session[PATHINGS_DICT["PROCESSED_CONVERSATION_BLOCKS"]][entry["message_id"]] for entry in convo
+            global_state.processed_conversation_blocks[entry["message_id"]] for entry in convo
         )
         convo.append({"description": extract_topics(total)})
         print(f"Next: {i}")
 
 
 def construct_glossary():
-    conversation_topic_tree = session.get(PATHINGS_DICT["CONVERSATION_TOPIC_TREE"], {})
-    glossary = session.get(PATHINGS_DICT["GLOSSARY"], {})
+    conversation_topic_tree =global_state.conversation_topic_tree
+    global_state.glossary = {}
+    glossary = global_state.glossary
     
     if not conversation_topic_tree:
         return
@@ -489,9 +483,15 @@ def intersect_compressor(data):
     print(f"End of compression: {time.time() - complete_start}")
     return data
 
+def global_state():
+    return "State Function"
 def generate_glossary():
-    glossary = session.get(PATHINGS_DICT["GLOSSARY"], {})
+    global_state.glossary = {}
     generate_conversation_topics()
     construct_glossary()
-    glossary = intersect_compressor(glossary)
-    return GroupTheoryAPINonGUI2.update_clustering( glossary)
+    global_state.glossary = intersect_compressor(global_state.glossary)
+    return GroupTheoryAPINonGUI2.update_clustering( global_state.glossary)
+
+
+if __name__ == '__main__':
+    app.run()

@@ -3,19 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Treeview Example</title>
+    <title>Forza PageRank</title>
     <style>
         body {
+            font-family: Arial, sans-serif;
             display: flex;
             justify-content: space-between;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
         }
         #treeview-container {
             width: 30%;
+            padding: 20px;
+            border-right: 2px solid #ddd;
+            background-color: #fff;
+            height: 100vh;
+            overflow-y: auto;
         }
         #content-container {
             width: 65%;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+        }
+        #content-display {
+            margin-top: 20px;
             padding: 10px;
-            border-left: 2px solid #ccc;
+            border: 1px solid #ddd;
+            background-color: #fafafa;
         }
         ul {
             list-style-type: none;
@@ -23,6 +42,36 @@
         }
         li {
             cursor: pointer;
+            padding: 8px 0;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        li:hover {
+            background-color: #f0f0f0;
+        }
+        li.expanded::before {
+            content: '▲';
+            margin-right: 10px;
+            color: #007BFF;
+        }
+        li::before {
+            content: '▼';
+            margin-right: 10px;
+            color: #007BFF;
+        }
+        li ul {
+            display: none;
+            padding-left: 20px;
+        }
+        li.expanded ul {
+            display: block;
+        }
+        .tree-item {
+            display: flex;
+            align-items: center;
+        }
+        .tree-item > span {
+            margin-right: 5px;
         }
     </style>
 </head>
@@ -73,19 +122,28 @@
                 }
 
                 // Add event listener for tree item clicks
-                $(".tree-item").on("click", (event) => this.onTreeItemClick(event));
+                $(".tree-item").on("click", (event) => {
+                    event.stopPropagation();  // Prevent click event from bubbling up to parent elements
+                    const selectedItem = $(event.target).attr('id');  // Get the ID of the selected item
+                    this.onTreeItemClick(selectedItem);
+                });
+
+                // Expand or collapse subgroups on parent click
+                $(".tree-item").on("click", function() {
+                    $(this).toggleClass('expanded');
+                });
             }
 
-            onTreeItemClick(event) {
-                const selectedItem = $(event.target).attr('id');  // Get the ID of the selected item
+            onTreeItemClick(selectedItem) {
                 this.displaySelectedContent(selectedItem);
             }
 
             displaySelectedContent(itemName) {
+                console.log(itemName)
                 const contentDisplay = $("#content-display");
 
                 // Assuming glossary is an object where item names map to content index arrays
-                const contentIndexArray = glossary[itemName]; 
+                const contentIndexArray = glossary[itemName][0];
 
                 if (contentIndexArray && contentIndexArray.length > 0) {
                     let content = ''; // Initialize content to store all messages
@@ -119,8 +177,6 @@
                 data: JSON.stringify({ filename: "./PearAI_General_discord_messages.json" }),  // Adjust file path as needed
                 success: function(response) {
                     // On successful response, use the returned data to update the treeview and content
-
-                    // Get the relevant data from the response
                     const { conversation_blocks, glossary, independent_groups, hierarchical_relationships } = response;
 
                     // Dynamically update the treeview and content
