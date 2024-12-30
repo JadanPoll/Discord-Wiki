@@ -12,17 +12,18 @@ from kneed import KneeLocator
 from GroupTheoryAPI2 import *
 import threading
 from tkinter import filedialog
-import spacy
+
 from ModifiedNotebook import Notebook
 from nltk.stem import PorterStemmer
+from textblob import TextBlob
 text_rank = TextRank4Keyword()  # Initialize TextRank globally
 text_rank.analyze("Removing cold start", window=5, lower=True) #Here to reduce cold start
 
 
 
 # Load the spaCy model for English
-nlp = spacy.load("en_core_web_sm")
-def filter_words_by_pos(words, pos_tags):
+
+def filter_words_by_pos2(words, pos_tags):
     """
     Filters words from an array based on the given list of POS tags.
     
@@ -30,6 +31,7 @@ def filter_words_by_pos(words, pos_tags):
     :param pos_tags: A list of POS tags to keep (e.g., ['NOUN', 'VERB']).
     :return: A list of words that match the specified POS tags.
     """
+    pos_tags = ['NN']
     # Join the words into a single string to process them with spaCy
     text = ' '.join(words)
 
@@ -38,6 +40,28 @@ def filter_words_by_pos(words, pos_tags):
 
     # Filter words based on the specified POS tags
     filtered_words = [token.text for token in doc if token.pos_ in pos_tags]
+
+    return filtered_words
+
+from textblob import TextBlob
+
+def filter_words_by_pos(words, pos_tags):
+    """
+    Filters words from an array based on the given list of POS tags.
+    
+    :param words: A list of words (strings).
+    :param pos_tags: A list of POS tags to keep (e.g., ['NN', 'VB']).
+    :return: A list of words that match the specified POS tags.
+    """
+    # Join the words into a single string to process them with TextBlob
+    text = ' '.join(words)
+
+    # Create a TextBlob object and tag parts of speech
+    blob = TextBlob(text)
+    tagged = blob.tags  # List of tuples (word, POS tag)
+
+    # Filter words based on the specified POS tags
+    filtered_words = [str(word) for word, tag in tagged if tag in pos_tags]
 
     return filtered_words
 
@@ -68,9 +92,9 @@ def extract_topics(text,visualize=False):
     optimal_keywords = [kw.word for kw in keywords[:cutoff]]
 
     pos_to_keep = ['NOUN','PROPN']# 'VERB']
-
+    pos_to_keep = ["NN"]
     filtered_words = filter_words_by_pos(optimal_keywords, pos_to_keep)
-
+    print(filtered_words)
     return filtered_words
 
 
