@@ -7,6 +7,13 @@ from flask_cors import CORS
 import requests
 import GroupTheoryAPINonGUI2
 #import OpenAICMD
+import json
+from textrank4zh import TextRank4Keyword
+
+import time
+import glossal_compression
+
+from textblob import TextBlob
 
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
 app.secret_key = 'D-SearchEngine@UIUC'
@@ -258,13 +265,7 @@ PATHINGS_DICT = {
 }
 
 
-import json
-import threading
-from textrank4zh import TextRank4Keyword
-from kneed import KneeLocator
-import spacy
-import time
-import glossal_compression
+
 with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
 
@@ -417,8 +418,6 @@ def filter_words_by_pos(words, pos_tags):
     doc = nlp(' '.join(words))
     return [token.text for token in doc if token.pos_ in pos_tags]
 
-
-from textblob import TextBlob
 
 def filter_words_by_pos(words, pos_tags):
     """
