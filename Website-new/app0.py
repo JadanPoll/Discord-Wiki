@@ -496,3 +496,4 @@ def generate_glossary():
     return GroupTheoryAPINonGUI2.update_clustering( glossary)
 
 
+
