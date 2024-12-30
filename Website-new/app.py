@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify, send_file, abort,render_template, ses
 from flask_cors import CORS
 import requests
 import GroupTheoryAPINonGUI2
-import OpenAICMD
+#import OpenAICMD
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
 app.secret_key = 'D-SearchEngine@UIUC'
 
@@ -160,8 +160,8 @@ def generate_context_chain():
 # Register callback for incoming summary responses
 def handle_incoming_summary_response(summary):
     session["SUMMARY_RESPONSE"] = summary
-ChatGPT = OpenAICMD.WebSocketClientApp("https://ninth-swamp-orangutan.glitch.me")
-ChatGPT.register_callback(callback=handle_incoming_summary_response)
+#ChatGPT = OpenAICMD.WebSocketClientApp("https://ninth-swamp-orangutan.glitch.me")
+#ChatGPT.register_callback(callback=handle_incoming_summary_response)
 @app.route('/summarize', methods=['POST'])
 def summarize():
     context_chain_text = request.json.get('context_chain_text')
