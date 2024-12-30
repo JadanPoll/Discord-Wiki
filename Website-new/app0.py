@@ -494,6 +494,3 @@ def generate_glossary():
     construct_glossary()
     glossary = intersect_compressor(glossary)
     return GroupTheoryAPINonGUI2.update_clustering( glossary)
-
-
-
