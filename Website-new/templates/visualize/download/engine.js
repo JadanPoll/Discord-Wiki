@@ -429,29 +429,3 @@ function calculateThenDisplayGlossary() {
 
 
 }
-
-
-
-
-
-def on_glossary_treeview_select(event):
-    """
-    Callback function that gets triggered when an item in the Treeview is selected.
-    
-    :param event: The event triggered by the selection.
-    """
-    selected_item = glossary_tree.selection()  # Get the selected item (ID or name)
-    if selected_item:
-        item_name = glossary_tree.item(selected_item[0])['text']  # Get the text (name) of the selected item
-        gl_len=len(dictionary_glossary_topic_and_linked_conversation_groups[item_name])-1
-        update_glossary_upper_limit(gl_len)
-        gl_now = min(int(conversation_spinbox.get()),gl_len)
-        conversation_spinbox.delete(0, "end")  # Clear the current value
-        conversation_spinbox.insert(0, gl_now)  # Insert the new value
-
-        num_conversations_widget.delete('1.0', tk.END)  # Clear all text
-        num_conversations_widget.insert(tk.END, str(gl_len+1))  # Insert the selected dictionary_glossary_topic_and_linked_conversation_groups entry
-
-
-        display_conversations_linked_to_selected_topic(item_name,int(conversation_spinbox.get()))  # Call the function with the selected item name
-
