@@ -106,6 +106,7 @@ def live_update():
 
 @app.route("/visualize/forzapagerank")
 def pagerank():
+    print("ForzaPage Rank Loaded")
     return render_template('visualize/download/forzapagerank.html', group='dev')
 
 
