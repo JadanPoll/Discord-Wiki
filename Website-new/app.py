@@ -109,13 +109,87 @@ def pagerank():
     return render_template('visualize/download/forzapagerank.html', group='dev')
 
 
-@app.route("/<path:filename>")
-def catch_all(filename):
-    # Print the filename that was requested
-    print(f"Called for path: {filename}")
-    
-    # Always return 'engine.js' for any request
+
+
+
+
+
+
+# Serve 'engine.js'
+@app.route("/engine")
+def engine():
     return send_from_directory('templates/visualize/download', 'engine.js')
+
+# Serve 'discord-stopword-en.js'
+@app.route("/discord-stopword-en.js")
+def discord_stopword():
+    return send_from_directory('templates/visualize/download', 'discord-stopword-en.js')
+
+# Serve 'textrank.js'
+@app.route("/textrank.js")
+def textrank():
+    return send_from_directory('templates/visualize/download/TextRank', 'textrank.js')
+
+# Serve 'knee_locator.js'
+@app.route("/knee_locator.js")
+def knee_locator():
+    return send_from_directory('templates/visualize/download/TextRank/KneeLocator', 'knee_locator.js')
+
+# Serve 'GroupTheory.js'
+@app.route("/GroupTheory.js")
+def group_theory():
+    return send_from_directory('templates/visualize/download', 'GroupTheory.js')
+
+# Serve 'glossary_compression.js'
+@app.route("/glossary_compression.js")
+def glossary_compression():
+    return send_from_directory('templates/visualize/download', 'glossary_compression.js')
+
+# Serve 'util.js'
+@app.route("/util.js")
+def util():
+    return send_from_directory('templates/visualize/download/TextRank', 'util.js')
+
+# Serve 'Segmentation.js'
+@app.route("/Segmentation.js")
+def segmentation():
+    return send_from_directory('templates/visualize/download/TextRank', 'Segmentation.js')
+
+# Serve 'pagerank.js'
+@app.route("/pagerank.js")
+def pagerank():
+    return send_from_directory('templates/visualize/download/TextRank', 'pagerank.js')
+
+# Serve 'BrillTransformationRules.js'
+@app.route("/BrillTransformationRules.js")
+def brill_transformation_rules():
+    return send_from_directory('templates/visualize/download/TextRank/POS', 'BrillTransformationRules.js')
+
+# Serve 'index.js'
+@app.route("/index.js")
+def pos_index():
+    return send_from_directory('templates/visualize/download/TextRank/POS', 'index.js')
+
+# Serve 'lexer.js'
+@app.route("/lexer.js")
+def lexer():
+    return send_from_directory('templates/visualize/download/TextRank/POS', 'lexer.js')
+
+# Serve 'lexicon.js'
+@app.route("/lexicon.js")
+def lexicon():
+    return send_from_directory('templates/visualize/download/TextRank/POS', 'lexicon.js')
+
+# Serve 'POSTagger.js'
+@app.route("/POSTagger.js")
+def pos_tagger():
+    return send_from_directory('templates/visualize/download/TextRank/POS', 'POSTagger.js')
+
+
+
+
+
+
 
 @app.route("/stopword")
 def jsstopword():
