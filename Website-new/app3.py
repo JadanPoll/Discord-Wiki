@@ -2,7 +2,7 @@ import os
 import subprocess
 import hmac
 import hashlib
-from flask import Flask, request, jsonify, send_file, abort,render_template, session
+from flask import Flask, request, jsonify, send_file, abort,render_template, session, send_from_directory
 from flask_cors import CORS
 import requests
 import GroupTheoryAPINonGUI2
@@ -113,6 +113,10 @@ def live_update():
 def pagerank():
     return render_template('visualize/download/forzapagerank.html', group='dev')
 
+@app.route("/rankengine")
+def jspagerank():
+    return send_from_directory('visualize/download', 'engine.js')
+
 @app.route('/visualize/wordcloud')
 def wordcloud():
     return render_template('visualize/wordcloud.html', group='dev')
@@ -189,6 +193,20 @@ def summarize():
     return jsonify({"summary": session["SUMMARY_RESPONSE"]})
 
 
+
+@app.route('/save-glossary', methods=['POST'])
+def save_glossary():
+    session["GLOSSARY_FILEPATH"] = session["GLOSSARY"]
+    # Handle saving glossary (stub for now)
+    return jsonify({"message": "Glossary saved"})
+
+
+@app.route('/save-summary', methods=['POST'])
+def save_summary():
+    session["SUMMARIES_FILEPATH"] = session["SUMMARY"]
+    # Handle saving conversation summaries (stub for now)
+    return jsonify({"message": "Summary saved"})
+
 @app.route('/load-conversation', methods=['POST'])
 def load_conversation():
     #return jsonify({"message": f"Conversation loaded from "}),200
@@ -231,19 +249,6 @@ def load_conversation():
         "hierarchical_relationships": global_state.hierarchical_relationships
     }), 200
 
-
-@app.route('/save-glossary', methods=['POST'])
-def save_glossary():
-    session["GLOSSARY_FILEPATH"] = session["GLOSSARY"]
-    # Handle saving glossary (stub for now)
-    return jsonify({"message": "Glossary saved"})
-
-
-@app.route('/save-summary', methods=['POST'])
-def save_summary():
-    session["SUMMARIES_FILEPATH"] = session["SUMMARY"]
-    # Handle saving conversation summaries (stub for now)
-    return jsonify({"message": "Summary saved"})
 
 
 

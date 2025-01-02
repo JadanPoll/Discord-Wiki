@@ -221,6 +221,6 @@ def main():
     slider.pack(fill="x")
 
     root.mainloop()
-
+generate_subtopic_tree_and_display_tree = update_clustering
 if __name__ == "__main__":
     main()

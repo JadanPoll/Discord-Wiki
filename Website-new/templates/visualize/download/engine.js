@@ -1,0 +1,454 @@
+// Importing necessary libraries and local files in JavaScript
+const pos = require('pos');  // For part-of-speech tagging
+const natural = require('natural');  // Natural language processing utilities
+const { KneeLocator } = require('knee-locator');  // For knee detection (if necessary)
+const fs = require('fs');  // File system operations
+const path = require('path');  // Path utilities for handling file paths
+const { dialog } = require('electron');  // Assuming you're using Electron for file dialogs
+
+// Importing custom local modules for group theory and glossary compression
+const GroupTheory = require('./GroupTheory.js');  // Import your group theory module
+const GlossaryCompression = require('./glossary_compression.js');  // Import glossary compression module
+
+// Assuming a placeholder for any future equivalents for GUI operations in Electron or Web
+
+
+function filterWordsByPartOfSpeechTag(words, posTags) {
+    /**
+     * Filters words from an array based on the given list of POS tags.
+     * 
+     * @param words {Array} A list of words (strings).
+     * @param posTags {Array} A list of POS tags to keep (e.g., ['NN', 'VB']).
+     * @return {Array} A list of words that match the specified POS tags.
+     */
+    
+    const wordList = new pos.Lexer().lex(words.join(' '));
+    const tagger = new pos.Tagger();
+    const taggedWords = tagger.tag(wordList);
+
+    // Filter words based on the specified POS tags
+    const filteredWords = taggedWords
+        .filter(([word, tag]) => posTags.includes(tag))
+        .map(([word]) => word);
+
+    return filteredWords;
+}
+
+function extractTopics(text, visualize = false) {
+    /**
+     * Extract keywords from the text and visualize the elbow/knee for keyword selection.
+     * 
+     * @param text {String} The input text to analyze.
+     * @param visualize {Boolean} Whether or not to visualize the keyword selection.
+     * @return {Array} List of optimal keywords based on TextRank.
+     */
+    
+    const textRank = new natural.TextRank();
+    textRank.analyze(text, { windowSize: 5, useLowerCase: true });
+    const keywords = textRank.getRankedPhrases({ minWordLength: 3 });
+
+    const scores = keywords.map(kw => kw.score);
+
+    if (!scores.length) {
+        return [];
+    }
+
+    const x = Array.from({ length: scores.length }, (_, i) => i + 1);
+    const kneeLocator = new KneeLocator(x, scores, { curve: 'convex', direction: 'decreasing' });
+    const cutoff = kneeLocator.knee || scores.length;
+
+    const optimalKeywords = keywords.slice(0, cutoff).map(kw => kw.phrase);
+
+    const posToKeep = ['NN'];  // POS tags to keep (e.g., Nouns)
+    const filteredWords = filterWordsByPartOfSpeechTag(optimalKeywords, posToKeep);
+
+    console.log(filteredWords);
+    return filteredWords;
+}
+
+
+
+
+
+
+let FILEPATH = null;
+let GLOSSARY_FILEPATH = null;
+let SUMMARIES_FILEPATH = null;
+const MESSAGE_SEPARATOR = '--------------------------------------------------';
+
+// Load stopwords from JSON file
+let loadedStopwords = new Set();
+const stopwordFilePath = path.join(__dirname, './discord-stopword-en.json');
+fs.readFile(stopwordFilePath, 'utf-8', (err, data) => {
+    if (err) throw err;
+    loadedStopwords = new Set(JSON.parse(data));
+});
+
+const punctuations = `",!?.)(:”’''*🙏🤔💀😈😭😩😖🤔🥰🥴😩🙂😄'“\``;
+
+console.log(punctuations);
+
+
+
+
+function removeStopwordsFromMessageText(messageText) {
+    const result = [];
+    const words = messageText.replace(new RegExp(`[${punctuations}]`, 'g'), '').split(' ');
+
+    words.forEach(word => {
+        if (word.toLowerCase().startsWith('http')) {
+            const translatedText = word.replace(/[:/. -]/g, ' ');
+            translatedText.split(' ').forEach(part => {
+                if (!part.toLowerCase().startsWith('http') &&
+                    !['com', 'www', 'ai'].includes(part.toLowerCase()) &&
+                    !stopwords.includes(part.toLowerCase())) {
+                    result.push(part);
+                }
+            });
+        } else if (!stopwords.includes(word.toLowerCase()) || (word === word.toUpperCase() && word.length > 1)) {
+            result.push(word);
+        }
+    });
+
+    return result;
+}
+
+function groupAndPreprocessMessagesByAuthor(messageData) {
+    const LIMIT = 3;
+    const conversationBlocks = [];
+    const processedConversationBlocks = [];
+    let currentAuthor = null;
+    let authorMessages = [];
+    let DLimit = 0;
+
+    if (typeof messageData === 'object' && 'messages' in messageData) {
+        messageData = messageData.messages;
+    }
+
+    messageData.forEach(messageEntry => {
+        const authorName = messageEntry.author?.name || messageEntry.author?.username;
+
+        if (authorName) {
+            if (authorName !== currentAuthor || DLimit === LIMIT) {
+                if (authorMessages.length > 0) {
+                    const joinedMessageBlock = authorMessages.join(' ');
+                    conversationBlocks.push(joinedMessageBlock);
+                    const preprocessedBlock = removeStopwordsFromMessageText(joinedMessageBlock).join(' ');
+                    processedConversationBlocks.push(preprocessedBlock);
+                }
+
+                currentAuthor = authorName;
+                authorMessages = [];
+                DLimit = 0;
+            }
+
+            authorMessages.push(messageEntry.content);
+            DLimit++;
+        }
+    });
+
+    if (authorMessages.length > 0) {
+        const joinedMessageBlock = authorMessages.join(' ');
+        conversationBlocks.push(joinedMessageBlock);
+        const preprocessedBlock = removeStopwordsFromMessageText(joinedMessageBlock).join(' ');
+        processedConversationBlocks.push(preprocessedBlock);
+    }
+
+    return [conversationBlocks, processedConversationBlocks];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+let conversationBlocks;
+let processedConversationBlocks;
+let dictionaryGlossaryTopicAndLinkedConversationGroups = {};
+let summaryArrayHtmlResults = {};
+
+function loadConversationEngine() {
+    summaryArrayHtmlResults = {};
+
+    // Open the file dialog for selecting a file
+    FILEPATH = dialog.showOpenDialogSync({
+        title: 'Select Discord Messages File',
+        filters: [{ name: 'JSON files', extensions: ['json'] }, { name: 'All files', extensions: ['*'] }]
+    });
+
+    if (!FILEPATH || FILEPATH.length === 0) {
+        console.log('No file selected.');
+        return;
+    }
+
+    FILEPATH = FILEPATH[0];  // Get the selected file path
+    GLOSSARY_FILEPATH = path.join(__dirname, `GLOSSARY/GLOSSARY_${path.basename(FILEPATH)}`);
+    SUMMARIES_FILEPATH = path.join(__dirname, `SUMMARY/SUMMARY_${path.basename(FILEPATH)}`);
+
+    outputTextDisplay.clear();  // Clear the text display (assuming this is a text area or UI component)
+    outputTextDisplay.insert(`Loaded ${path.basename(FILEPATH)}!\n`);
+
+    // Read the selected file
+    let fileContent;
+    try {
+        fileContent = fs.readFileSync(FILEPATH, 'utf-8');
+    } catch (error) {
+        console.error("Error reading file:", error);
+        return;
+    }
+
+
+    let discordMessageData;
+    
+
+    discordMessageData = JSON.parse(fileContent);
+
+
+
+    [conversationBlocks, processedConversationBlocks] = groupAndPreprocessMessagesByAuthor(discordMessageData);
+
+    return {
+        conversationBlocks: conversationBlocks
+    };
+    
+}
+
+// Optimized function to search for a query within a message block using set operations
+function findQueryInMessageBlock(querySet, messageBlock) {
+    const messageBlockWords = new Set(messageBlock.split(' '));
+    return [...querySet].some(word => messageBlockWords.has(word));
+}
+
+// Optimized recursive function to construct context chain with probability updates
+function constructContextChain(inheritedWordsSet, searchRadius, currentMessageIndex, visitedIndices, contextChain, recursionDepth = 1) {
+    const startIndex = Math.max(0, currentMessageIndex - searchRadius);
+    const endIndex = Math.min(processedConversationBlocks.length, currentMessageIndex + searchRadius + 1);
+
+    for (let blockIndex = startIndex; blockIndex < endIndex; blockIndex++) {
+        if (!visitedIndices.has(blockIndex)) {
+            if (findQueryInMessageBlock(inheritedWordsSet, processedConversationBlocks[blockIndex])) {
+                visitedIndices.add(blockIndex);
+                contextChain.push({
+                    blockIndex,
+                    message: conversationBlocks[blockIndex],
+                    depth: recursionDepth
+                });
+
+                const expandedWordSet = new Set([
+                    ...inheritedWordsSet,
+                    ...processedConversationBlocks[blockIndex].split(' ')
+                ]);
+
+                constructContextChain(expandedWordSet, Math.max(Math.floor(searchRadius / 2), 1), blockIndex, visitedIndices, contextChain, recursionDepth + 1);
+            }
+        }
+    }
+}
+
+
+let dictionarySeedConversationAndGeneratedChain = {};
+let setIdsOfFoundConversations = new Set();
+let i = 0;
+
+function generateAndDisplayAllRandomContextChain() {
+    /**
+     * Autonomously finds and generates context chains for all conversations.
+     * Ensures no duplicate processing for conversations already found.
+     */
+
+    setIdsOfFoundConversations = new Set();
+    dictionarySeedConversationAndGeneratedChain = {};
+    console.log("Again", processedConversationBlocks.length);
+
+    for (let index = 0; index < processedConversationBlocks.length; index++) {
+        if (!setIdsOfFoundConversations.has(index)) {
+            generateAndDisplayRandomContextChain2(index);
+        }
+    }
+    return calculateThenDisplayGlossary()
+
+}
+
+function generateAndDisplayRandomContextChain2(index = null) {
+    /**
+     * Generates and displays a context chain for a specific conversation block.
+     * If `index` is provided, it processes that specific conversation block; otherwise, 
+     * it picks a random block to process.
+     */
+    try {
+        const searchRadius = parseInt(contextRadiusInput.value, 10);
+        if (isNaN(searchRadius)) throw new Error("Invalid input");
+    } catch (error) {
+        outputTextDisplay.insert("Please enter a valid number for context search radius.\n");
+        return;
+    }
+
+    if (processedConversationBlocks && processedConversationBlocks.length > 0) {
+        const blockIndex = index;
+        const blockWords = new Set(processedConversationBlocks[blockIndex].split(' '));
+        const visitedBlockIndices = new Set([blockIndex]);
+        const contextChain = [{ blockIndex, message: conversationBlocks[blockIndex], depth: 1 }];
+
+        // Construct the context chain using the helper function
+        constructContextChain(blockWords, searchRadius, blockIndex, visitedBlockIndices, contextChain);
+
+        // If the chain is too short and `index` was specified, stop processing this block
+        if (contextChain.length < Math.floor(searchRadius / 4) && index !== null) {
+            setIdsOfFoundConversations.add(index);
+            return;
+        }
+
+        contextChain.sort((a, b) => a.blockIndex - b.blockIndex);
+        const topicId = blockIndex.toString();
+        dictionarySeedConversationAndGeneratedChain[topicId] = contextChain.map(({ blockIndex, message }) => ({
+            message,
+            messageId: blockIndex
+        }));
+        setIdsOfFoundConversations = new Set([...setIdsOfFoundConversations, ...contextChain.map(({ blockIndex }) => blockIndex)]);
+        i += 1;
+    }
+}
+
+function calculateTopicsForEachMessage() {
+    /**
+     * Processes topics in the conversation glossary tree and extracts descriptions.
+     */
+    if (Object.keys(dictionarySeedConversationAndGeneratedChain).length === 0) {
+        outputTextDisplay.insert("\nNo topics available to process.\n");
+        return;
+    }
+
+    let i = 0;
+    for (const [topicId, convo] of Object.entries(dictionarySeedConversationAndGeneratedChain)) {
+        const total = convo.map(entry => processedConversationBlocks[entry.messageId]).join("\n");
+        const description = extractTopics(total);
+        convo.push({ description });
+        console.log(`Next: ${i}`);
+        i++;
+    }
+}
+
+
+
+
+
+function assignEachTopicRelevantMessageGroups() {
+    /**
+     * Updates the dictionaryGlossaryTopicAndLinkedConversationGroups with keywords mapped to message IDs.
+     */
+    if (!dictionarySeedConversationAndGeneratedChain) {
+        return;
+    }
+
+    for (let [topicId, topicData] of Object.entries(dictionarySeedConversationAndGeneratedChain)) {
+        let description = topicData[topicData.length - 1].description || ''; // Assume last entry is the description
+        if (!description) {
+            console.log("not here");
+            continue;
+        }
+
+        let keywords = description;
+        let messageIds = topicData
+            .filter(entry => entry.messageId !== undefined)
+            .map(entry => entry.messageId);
+
+        for (let keyword of keywords) {
+            if (!dictionaryGlossaryTopicAndLinkedConversationGroups[keyword]) {
+                dictionaryGlossaryTopicAndLinkedConversationGroups[keyword] = []; // Initialize as an empty list
+            }
+            dictionaryGlossaryTopicAndLinkedConversationGroups[keyword].push(messageIds); // Append the messageIds array to the list
+        }
+    }
+}
+
+function displayConversationsLinkedToSelectedTopic(item, conversationNumber) {
+    /**
+     * Displays the selected dictionaryGlossaryTopicAndLinkedConversationGroups item and its associated conversation blocks.
+     *
+     * @param {string} item - The selected dictionaryGlossaryTopicAndLinkedConversationGroups item (topic or ID) to be displayed.
+     * @param {number} conversationNumber - The conversation number to display.
+     */
+    outputTextDisplay.value = ''; // Clear the text display
+
+    let topicName = item; // If the item is an ID, you might need to map it to the dictionaryGlossaryTopicAndLinkedConversationGroups data
+
+    // Display parent node's topic
+    outputTextDisplay.value += `Topic: ${topicName}\n`;
+    outputTextDisplay.value += "-".repeat(50) + "\n";
+
+    // Display associated conversation blocks for this topic
+    if (dictionaryGlossaryTopicAndLinkedConversationGroups[topicName]) {
+        let convoBlock = dictionaryGlossaryTopicAndLinkedConversationGroups[topicName][conversationNumber];
+        for (let messageId of convoBlock) {
+            // Fetch the message from the conversation block using messageId
+            let message = conversationBlocks[messageId];
+
+            // Display the message with separator
+            outputTextDisplay.value += `Message ${messageId}: ${message}\n${MESSAGE_SEPARATOR}\n`;
+        }
+    }
+}
+
+function intersectCompressor(data) {
+    console.log("Compressing...");
+    // Iterate through the data and compress each dictionaryGlossaryTopicAndLinkedConversationGroups entry
+
+    let completeStart = Date.now();
+    for (let keyword in data) {
+        data[keyword] = GlossaryCompression.compressGlossaryEntries(keyword, data[keyword], 0.7);
+    }
+
+    console.log(`End of compression: ${Date.now() - completeStart} ms`);
+    return data; // Ensure the modified data is returned
+}
+
+function calculateThenDisplayGlossary() {
+    dictionaryGlossaryTopicAndLinkedConversationGroups = {};
+
+    calculateTopicsForEachMessage();
+    assignEachTopicRelevantMessageGroups();
+    dictionaryGlossaryTopicAndLinkedConversationGroups = intersectCompressor(dictionaryGlossaryTopicAndLinkedConversationGroups);
+
+    const { independentGroups, hierarchicalRelationships } = GroupTheory.generateSubtopicTreeAndDisplayTree(glossaryTree, 0.0, dictionaryGlossaryTopicAndLinkedConversationGroups);
+
+    return {
+        dictionaryGlossaryTopicAndLinkedConversationGroups: dictionaryGlossaryTopicAndLinkedConversationGroups,
+        independentGroups: independentGroups,
+        hierarchicalRelationships: hierarchicalRelationships
+    };
+    
+
+
+}
+
+
+
+
+
+def on_glossary_treeview_select(event):
+    """
+    Callback function that gets triggered when an item in the Treeview is selected.
+    
+    :param event: The event triggered by the selection.
+    """
+    selected_item = glossary_tree.selection()  # Get the selected item (ID or name)
+    if selected_item:
+        item_name = glossary_tree.item(selected_item[0])['text']  # Get the text (name) of the selected item
+        gl_len=len(dictionary_glossary_topic_and_linked_conversation_groups[item_name])-1
+        update_glossary_upper_limit(gl_len)
+        gl_now = min(int(conversation_spinbox.get()),gl_len)
+        conversation_spinbox.delete(0, "end")  # Clear the current value
+        conversation_spinbox.insert(0, gl_now)  # Insert the new value
+
+        num_conversations_widget.delete('1.0', tk.END)  # Clear all text
+        num_conversations_widget.insert(tk.END, str(gl_len+1))  # Insert the selected dictionary_glossary_topic_and_linked_conversation_groups entry
+
+
+        display_conversations_linked_to_selected_topic(item_name,int(conversation_spinbox.get()))  # Call the function with the selected item name
+

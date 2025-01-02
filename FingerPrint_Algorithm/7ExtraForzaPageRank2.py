@@ -45,7 +45,7 @@ def filter_words_by_pos2(words, pos_tags):
 
 from textblob import TextBlob
 
-def filter_words_by_pos(words, pos_tags):
+def filter_words_by_Part_Of_Speech_Tag(words, pos_tags):
     """
     Filters words from an array based on the given list of POS tags.
     
@@ -93,7 +93,7 @@ def extract_topics(text,visualize=False):
 
     pos_to_keep = ['NOUN','PROPN']# 'VERB']
     pos_to_keep = ["NN"]
-    filtered_words = filter_words_by_pos(optimal_keywords, pos_to_keep)
+    filtered_words = filter_words_by_Part_Of_Speech_Tag(optimal_keywords, pos_to_keep)
     print(filtered_words)
     return filtered_words
 
@@ -102,6 +102,7 @@ def extract_topics(text,visualize=False):
 FILEPATH = None
 GLOSSARY_FILEPATH = None
 SUMMARIES_FILEPATH = None
+MESSAGE_SEPARATOR = '--------------------------------------------------'
 with open('./discord-stopword-en.json', encoding='utf-8') as stopword_file:
     loaded_stopwords = set(json.load(stopword_file))
 
@@ -110,7 +111,7 @@ punctuations=r"""",!?.)(:”’''*🙏🤔💀😈😭😩😖🤔🥰🥴😩�
 print(punctuations)
 
 # Function to preprocess message text: removes stopwords, strips punctuation, and applies stemming
-def preprocess_message_text(message_text):
+def remove_stopwords_from_message_text(message_text):
 
     result = []
 
@@ -137,6 +138,8 @@ def preprocess_message_text(message_text):
 
 # Group and preprocess messages by author to form conversation blocks
 def group_and_preprocess_messages_by_author(message_data):
+
+    LIMIT = 3
     conversation_blocks = []  # Will store original blocks
     processed_conversation_blocks = []  # Will store preprocessed blocks
     current_author = None
@@ -145,13 +148,14 @@ def group_and_preprocess_messages_by_author(message_data):
     #Handle yet another data format
     if isinstance(message_data, dict) and "messages" in message_data:
         message_data = message_data["messages"]
-
+    DLimit = -1 #To prevent from collate lots of text from one auto=hor as simply one block
     for message_entry in message_data:
         if "content" in message_entry and "author" in message_entry and "name" in message_entry["author"]:
             author_name = message_entry["author"]["name"]
 
             # If the author changes, process and save the previous block
-            if author_name != current_author:
+            if author_name != current_author or (DLimit == LIMIT):
+                DLimit = 0
                 if author_messages:
                     # Join the author's messages into one block
                     joined_message_block = " ".join(author_messages)
@@ -160,7 +164,7 @@ def group_and_preprocess_messages_by_author(message_data):
                     conversation_blocks.append(joined_message_block)
 
                     # Store the preprocessed conversation block
-                    preprocessed_block = " ".join(preprocess_message_text(joined_message_block))
+                    preprocessed_block = " ".join(remove_stopwords_from_message_text(joined_message_block))
                     processed_conversation_blocks.append(preprocessed_block)
 
                 # Reset for the new author
@@ -169,12 +173,15 @@ def group_and_preprocess_messages_by_author(message_data):
 
             # Append current message content to the author's block
             author_messages.append(message_entry["content"])
+            DLimit+=1
 
         elif "content" in message_entry and "author" in message_entry and "username" in message_entry["author"]:
             author_name = message_entry["author"]["username"]
 
+
             # If the author changes, process and save the previous block
-            if author_name != current_author:
+            if author_name != current_author or (DLimit == LIMIT):
+                DLimit = 0
                 if author_messages:
                     # Join the author's messages into one block
                     joined_message_block = " ".join(author_messages)
@@ -183,7 +190,7 @@ def group_and_preprocess_messages_by_author(message_data):
                     conversation_blocks.append(joined_message_block)
 
                     # Store the preprocessed conversation block
-                    preprocessed_block = " ".join(preprocess_message_text(joined_message_block))
+                    preprocessed_block = " ".join(remove_stopwords_from_message_text(joined_message_block))
                     processed_conversation_blocks.append(preprocessed_block)
 
                 # Reset for the new author
@@ -192,17 +199,73 @@ def group_and_preprocess_messages_by_author(message_data):
 
             # Append current message content to the author's block
             author_messages.append(message_entry["content"])
-
+            DLimit +=1
     # Append the last block of messages
     if author_messages:
         joined_message_block = " ".join(author_messages)
         conversation_blocks.append(joined_message_block)
 
-        preprocessed_block = " ".join(preprocess_message_text(joined_message_block))
+        preprocessed_block = " ".join(remove_stopwords_from_message_text(joined_message_block))
         processed_conversation_blocks.append(preprocessed_block)
 
     return conversation_blocks, processed_conversation_blocks
 
+
+
+def process_messages_whatsapp_format(message_log):
+    conversation_blocks = []
+    processed_conversation_blocks = []
+    current_author = None
+    author_messages = []
+
+    for message_entry in message_log:
+        #print(message_entry)
+        if " ~ " in message_entry:
+            timestamp, rest = message_entry.split("~", 1)
+
+            author_name, content = rest.split(":", 1)
+
+            author_name = author_name.strip()
+            content = content.strip()
+            #print(author_name,author_messages)
+            if author_name != current_author:
+                if author_messages:
+                    joined_message_block = " ".join(author_messages)
+                    conversation_blocks.append(joined_message_block)
+                    preprocessed_block = " ".join(remove_stopwords_from_message_text(joined_message_block))
+                    processed_conversation_blocks.append(preprocessed_block)
+
+                current_author = author_name
+                author_messages = []
+
+            author_messages.append(content)
+        else:
+            author_messages.append(message_entry)
+            #print("Anomaly:",message_entry)
+    if author_messages:
+        joined_message_block = " ".join(author_messages)
+        conversation_blocks.append(joined_message_block)
+        preprocessed_block = " ".join(remove_stopwords_from_message_text(joined_message_block))
+        processed_conversation_blocks.append(preprocessed_block)
+
+    return conversation_blocks, processed_conversation_blocks
+
+
+# For txt books converted from https://www.freeconvert.com/pdf-to-txt/download
+def process_messages_book_format(paragraph):
+    print("Paragraph",len(paragraph))
+    conversation_blocks = []
+    processed_conversation_blocks = []
+
+    for message_entry in paragraph:
+
+        joined_message_block = message_entry.strip()
+        conversation_blocks.append(joined_message_block)
+        preprocessed_block = " ".join(remove_stopwords_from_message_text(joined_message_block))
+        processed_conversation_blocks.append(preprocessed_block)
+
+
+    return conversation_blocks, processed_conversation_blocks
 
 
 # Load and preprocess conversation blocks in one step
@@ -211,7 +274,7 @@ def group_and_preprocess_messages_by_author(message_data):
 def load_multi_conversations():
     global conversation_blocks
     global processed_conversation_blocks
-    global glossary
+    global dictionary_glossary_topic_and_linked_conversation_groups
     global summary_array_html_results
     global FILEPATHS
     global GLOSSARY_FILEPATH
@@ -236,25 +299,39 @@ def load_multi_conversations():
     
     for FILEPATH in FILEPATHS:
         # Display the selected file name
-        # Define corresponding glossary and summary file paths
+        # Define corresponding dictionary_glossary_topic_and_linked_conversation_groups and summary file paths
         GLOSSARY_FILEPATH = f"GLOSSARY/GLOSSARY_{os.path.basename(FILEPATH)}"
         SUMMARIES_FILEPATH = f"SUMMARY/SUMMARY_{os.path.basename(FILEPATH)}"
-        
+
+
+
+
         # Load and process the selected file
         try:
             with open(FILEPATH, encoding="utf-8") as discord_messages_file:
                 output_text_display.insert(tk.END, f"Loaded {os.path.basename(FILEPATH)}!\n")
 
-                discord_message_data = json.load(discord_messages_file)
-            
-            # Load and preprocess conversation blocks for this file
-            new_conversation_blocks, new_processed_conversation_blocks = group_and_preprocess_messages_by_author(discord_message_data)
-            
+                file_content = discord_messages_file.read()
+
+            # Check if the file content is JSON
+            try:
+                discord_message_data = json.loads(file_content)
+                is_json = True
+            except json.JSONDecodeError:
+                is_json = False
+
+            # Load and preprocess conversation blocks based on file type
+            if is_json:
+                new_conversation_blocks, new_processed_conversation_blocks = group_and_preprocess_messages_by_author(discord_message_data)
+            else:
+                message_log = file_content.splitlines()
+                new_conversation_blocks, new_processed_conversation_blocks = process_messages_whatsapp_format(message_log)
+
             # Merge with existing conversation blocks
             conversation_blocks.extend(new_conversation_blocks)
             processed_conversation_blocks.extend(new_processed_conversation_blocks)
             
-            # Try to load the glossary for this file
+            # Try to load the dictionary_glossary_topic_and_linked_conversation_groups for this file
             try:
                 load_multi_glossary_from_file()
                 load_multi_summary_from_file()
@@ -264,33 +341,33 @@ def load_multi_conversations():
         except Exception as e:
             print(f"Error processing file {os.path.basename(FILEPATH)}: {e}")
     
-    update_clustering(glossary_tree, 0.0, glossary)
+    generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
     try:
         def load():
             if app_main_window.Discord_Summary_Window_Created:
                 app_main_window.Discord_Summary_Window_Created.event_generate("<Destroy>")
                 app_main_window.Discord_Summary_Window_Created = None
             display_summary_popup()
-        app_main_window.after(1000, load)
+        app_main_window.after(500, load)
     except Exception as e:
         print(f"Error loading summaries: {e}")
 
 
 def load_multi_glossary_from_file():
-    global glossary  # Use the global glossary variable
+    global dictionary_glossary_topic_and_linked_conversation_groups  # Use the global dictionary_glossary_topic_and_linked_conversation_groups variable
 
     try:
         with open(GLOSSARY_FILEPATH, 'r', encoding='utf-8') as file:
-            file_glossary = json.load(file)  # Load JSON data from the glossary file
+            file_glossary = json.load(file)  # Load JSON data from the dictionary_glossary_topic_and_linked_conversation_groups file
             output_text_display.insert(tk.END, f"Loaded {os.path.basename(GLOSSARY_FILEPATH)}!\n")
             
-            # Process the glossary data
+            # Process the dictionary_glossary_topic_and_linked_conversation_groups data
             for key, value in file_glossary.items():
-                if key in glossary:
+                if key in dictionary_glossary_topic_and_linked_conversation_groups:
                     # If the existing value is a list of lists, append the new list
-                    glossary[key].extend(value)
+                    dictionary_glossary_topic_and_linked_conversation_groups[key].extend(value)
                 else:
-                    glossary[key] = value
+                    dictionary_glossary_topic_and_linked_conversation_groups[key] = value
             
             print("Glossary updated successfully!")
 
@@ -339,7 +416,7 @@ def load_conversation():
     global FILEPATH
     global GLOSSARY_FILEPATH
     global SUMMARIES_FILEPATH
-    global glossary
+    global dictionary_glossary_topic_and_linked_conversation_groups
     global summary_array_html_results
     summary_array_html_results = {}
     # Open the file dialog for selecting a file
@@ -357,20 +434,35 @@ def load_conversation():
         print("No file selected.")
         return
     
-
     with open(FILEPATH, encoding="utf-8") as discord_messages_file:
-        discord_message_data = json.load(discord_messages_file)
-    
-    # Load and preprocess conversation blocks in one step
-    conversation_blocks, processed_conversation_blocks = group_and_preprocess_messages_by_author(discord_message_data)
+        file_content = discord_messages_file.read()
+
+
+    # Check if the file content is JSON
+    try:
+        print("DR")
+        discord_message_data = json.loads(file_content)
+        is_json = True
+    except json.JSONDecodeError:
+        print("NOT h")
+        is_json = False
+
+    # Preprocess the messages based on the type of data
+    if is_json:
+        print("HEHE")
+        conversation_blocks, processed_conversation_blocks = group_and_preprocess_messages_by_author(discord_message_data)
+    else:
+        message_log = file_content.splitlines()
+        conversation_blocks, processed_conversation_blocks = process_messages_whatsapp_format(message_log)
+
 
     try:
-        glossary = {}
+        dictionary_glossary_topic_and_linked_conversation_groups = {}
         with open(GLOSSARY_FILEPATH, 'r', encoding='utf-8') as file:
-            glossary = json.load(file)
+            dictionary_glossary_topic_and_linked_conversation_groups = json.load(file)
             output_text_display.insert(tk.END, f"Loaded {os.path.basename(GLOSSARY_FILEPATH)}!\n")
             print("Glossary FOUND!")
-            update_clustering(glossary_tree, 0.0, glossary)
+            generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
             def load():
                 load_summary_from_file()
                 if app_main_window.Discord_Summary_Window_Created:
@@ -381,15 +473,80 @@ def load_conversation():
 
         return
     except:
-        glossary = {}
-        update_clustering(glossary_tree, 0.0, glossary)
+        dictionary_glossary_topic_and_linked_conversation_groups = {}
+        generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
+        pass
+
+
+
+
+def load_book_conversation():
+    global conversation_blocks
+    global processed_conversation_blocks
+    global FILEPATH
+    global GLOSSARY_FILEPATH
+    global SUMMARIES_FILEPATH
+    global dictionary_glossary_topic_and_linked_conversation_groups
+    global summary_array_html_results
+    summary_array_html_results = {}
+    # Open the file dialog for selecting a file
+    FILEPATH = filedialog.askopenfilename(
+        title="Select Discord Messages File",
+        filetypes=[("JSON files", "*.txt"), ("All files", "*.*")]
+    )
+    GLOSSARY_FILEPATH = f"GLOSSARY/GLOSSARY_{os.path.basename(FILEPATH)}"
+    SUMMARIES_FILEPATH =f"SUMMARY/SUMMARY_{os.path.basename(FILEPATH)}"
+    output_text_display.delete('1.0', tk.END)  # Clear the text display
+    output_text_display.insert(tk.END, f"Loaded {os.path.basename(FILEPATH)}!\n")
+
+    # Check if a file was selected
+    if not FILEPATH:
+        print("No file selected.")
+        return
+
+
+    with open(FILEPATH, encoding="latin-1") as book_file:
+        file_content = book_file.read()
+
+
+
+    # Split the content into sentences based on a period followed by a space
+    sentences = file_content.split(". ")
+
+    # Strip each sentence and filter out any empty sentences
+    sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
+
+    # Group the sentences into groups of 3
+    book_data = [". ".join(sentences[i:i+3]) for i in range(0, len(sentences), 3)]
+
+
+    # Preprocess the book data
+    conversation_blocks, processed_conversation_blocks = process_messages_book_format(book_data)
+
+
+    print(conversation_blocks)
+    print("Secxond",len(processed_conversation_blocks))
+    try:
+        dictionary_glossary_topic_and_linked_conversation_groups = {}
+        with open(GLOSSARY_FILEPATH, 'r', encoding='utf-8') as file:
+            dictionary_glossary_topic_and_linked_conversation_groups = json.load(file)
+            output_text_display.insert(tk.END, f"Loaded {os.path.basename(GLOSSARY_FILEPATH)}!\n")
+            print("Glossary FOUND!")
+            generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
+            def load():
+                load_summary_from_file()
+                if app_main_window.Discord_Summary_Window_Created:
+                    app_main_window.Discord_Summary_Window_Created.event_generate("<Destroy>")
+                    app_main_window.Discord_Summary_Window_Created = None
+                display_summary_popup()
+            app_main_window.after(500,load)
+
+        return
+    except:
+        dictionary_glossary_topic_and_linked_conversation_groups = {}
+        generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
         pass
     
-porter_stemmer = PorterStemmer()
-porter_stemmer.stem("Heatup")
-def Null(word):
-    return word
-porter_stemmer.stem = Null
 
 
 # Optimized function to search for a query within a message block using set operations
@@ -423,31 +580,31 @@ def construct_context_chain(inherited_words_set, search_radius, current_message_
                 construct_context_chain(expanded_word_set, max(search_radius // 2, 1), block_index, visited_indices, context_chain, recursion_depth + 1)
 
 
-conversation_topic_tree = {}
+dictionary_seed_conversation_and_generated_chain = {}
 def generate_and_display_all_random_context_chain():
     """
     Autonomously finds and generates context chains for all conversations.
     Ensures no duplicate processing for conversations already found.
     """
 
-    global found_id
-    global conversation_topic_tree
+    global set_ids_of_found_conversations
+    global dictionary_seed_conversation_and_generated_chain
 
-    found_id = set()
-    conversation_topic_tree = {}
-    print(len(processed_conversation_blocks))
+    set_ids_of_found_conversations = set()
+    dictionary_seed_conversation_and_generated_chain = {}
+    print("Again",len(processed_conversation_blocks))
 
 
     for index in range(len(processed_conversation_blocks)):
 
-        if index not in found_id:
+        if index not in set_ids_of_found_conversations:
             
     
             generate_and_display_random_context_chain2(index)
 
 
-    # Create a new thread to run the generate_glossary function
-    processing_thread = threading.Thread(target=generate_glossary)
+    # Create a new thread to run the calculate_then_display_glossary function
+    processing_thread = threading.Thread(target=calculate_then_display_glossary)
     processing_thread.daemon = True  # Daemon thread will exit when the main program exits
     processing_thread.start()
 
@@ -458,8 +615,8 @@ i = 0
 
 def generate_and_display_random_context_chain2(index=None):
     global i
-    global found_id
-    global conversation_topic_tree
+    global set_ids_of_found_conversations
+    global dictionary_seed_conversation_and_generated_chain
 
     """
     Generates and displays a context chain for a specific conversation block.
@@ -484,33 +641,33 @@ def generate_and_display_random_context_chain2(index=None):
 
         # If the chain is too short and `index` was specified, stop processing this block
         if len(context_chain) < search_radius // 4 and index is not None:
-            found_id.add(index)
+            set_ids_of_found_conversations.add(index)
             return
 
 
         context_chain.sort()
         topic_id = str(block_index)
-        conversation_topic_tree[topic_id] = [
+        dictionary_seed_conversation_and_generated_chain[topic_id] = [
             {"message": msg, "message_id": blk_id} for blk_id, msg,_ in context_chain
         ]
-        found_id.update(blk_id for blk_id, _,_ in context_chain)
+        set_ids_of_found_conversations.update(blk_id for blk_id, _,_ in context_chain)
         i += 1
 
 
 
 
-def generate_conversation_topics():
+def calculate_topics_for_each_message():
     """
     Processes topics in the conversation glossary_tree and extracts descriptions.
     """
-    global conversation_topic_tree
+    global dictionary_seed_conversation_and_generated_chain
 
-    if not conversation_topic_tree:
+    if not dictionary_seed_conversation_and_generated_chain:
         output_text_display.insert(tk.END, "\nNo topics available to process.\n")
         return
     
     i = 0
-    for topic_id, convo in conversation_topic_tree.items():
+    for topic_id, convo in dictionary_seed_conversation_and_generated_chain.items():
         total = "\n".join(
             processed_conversation_blocks[entry["message_id"]] for entry in convo
         )
@@ -519,16 +676,16 @@ def generate_conversation_topics():
         print(f"Next: {i}")
         i+=1
 
-def construct_glossary():
+def assign_each_topic_relevant_message_groups():
     """
-    Updates the glossary with keywords mapped to message IDs.
+    Updates the dictionary_glossary_topic_and_linked_conversation_groups with keywords mapped to message IDs.
     """
-    global conversation_topic_tree, glossary
+    global dictionary_seed_conversation_and_generated_chain, dictionary_glossary_topic_and_linked_conversation_groups
 
-    if not conversation_topic_tree:
+    if not dictionary_seed_conversation_and_generated_chain:
         return
 
-    for topic_id, topic_data in conversation_topic_tree.items():
+    for topic_id, topic_data in dictionary_seed_conversation_and_generated_chain.items():
         description = topic_data[-1].get("description", "")  # Assume last entry is the description
         if not description:
             print("not here")
@@ -539,44 +696,44 @@ def construct_glossary():
         message_ids = [entry["message_id"] for entry in topic_data if "message_id" in entry]
 
         for keyword in keywords:
-            if keyword not in glossary:
-                glossary[keyword] = []  # Initialize as an empty list
-            glossary[keyword].append(message_ids)  # Append the message_ids array to the list
+            if keyword not in dictionary_glossary_topic_and_linked_conversation_groups:
+                dictionary_glossary_topic_and_linked_conversation_groups[keyword] = []  # Initialize as an empty list
+            dictionary_glossary_topic_and_linked_conversation_groups[keyword].append(message_ids)  # Append the message_ids array to the list
 
 
 
 
-def display_selected_glossary(item,conversation_number):
+def display_conversations_linked_to_selected_topic(item,conversation_number):
     """
-    Displays the selected glossary item and its associated conversation blocks.
+    Displays the selected dictionary_glossary_topic_and_linked_conversation_groups item and its associated conversation blocks.
     
-    :param item: The selected glossary item (topic or ID) to be displayed.
+    :param item: The selected dictionary_glossary_topic_and_linked_conversation_groups item (topic or ID) to be displayed.
     """
     output_text_display.delete('1.0', tk.END)  # Clear the text display
     
 
-    topic_name = item  # If the item is an ID, you might need to map it to the glossary data
+    topic_name = item  # If the item is an ID, you might need to map it to the dictionary_glossary_topic_and_linked_conversation_groups data
     
     # Display parent node's topic
     output_text_display.insert(tk.END, f"Topic: {topic_name}\n")
     output_text_display.insert(tk.END, "-" * 50 + "\n")
     
     # Display associated conversation blocks for this topic
-    if topic_name in glossary:
+    if topic_name in dictionary_glossary_topic_and_linked_conversation_groups:
 
-        convo_block = glossary.get(topic_name,"")[conversation_number]
+        convo_block = dictionary_glossary_topic_and_linked_conversation_groups.get(topic_name,"")[conversation_number]
         for message_id in convo_block:
             # Fetch the message from the conversation block using message_id
             message = conversation_blocks[message_id]
             
             # Display the message with separator
-            output_text_display.insert(tk.END, f"DMessage {message_id}:{message}\n{'-' * 50}\n")
+            output_text_display.insert(tk.END, f"DMessage {message_id}:{message}\n{MESSAGE_SEPARATOR}\n")
 
 
 
 
 
-def Focus_DText(dmessage):
+def DTextRef_Clicked_Now_Display_Linked_Messages(dmessage):
     # Extract numbers from the message string (e.g., "capture starting DMessage and an nnumbers after eg:DMessage 198,200 or DMessage 198,DMessage 200")
     numbers = set(int(num) for num in re.findall(r'\d+', dmessage))  # Use a set for fast lookup
     print(numbers)
@@ -605,9 +762,9 @@ def Focus_DText(dmessage):
 
         # Insert the message text
         if message_id in numbers:
-            output_text_display.insert(tk.END, f"DMessage {message_id}: {message}\n{'-' * 50}\n", "highlight_selected")
+            output_text_display.insert(tk.END, f"DMessage {message_id}: {message}\n{MESSAGE_SEPARATOR}\n", "highlight_selected")
         else:
-            output_text_display.insert(tk.END, f"DMessage {message_id}: {message}\n{'-' * 50}\n")
+            output_text_display.insert(tk.END, f"DMessage {message_id}: {message}\n{MESSAGE_SEPARATOR}\n")
 
 
 
@@ -621,6 +778,20 @@ def summarize_context_chain():
     try:
         search = f"{glossary_tree.item(glossary_tree.selection())['text']}_{conversation_spinbox.get()}"
         if search not in summary_array_html_results:
+            
+
+
+            context_chain_text = '\n'.join(context_chain_text.split(MESSAGE_SEPARATOR))
+
+            words = context_chain_text.split()
+
+            context_chain_text = ' '.join(words[:3300])
+
+            if len(words)> 3300:
+                print("IMPORTANT! Truncation occured")
+
+            # Now, context_chain_text is guaranteed to have fewer than or equal to 3300 words
+
             ChatGPT.send_message(
                 "sendGPT",
                 "Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings:" + context_chain_text,
@@ -637,7 +808,8 @@ def summarize_context_chain():
 # Function to wrap all (DMessage) content with the hoverable class
 def wrap_all_dmessages_with_hoverable(content):
     # Use regex to find all occurrences of (DMessage...) in the content
-    dmessage_pattern = r"\(*\s?DMessage.*?\)"
+    dmessage_pattern = r"\(DMessage.*?\)"
+    
     # Function to wrap each DMessage match with the hoverable class
     def wrap_match(match):
         return f'<span class="hoverable" data-tooltip="DMessage Tooltip">{match.group(0)}</span>'
@@ -710,7 +882,7 @@ def display_summary_popup(page_name = None,page_content = None):
         if not hovered_text.startswith("(") and not hovered_text.endswith(")") and "DMessage" not in hovered_text:
             return
         print(hovered_text)
-        Focus_DText(hovered_text.replace(' ',''))
+        DTextRef_Clicked_Now_Display_Linked_Messages(hovered_text.replace(' ',''))
 
 
 
@@ -719,8 +891,8 @@ def display_summary_popup(page_name = None,page_content = None):
         print("AHere")
         # Check if the page already exists in the notebook
         for tab in notebook.tabs():
-            print(notebook.tab(tab, "text"),page_name)
-            if notebook.tab(tab, "text") == page_name:
+            print(notebook.notebook.tab(tab, "text"),page_name)
+            if notebook.notebook.tab(tab, "text") == page_name:
                 return  # Page already exists, no need to add
 
         print("BHere",page_name)
@@ -749,16 +921,16 @@ def display_summary_popup(page_name = None,page_content = None):
         summary_popup.protocol("WM_DELETE_WINDOW", on_popup_close)
 
         # Bind left and right arrow keys to change the page
-        def on_left_arrow(event):
+        def on_left_arrow_within_summary_pane(event):
 
             go_to_page(-1)
 
-        def on_right_arrow(event):
+        def on_right_arrow_within_summary_pane(event):
 
             go_to_page(1)
 
-        summary_popup.bind("<Left>", on_left_arrow)
-        summary_popup.bind("<Right>", on_right_arrow)
+        summary_popup.bind("<Left>", on_left_arrow_within_summary_pane)
+        summary_popup.bind("<Right>", on_right_arrow_within_summary_pane)
 
         # Create a Notebook widget (for tabs)
         notebook = Notebook(summary_popup)
@@ -869,7 +1041,7 @@ def handle_incoming_summary_response(summary):
 
         current_page = int(conversation_spinbox.get())
         selected_item = glossary_tree.item(glossary_tree.selection())['text']
-        max_topic_pages = len(glossary[selected_item]) if selected_item in glossary else 0
+        max_topic_pages = len(dictionary_glossary_topic_and_linked_conversation_groups[selected_item]) if selected_item in dictionary_glossary_topic_and_linked_conversation_groups else 0
 
         if "initial" not in handle_incoming_summary_response.__dict__:
             handle_incoming_summary_response.initial = current_page
@@ -887,7 +1059,7 @@ def handle_incoming_summary_response(summary):
                 conversation_spinbox.insert(0, str(min(current_page+1,upper_limit)))  # Insert the new value
 
                 item_name = glossary_tree.item(glossary_tree.selection())['text']
-                display_selected_glossary(item_name,int(conversation_spinbox.get()))  # Call the function with the selected item name
+                display_conversations_linked_to_selected_topic(item_name,int(conversation_spinbox.get()))  # Call the function with the selected item name
 
                 summarize_context_chain()
             except Exception as e:
@@ -914,10 +1086,10 @@ def handle_incoming_summary_response(summary):
 
 
 
-glossary = {}
+dictionary_glossary_topic_and_linked_conversation_groups = {}
 def save_glossary():
     with open(GLOSSARY_FILEPATH, 'w') as f:
-        json.dump(glossary, f, indent=4)
+        json.dump(dictionary_glossary_topic_and_linked_conversation_groups, f, indent=4)
     print(f"Glossary generated and saved to {GLOSSARY_FILEPATH}")
 
 def save_summary():
@@ -930,7 +1102,7 @@ def save_summary():
 from glossary_compression import  efficient_overlap_and_merge, compress_glossary_entries
 def intersect_compressor(data):
     print("Compressing...")
-    # Iterate through the data and compress each glossary entry
+    # Iterate through the data and compress each dictionary_glossary_topic_and_linked_conversation_groups entry
 
     complete_start = time.time()
     for keyword in data:
@@ -939,14 +1111,14 @@ def intersect_compressor(data):
     print(f"End of end: {time.time() - complete_start}")
     return data  # Ensure the modified data is returned
 
-def generate_glossary():
-    global glossary
-    glossary = {}
+def calculate_then_display_glossary():
+    global dictionary_glossary_topic_and_linked_conversation_groups
+    dictionary_glossary_topic_and_linked_conversation_groups = {}
 
-    generate_conversation_topics()
-    construct_glossary()
-    glossary = intersect_compressor(glossary)
-    update_clustering(glossary_tree, 0.0, glossary)
+    calculate_topics_for_each_message()
+    assign_each_topic_relevant_message_groups()
+    dictionary_glossary_topic_and_linked_conversation_groups = intersect_compressor(dictionary_glossary_topic_and_linked_conversation_groups)
+    generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
 
 
 
@@ -1045,6 +1217,7 @@ summarize_menu.add_command(label="Summarize", command=summarize_context_chain, a
 file_menu = tk.Menu(menu_bar, tearoff=0)
 file_menu.add_command(label="Load Conversation", command=load_conversation)
 file_menu.add_command(label="Load Multi Conversations", command=load_multi_conversations)
+file_menu.add_command(label="Load Book Conversations", command=load_book_conversation)
 file_menu.add_command(label="Save Glossary", command=save_glossary, accelerator="Ctrl+S")
 file_menu.add_command(label="Save Conversation Summaries", command=save_summary, accelerator="Ctrl+Shift+S")
 file_menu.add_separator()
@@ -1087,7 +1260,7 @@ output_text_display.tag_configure("highlight_processed", background="#E0FFE0", f
 
 
 # Function to handle left arrow key (decrease the value within the limits)
-def on_left_arrow(event):
+def on_left_arrow_within_conversation_pane(event):
     try:
         current_value = int(conversation_spinbox.get())  # Get the current value of the Spinbox
         if current_value > conversation_spinbox["from"]:  # Check if we can decrease
@@ -1102,7 +1275,7 @@ def on_left_arrow(event):
         print("Error: Invalid value in Spinbox")
 
 # Function to handle right arrow key (increase the value within the limits)
-def on_right_arrow(event):
+def on_right_arrow_within_conversation_pane(event):
     try:
         current_value = int(conversation_spinbox.get())  # Get the current value of the Spinbox
         if current_value < conversation_spinbox["to"]:  # Check if we can increase
@@ -1124,8 +1297,8 @@ def scroll_up(event):
 def scroll_down(event):
     output_text_display.yview_scroll(1, "units")  # Scroll down by 1 unit
 
-output_text_display.bind("<Left>", on_left_arrow)
-output_text_display.bind("<Right>", on_right_arrow)
+output_text_display.bind("<Left>", on_left_arrow_within_conversation_pane)
+output_text_display.bind("<Right>", on_right_arrow_within_conversation_pane)
 output_text_display.bind("<Up>", scroll_up)
 output_text_display.bind("<Down>", scroll_down)
 
@@ -1144,17 +1317,17 @@ def on_glossary_treeview_select(event):
     selected_item = glossary_tree.selection()  # Get the selected item (ID or name)
     if selected_item:
         item_name = glossary_tree.item(selected_item[0])['text']  # Get the text (name) of the selected item
-        gl_len=len(glossary[item_name])-1
+        gl_len=len(dictionary_glossary_topic_and_linked_conversation_groups[item_name])-1
         update_glossary_upper_limit(gl_len)
         gl_now = min(int(conversation_spinbox.get()),gl_len)
         conversation_spinbox.delete(0, "end")  # Clear the current value
         conversation_spinbox.insert(0, gl_now)  # Insert the new value
 
         num_conversations_widget.delete('1.0', tk.END)  # Clear all text
-        num_conversations_widget.insert(tk.END, str(gl_len+1))  # Insert the selected glossary entry
+        num_conversations_widget.insert(tk.END, str(gl_len+1))  # Insert the selected dictionary_glossary_topic_and_linked_conversation_groups entry
 
 
-        display_selected_glossary(item_name,int(conversation_spinbox.get()))  # Call the function with the selected item name
+        display_conversations_linked_to_selected_topic(item_name,int(conversation_spinbox.get()))  # Call the function with the selected item name
 
 # Create a Treeview widget
 glossary_tree = ttk.Treeview(glossary_frame)

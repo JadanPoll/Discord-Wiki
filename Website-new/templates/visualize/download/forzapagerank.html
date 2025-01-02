@@ -87,6 +87,11 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Load external libraries via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/textrank-node@0.1.9/lib/textrank.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pos/2.0.1/pos.min.js"></script>
+
+    <script type="module" src="rankengine"></script>
     <script>
         class GroupHierarchyWithTreeview {
             constructor(hierarchicalRelationships, independentGroups) {
@@ -168,34 +173,33 @@
             }
         }
 
-        // Make the AJAX call to load the conversation data
-        function loadConversation() {
-            $.ajax({
-                url: '/load-conversation',  // URL to Flask API
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ filename: "./PearAI_General_discord_messages.json" }),  // Adjust file path as needed
-                success: function(response) {
-                    // On successful response, use the returned data to update the treeview and content
-                    const { conversation_blocks, glossary, independent_groups, hierarchical_relationships } = response;
+        function loadConversation() 
+        {
+            try {
 
-                    // Dynamically update the treeview and content
-                    const groupHierarchy = new GroupHierarchyWithTreeview(hierarchical_relationships, independent_groups);
-                    groupHierarchy.populateTreeview();
 
-                    // Store glossary and conversation blocks in global variables to be used later
-                    window.glossary = glossary;
-                    window.conversation_block = conversation_blocks;
 
-                    // Optionally, update initial content display
-                    $("#content-display").html("Conversation loaded. Select an item from the treeview.");
-                },
-                error: function(xhr, status, error) {
-                    console.error("Error loading conversation:", error);
-                    $("#content-display").html("Failed to load conversation.");
-                }
-            });
+                                // Load the conversation blocks
+                const { conversation_blocks } = loadConversationEngine();
+
+                // Call the function and destructure the object return value
+                const { dictionaryGlossaryTopicAndLinkedConversationGroups, independent_groups, hierarchical_relationships } = generateAndDisplayAllRandomContextChain();
+
+                const groupHierarchy = new GroupHierarchyWithTreeview(hierarchical_relationships, independent_groups);
+                groupHierarchy.populateTreeview();
+
+                // Store glossary and conversation blocks in global variables
+                window.glossary = dictionaryGlossaryTopicAndLinkedConversationGroups;
+                window.conversation_block = conversation_blocks;
+
+                // Optionally, update initial content display
+                $("#content-display").html("Conversation loaded. Select an item from the treeview.");
+            } catch (error) {
+                console.error("Error loading conversation:", error);
+                $("#content-display").html("Failed to load conversation.");
+            }
         }
+
 
         // Load conversation data when the page loads
         $(document).ready(function() {
