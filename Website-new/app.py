@@ -112,13 +112,12 @@ def pagerank():
 
 @app.route("/<path:subpath>")
 def catch_all(subpath):
-    print("Startg")
-    # Concatenate the path from the request and subpath
-    full_path = request.path + '/' + subpath
-    print(f"Called for full path: {full_path}")
+    print("Starting")
+    # subpath alone should be sufficient
+    print(f"Called for subpath: {subpath}")
     
     # Serve the requested file from the 'templates/' directory
-    return send_from_directory('templates/', f'{subpath}')
+    return send_from_directory('templates/', subpath)
 
 
 @app.route('/visualize/wordcloud')
