@@ -108,6 +108,7 @@ def live_update():
 def pagerank():
     return render_template('visualize/download/forzapagerank.html', group='dev')
 
+
 @app.route("/<path:subpath>")
 def catch_all(subpath):
     # Concatenate the path from the request and subpath
@@ -116,6 +117,7 @@ def catch_all(subpath):
     
     # Serve the requested file from the 'templates/' directory
     return send_from_directory('templates/', f'{subpath}')
+
 
 @app.route('/visualize/wordcloud')
 def wordcloud():
