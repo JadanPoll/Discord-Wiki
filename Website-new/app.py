@@ -108,17 +108,14 @@ def live_update():
 def pagerank():
     return render_template('visualize/download/forzapagerank.html', group='dev')
 
-@app.route("/rankengine")
-def jspagerank():
-    print("Called here")
-    return send_from_directory('templates/visualize/download', 'engine.js')
-
-@app.route("/stopword")
-def jsstopword():
-    print("Called here")
-    return send_from_directory('templates/visualize/download', 'discord-stopword-en.js')
-
-
+@app.route("/<path:subpath>")
+def catch_all(subpath):
+    # Concatenate the path from the request and subpath
+    full_path = request.path + '/' + subpath
+    print(f"Called for full path: {full_path}")
+    
+    # Serve the requested file from the 'templates/' directory
+    return send_from_directory('templates/', f'{subpath}')
 
 @app.route('/visualize/wordcloud')
 def wordcloud():
