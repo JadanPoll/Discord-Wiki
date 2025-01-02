@@ -429,3 +429,5 @@ function calculateThenDisplayGlossary() {
 
 
 }
+
+export { loadConversationEngine, generateAndDisplayAllRandomContextChain };
