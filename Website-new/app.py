@@ -9,6 +9,7 @@ app = Flask(__name__, template_folder='templates', static_url_path='/', static_f
 
 CORS(app)  # Enable CORS for all routes
 
+
 # Define configuration variables
 GIT_SCRIPT = "../../git.sh"
 PORT = 3000
