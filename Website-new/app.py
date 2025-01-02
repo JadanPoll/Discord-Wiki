@@ -112,6 +112,7 @@ def pagerank():
 
 @app.route("/<path:subpath>")
 def catch_all(subpath):
+    print("Startg")
     # Concatenate the path from the request and subpath
     full_path = request.path + '/' + subpath
     print(f"Called for full path: {full_path}")
