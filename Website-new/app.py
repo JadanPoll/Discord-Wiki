@@ -114,7 +114,7 @@ def jspagerank():
     return send_from_directory('templates/visualize/download', 'engine.js')
 
 @app.route("/stopword")
-def jspagerank():
+def jsstopword():
     print("Called here")
     return send_from_directory('templates/visualize/download', 'discord-stopword-en.js')
 
