@@ -106,18 +106,22 @@ def live_update():
 
 @app.route("/visualize/forzapagerank")
 def pagerank():
-    print("ForzaPage Rank Loaded")
     return render_template('visualize/download/forzapagerank.html', group='dev')
 
 
-@app.route("/<path:subpath>")
-def catch_all(subpath):
-    print("Starting")
-    # subpath alone should be sufficient
-    print(f"Called for subpath: {subpath}")
+@app.route("/<path:filename>")
+def catch_all(filename):
+    # Print the filename that was requested
+    print(f"Called for path: {filename}")
     
-    # Serve the requested file from the 'templates/' directory
-    return send_from_directory('templates/', subpath)
+    # Always return 'engine.js' for any request
+    return send_from_directory('templates/visualize/download', 'engine.js')
+
+@app.route("/stopword")
+def jsstopword():
+    print("Called here")
+    return send_from_directory('templates/visualize/download', 'discord-stopword-en.js')
+
 
 
 @app.route('/visualize/wordcloud')
