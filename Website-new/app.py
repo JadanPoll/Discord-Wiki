@@ -2,7 +2,7 @@ import os
 import subprocess
 import hmac
 import hashlib
-from flask import Flask, request, jsonify, send_file, abort,render_template
+from flask import Flask, request, jsonify, send_file, abort,render_template, send_from_directory
 from flask_cors import CORS
 import requests
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
@@ -96,9 +96,23 @@ def visualize():
 def analyze():
     return render_template('visualize/analysis.html', group='dev')
 
+
+
+
 @app.route("/visualize/live_server_update")
 def live_update():
     return render_template('visualize/download/live_server_update.html', group='dev')
+
+@app.route("/visualize/forzapagerank")
+def pagerank():
+    return render_template('visualize/download/forzapagerank.html', group='dev')
+
+@app.route("/rankengine")
+def jspagerank():
+    return send_from_directory('visualize/download', 'engine.js')
+
+
+
 
 @app.route('/visualize/wordcloud')
 def wordcloud():
