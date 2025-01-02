@@ -1,13 +1,16 @@
 // Importing necessary libraries and local files in JavaScript
-const pos = require('pos');  // For part-of-speech tagging
-const natural = require('natural');  // Natural language processing utilities
-const { KneeLocator } = require('knee-locator');  // For knee detection (if necessary)
-const fs = require('fs');  // File system operations
-const path = require('path');  // Path utilities for handling file paths
+// For part-of-speech tagging
+import pos from 'pos';  
+
+// Natural language processing utilities
+import natural from 'natural';  
+
+// For knee detection (if necessary)
+import { KneeLocator } from 'knee-locator';  
 
 // Importing custom local modules for group theory and glossary compression
-const GroupTheory = require('./GroupTheory.js');  // Import your group theory module
-const GlossaryCompression = require('./glossary_compression.js');  // Import glossary compression module
+import GroupTheory from './GroupTheory.js';  // Import your group theory module
+import GlossaryCompression from './glossary_compression.js';  // Import glossary compression module
 
 // Assuming a placeholder for any future equivalents for GUI operations in Electron or Web
 
@@ -77,11 +80,8 @@ const MESSAGE_SEPARATOR = '--------------------------------------------------';
 
 // Load stopwords from JSON file
 let loadedStopwords = new Set();
-const stopwordFilePath = path.join(__dirname, './discord-stopword-en.json');
-fs.readFile(stopwordFilePath, 'utf-8', (err, data) => {
-    if (err) throw err;
-    loadedStopwords = new Set(JSON.parse(data));
-});
+
+loadedStopwords = new Set(JSON.parse(window.ENStopword))
 
 const punctuations = `",!?.)(:”’''*🙏🤔💀😈😭😩😖🤔🥰🥴😩🙂😄'“\``;
 
