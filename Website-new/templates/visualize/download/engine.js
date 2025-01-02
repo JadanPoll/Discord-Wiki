@@ -4,7 +4,6 @@ const natural = require('natural');  // Natural language processing utilities
 const { KneeLocator } = require('knee-locator');  // For knee detection (if necessary)
 const fs = require('fs');  // File system operations
 const path = require('path');  // Path utilities for handling file paths
-const { dialog } = require('electron');  // Assuming you're using Electron for file dialogs
 
 // Importing custom local modules for group theory and glossary compression
 const GroupTheory = require('./GroupTheory.js');  // Import your group theory module
@@ -173,51 +172,60 @@ let processedConversationBlocks;
 let dictionaryGlossaryTopicAndLinkedConversationGroups = {};
 let summaryArrayHtmlResults = {};
 
+
+
 function loadConversationEngine() {
     summaryArrayHtmlResults = {};
 
-    // Open the file dialog for selecting a file
-    FILEPATH = dialog.showOpenDialogSync({
-        title: 'Select Discord Messages File',
-        filters: [{ name: 'JSON files', extensions: ['json'] }, { name: 'All files', extensions: ['*'] }]
+    // Create a file input element dynamically
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';  // Set file input type
+    fileInput.accept = '.json';  // Restrict to JSON files
+
+    // Event listener for when a file is selected
+    fileInput.addEventListener('change', function(event) {
+        const FILEPATH = fileInput.files[0];  // Get the selected file
+        if (!FILEPATH) {
+            console.log('No file selected.');
+            return;
+        }
+
+        // Set the paths for glossary and summaries (based on the file name)
+        GLOSSARY_FILEPATH = `GLOSSARY/GLOSSARY_${FILEPATH.name}`;
+        SUMMARIES_FILEPATH = `SUMMARY/SUMMARY_${FILEPATH.name}`;
+
+        const fileReader = new FileReader();
+
+        // When the file is loaded, process it
+        fileReader.onload = function() {
+            let fileContent = fileReader.result;
+
+            let discordMessageData;
+            try {
+                discordMessageData = JSON.parse(fileContent);  // Parse the JSON data
+            } catch (error) {
+                console.error("Error parsing JSON file:", error);
+                return;
+            }
+
+            // Process the messages based on the parsed data
+            const [conversationBlocks, processedConversationBlocks] = groupAndPreprocessMessagesByAuthor(discordMessageData);
+
+            // Return the processed conversation blocks
+            return {
+                conversationBlocks: conversationBlocks,
+                processedConversationBlocks: processedConversationBlocks
+            };
+        };
+
+        // Read the selected file as text
+        fileReader.readAsText(FILEPATH);
     });
 
-    if (!FILEPATH || FILEPATH.length === 0) {
-        console.log('No file selected.');
-        return;
-    }
-
-    FILEPATH = FILEPATH[0];  // Get the selected file path
-    GLOSSARY_FILEPATH = path.join(__dirname, `GLOSSARY/GLOSSARY_${path.basename(FILEPATH)}`);
-    SUMMARIES_FILEPATH = path.join(__dirname, `SUMMARY/SUMMARY_${path.basename(FILEPATH)}`);
-
-    outputTextDisplay.clear();  // Clear the text display (assuming this is a text area or UI component)
-    outputTextDisplay.insert(`Loaded ${path.basename(FILEPATH)}!\n`);
-
-    // Read the selected file
-    let fileContent;
-    try {
-        fileContent = fs.readFileSync(FILEPATH, 'utf-8');
-    } catch (error) {
-        console.error("Error reading file:", error);
-        return;
-    }
-
-
-    let discordMessageData;
-    
-
-    discordMessageData = JSON.parse(fileContent);
-
-
-
-    [conversationBlocks, processedConversationBlocks] = groupAndPreprocessMessagesByAuthor(discordMessageData);
-
-    return {
-        conversationBlocks: conversationBlocks
-    };
-    
+    // Trigger the file input dialog
+    fileInput.click();
 }
+
 
 // Optimized function to search for a query within a message block using set operations
 function findQueryInMessageBlock(querySet, messageBlock) {
@@ -285,7 +293,7 @@ function generateAndDisplayRandomContextChain2(index = null) {
         const searchRadius = parseInt(contextRadiusInput.value, 10);
         if (isNaN(searchRadius)) throw new Error("Invalid input");
     } catch (error) {
-        outputTextDisplay.insert("Please enter a valid number for context search radius.\n");
+
         return;
     }
 
@@ -320,7 +328,7 @@ function calculateTopicsForEachMessage() {
      * Processes topics in the conversation glossary tree and extracts descriptions.
      */
     if (Object.keys(dictionarySeedConversationAndGeneratedChain).length === 0) {
-        outputTextDisplay.insert("\nNo topics available to process.\n");
+
         return;
     }
 
@@ -374,13 +382,9 @@ function displayConversationsLinkedToSelectedTopic(item, conversationNumber) {
      * @param {string} item - The selected dictionaryGlossaryTopicAndLinkedConversationGroups item (topic or ID) to be displayed.
      * @param {number} conversationNumber - The conversation number to display.
      */
-    outputTextDisplay.value = ''; // Clear the text display
 
     let topicName = item; // If the item is an ID, you might need to map it to the dictionaryGlossaryTopicAndLinkedConversationGroups data
 
-    // Display parent node's topic
-    outputTextDisplay.value += `Topic: ${topicName}\n`;
-    outputTextDisplay.value += "-".repeat(50) + "\n";
 
     // Display associated conversation blocks for this topic
     if (dictionaryGlossaryTopicAndLinkedConversationGroups[topicName]) {
@@ -389,8 +393,7 @@ function displayConversationsLinkedToSelectedTopic(item, conversationNumber) {
             // Fetch the message from the conversation block using messageId
             let message = conversationBlocks[messageId];
 
-            // Display the message with separator
-            outputTextDisplay.value += `Message ${messageId}: ${message}\n${MESSAGE_SEPARATOR}\n`;
+
         }
     }
 }
