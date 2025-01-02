@@ -65,7 +65,7 @@ def filter_words_by_Part_Of_Speech_Tag(words, pos_tags):
 
     return filtered_words
 
-def extract_topics(text,visualize=False):
+def extract_topics(text):
     """
     Extract keywords from the text and visualize the elbow/knee for keyword selection.
     

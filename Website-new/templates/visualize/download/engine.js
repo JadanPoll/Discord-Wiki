@@ -5,7 +5,7 @@
 
 import { TextRank4Keyword } from './TextRank/textrank'
 // For knee detection (if necessary)
-import { KneeLocator } from 'knee-locator';  
+import { KneeLocator } from './TextRank/KneeLocator/knee_locator.js';  
 
 // Importing custom local modules for group theory and glossary compression
 import GroupTheory from './GroupTheory.js';  // Import your group theory module
