@@ -1,7 +1,7 @@
 
 import { util } from './util.js'
 import { Segmentation } from './Segmentation.js';
-class TextRank4Keyword {
+export class TextRank4Keyword {
     constructor(stopWordsFile = null, allowSpeechTags = util.allowSpeechTags, delimiters = util.sentenceDelimiters) {
         /**
          * Constructor for TextRank4Keyword
@@ -99,7 +99,7 @@ class TextRank4Keyword {
 
 // Example Usage
 // Assuming Segmentation and util are implemented with necessary functionality
-const tr4k = new TextRank4Keyword();
-tr4k.analyze("Your text here.");
-console.log(tr4k.getKeywords());
-console.log(tr4k.getKeyphrases());
+//const tr4k = new TextRank4Keyword();
+//tr4k.analyze("Your text here.");
+//console.log(tr4k.getKeywords());
+//console.log(tr4k.getKeyphrases());
