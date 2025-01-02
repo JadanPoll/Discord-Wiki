@@ -1,18 +1,15 @@
 // Importing necessary libraries and local files in JavaScript
 // For part-of-speech tagging
-import pos from 'pos';  
 
 // Natural language processing utilities
-import natural from 'natural';  
 
+import { TextRank4Keyword } from './TextRank/textrank'
 // For knee detection (if necessary)
 import { KneeLocator } from 'knee-locator';  
 
 // Importing custom local modules for group theory and glossary compression
 import GroupTheory from './GroupTheory.js';  // Import your group theory module
 import GlossaryCompression from './glossary_compression.js';  // Import glossary compression module
-
-// Assuming a placeholder for any future equivalents for GUI operations in Electron or Web
 
 
 function filterWordsByPartOfSpeechTag(words, posTags) {
@@ -24,8 +21,8 @@ function filterWordsByPartOfSpeechTag(words, posTags) {
      * @return {Array} A list of words that match the specified POS tags.
      */
     
-    const wordList = new pos.Lexer().lex(words.join(' '));
-    const tagger = new pos.Tagger();
+    const wordList = new POS.Lexer().lex(words.join(' '));
+    const tagger = new POS.Tagger();
     const taggedWords = tagger.tag(wordList);
 
     // Filter words based on the specified POS tags
@@ -45,7 +42,7 @@ function extractTopics(text, visualize = false) {
      * @return {Array} List of optimal keywords based on TextRank.
      */
     
-    const textRank = new natural.TextRank();
+    const textRank = TextRank4Keyword();
     textRank.analyze(text, { windowSize: 5, useLowerCase: true });
     const keywords = textRank.getRankedPhrases({ minWordLength: 3 });
 
@@ -61,7 +58,7 @@ function extractTopics(text, visualize = false) {
 
     const optimalKeywords = keywords.slice(0, cutoff).map(kw => kw.phrase);
 
-    const posToKeep = ['NN'];  // POS tags to keep (e.g., Nouns)
+    const posToKeep = ['Noun'];  // POS tags to keep (e.g., Nouns)
     const filteredWords = filterWordsByPartOfSpeechTag(optimalKeywords, posToKeep);
 
     console.log(filteredWords);
