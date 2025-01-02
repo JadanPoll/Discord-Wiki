@@ -111,7 +111,7 @@ def pagerank():
 @app.route("/rankengine")
 def jspagerank():
     print("Called here")
-    return send_from_directory('visualize/download', 'engine.js')
+    return send_from_directory('templates/visualize/download', 'engine.js')
 
 
 
