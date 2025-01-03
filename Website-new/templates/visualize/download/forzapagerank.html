@@ -195,10 +195,10 @@
 
                 async function calculateTreeviewHierachy(filename) {
                 try {
-                    // Calculate the display glossary and extract independentGroups and hierarchicalRelationships
-                    const { independentGroups, hierarchicalRelationships } = calculateDisplayGlossary();
+                    // Step 1: Offload the long-running calculateDisplayGlossary() to a separate function to avoid blocking
+                    const { independentGroups, hierarchicalRelationships } = await offloadGlossaryCalculation();
 
-                    // POST hierarchical relationships to the /saverelationships endpoint
+                    // Step 2: POST hierarchical relationships to the /saverelationships endpoint
                     const response = await fetch('/saverelationships', {
                         method: 'POST',
                         headers: {
@@ -213,15 +213,30 @@
                     const data = await response.json();
                     console.log('Hierarchical relationships saved successfully:', data);
 
-                    // Initialize and populate the treeview
+                    // Step 3: Initialize and populate the treeview
                     const groupHierarchy = new GroupHierarchyWithTreeview(hierarchicalRelationships, independentGroups);
                     groupHierarchy.populateTreeview();
 
-                    // Update the content display
+                    // Step 4: Update the content display
                     $("#content-display").html("Conversation loaded. Select an item from the treeview.");
                 } catch (error) {
                     console.error('Error saving hierarchical relationships:', error);
                 }
+            }
+
+            // Function to offload the glossary calculation and return a promise
+            function offloadGlossaryCalculation() {
+                return new Promise((resolve, reject) => {
+                    // Use setTimeout to allow event loop to process other tasks
+                    setTimeout(() => {
+                        try {
+                            const { independentGroups, hierarchicalRelationships } = calculateDisplayGlossary();
+                            resolve({ independentGroups, hierarchicalRelationships });
+                        } catch (error) {
+                            reject(error); // Handle any error from the glossary calculation
+                        }
+                    }, 0); // This will make sure the task is offloaded to the next event loop tick
+                });
             }
 
             // Usage
