@@ -42,7 +42,7 @@ function extractTopics(text, visualize = false) {
      * @return {Array} List of optimal keywords based on TextRank.
      */
     
-    const textRank = new TextRank4Keyword();
+    const textRank = new TextRank4Keyword(null, ['NN']);
     textRank.analyze(text, 5, true );
     const keywords = textRank.getKeywords(100, 3);
 
@@ -59,12 +59,8 @@ function extractTopics(text, visualize = false) {
 
     const optimalKeywords = keywords.slice(0, cutoff).map(kw => kw.word);
 
-
-    const posToKeep = ['NN'];  // POS tags to keep (e.g., Nouns)
-    const filteredWords = filterWordsByPartOfSpeechTag(optimalKeywords, posToKeep);
-
     //console.log("Filtered",filteredWords);
-    return filteredWords;
+    return optimalKeywords;
 }
 
 
@@ -322,35 +318,41 @@ function calculateTopicsForEachMessage() {
 
 
 
-
-
 function assignEachTopicRelevantMessageGroups() {
     /**
      * Updates the dictionaryGlossaryTopicAndLinkedConversationGroups with keywords mapped to message IDs.
      */
-    if (!window.dictionarySeedConversationAndGeneratedChain) {
+    const dictionary = window.dictionarySeedConversationAndGeneratedChain;
+    const glossary = window.dictionaryGlossaryTopicAndLinkedConversationGroups;
+
+    if (!dictionary) {
         return;
     }
 
-    for (let [topicId, topicData] of Object.entries(window.dictionarySeedConversationAndGeneratedChain)) {
-        let description = topicData[topicData.length - 1].description || ''; // Assume last entry is the description
+    // Iterate over all topics in the dictionary
+    for (let [topicId, topicData] of Object.entries(dictionary)) {
+        const lastEntry = topicData[topicData.length - 1];
+        const description = lastEntry?.description || '';
+        
         if (!description) {
             continue;
         }
 
-        let keywords = description;
-        let messageIds = topicData
-            .filter(entry => entry.messageId !== undefined)
-            .map(entry => entry.messageId);
+        // Collect all message IDs upfront
+        const messageIds = [];
+        for (let entry of topicData) {
+            messageIds.push(entry.messageId);
+        }
 
+        // Use a Set to avoid duplicating messageIds for the same keyword
+        const keywords = description; // Split once and remove duplicates
         for (let keyword of keywords) {
-            if (!window.dictionaryGlossaryTopicAndLinkedConversationGroups[keyword]) {
-                window.dictionaryGlossaryTopicAndLinkedConversationGroups[keyword] = []; // Initialize as an empty list
+            if (!glossary[keyword]) {
+                glossary[keyword] = []; // Initialize if undefined
             }
-            window.dictionaryGlossaryTopicAndLinkedConversationGroups[keyword].push(messageIds); // Append the messageIds array to the list
+            glossary[keyword].push(messageIds); // Append the message IDs to the list
         }
     }
-
 }
 
 function displayConversationsLinkedToSelectedTopic(item, conversationNumber) {
@@ -392,13 +394,32 @@ function intersectCompressor(data) {
 function calculateThenDisplayGlossary() {
     window.dictionaryGlossaryTopicAndLinkedConversationGroups = {};
 
+    var completeStart = Date.now()
+    
     calculateTopicsForEachMessage();
+
+    console.log(`End of 1: ${Date.now() - completeStart} ms`);
+
+    var completeStart = Date.now()
+    
     //console.log(window.dictionarySeedConversationAndGeneratedChain)
     assignEachTopicRelevantMessageGroups();
 
+    console.log(`End of 2: ${Date.now() - completeStart} ms`);
+
+
+    var completeStart = Date.now()
+
     window.dictionaryGlossaryTopicAndLinkedConversationGroups = intersectCompressor(window.dictionaryGlossaryTopicAndLinkedConversationGroups);
 
+    console.log(`End of 3: ${Date.now() - completeStart} ms`);
+
+    var completeStart = Date.now()
+
     const { independentGroups, hierarchicalRelationships } = generateSubtopicTreeAndDisplayTree(window.dictionaryGlossaryTopicAndLinkedConversationGroups);
+
+
+    console.log(`End of 4: ${Date.now() - completeStart} ms`);
 
     return {
         dictionaryGlossaryTopicAndLinkedConversationGroups: window.dictionaryGlossaryTopicAndLinkedConversationGroups,

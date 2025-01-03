@@ -272,22 +272,6 @@ def jsstopword():
 def wordcloud():
     return render_template('visualize/wordcloud.html', group='dev')
 
-@app.route('/visualize/plot_useractivity')
-def plot_useractivity():
-    return render_template('visualize/plot_useractivity.html', group='dev')
-
-@app.route('/visualize/plot_timestamp_density')
-def plot_timestamp_activity():
-    return render_template('visualize/plot_timestamp_density.html', group='dev')
-
-@app.route('/visualize/plot_textdensity_user')
-def plot_textdensity_user():
-    return render_template('visualize/plot_textdensity_user.html', group='dev')
-
-@app.route('/visualize/plot_general_density')
-def plot_general_density():
-    return render_template('visualize/plot_general_density.html', group='dev')
-
 @app.route('/storyboard')
 def storyboard():
     return render_template('storyboard/storyboard.html', group='story')

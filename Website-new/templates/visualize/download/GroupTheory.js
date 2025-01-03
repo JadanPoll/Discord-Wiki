@@ -12,23 +12,6 @@ const getUniqueId = (() => {
 })();
 
 
-// Utility Functions
-function loadGlossaryData(filePath) {
-    /**
-     * Load the glossary data from a JSON file.
-     * @param {string} filePath - Path to the JSON file.
-     * @returns {Object} Parsed data or an empty object on error.
-     */
-    try {
-        const fs = require('fs');
-        const data = fs.readFileSync(filePath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error(`Error: ${error.message}`);
-        return {};
-    }
-}
-
 // GroupHierarchy Class
 class GroupHierarchy {
     constructor(groups = {}) {
@@ -111,19 +94,27 @@ class GroupHierarchy {
             let minCost = Infinity;
             let bestParent = null;
 
-            sortedGroups.forEach(parent => {
+
+            for (let i = 0; i < sortedGroups.length; i++) {
+                const parent = sortedGroups[i];
+            
                 if (parent === child || groupSizes[parent] <= childSize) {
-                    return;
+                    continue;
                 }
-
+            
                 const cost = this.calculateCost(groupSets[parent], childSet, groupSizes[parent], childSize, overlapCache);
-
+            
                 if (cost < minCost) {
                     minCost = cost;
                     bestParent = parent;
+            
+                    // Early exit if cost is "good enough"
+                    if (cost < 5.0) {
+                        break;
+                    }
                 }
-            });
-
+            }
+            
             if (bestParent) {
 
 
@@ -156,30 +147,7 @@ class GroupHierarchy {
 
 // GroupHierarchyWithTreeview Subclass
 class GroupHierarchyWithTreeview extends GroupHierarchy {
-    populateTreeview(tree) {
-        const addedGroups = new Set();
 
-        this.independentGroups.forEach(group => {
-            if (!addedGroups.has(group)) {
-                tree.insert('', 'end', group, { text: group });
-                addedGroups.add(group);
-            }
-        });
-
-        Object.entries(this.hierarchicalRelationships).forEach(([groupName, relationship]) => {
-            if (!tree.exists(groupName)) {
-                tree.insert('', 'end', groupName, { text: groupName });
-            }
-
-            relationship.subgroups.forEach(subgroup => {
-                if (tree.exists(subgroup)) {
-                    tree.move(subgroup, groupName, 'end');
-                } else {
-                    tree.insert(groupName, 'end', subgroup, { text: subgroup });
-                }
-            });
-        });
-    }
 }
 
 function generateSubtopicTreeAndDisplayTree(customGroups) {
@@ -196,4 +164,4 @@ function generateSubtopicTreeAndDisplayTree(customGroups) {
 
 const groupHierarchy = new GroupHierarchyWithTreeview({});
 
-export { loadGlossaryData, GroupHierarchy, GroupHierarchyWithTreeview, generateSubtopicTreeAndDisplayTree };
+export {  GroupHierarchy, GroupHierarchyWithTreeview, generateSubtopicTreeAndDisplayTree };

@@ -259,7 +259,7 @@
                     const isRelationshipsEmpty = !relationshipsData || Object.keys(relationshipsData).length === 0;
                     
                     const reader = new FileReader();
-                    if (isGlossaryEmpty || isRelationshipsEmpty) {
+                    if ( true || isRelationshipsEmpty) {
                         // If data from endpoints is empty, proceed to loadConversation
                         reader.onload = () => loadConversation(reader.result, filename);
                     } else {
