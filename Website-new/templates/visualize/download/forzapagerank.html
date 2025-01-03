@@ -63,7 +63,7 @@
     <script type="module" src="/engine.js"></script>
 
     <script type="module">
-        import { loadConversationEngine, generateAndDisplayAllRandomContextChain } from '/engine.js';
+        import { loadConversationEngine, generateAndDisplayAllRandomContextChain,calculateGlossary, calculateDisplayGlossary } from '/engine.js';
 
         class GroupHierarchyWithTreeview {
             constructor(hierarchicalRelationships, independentGroups=[]) {
@@ -143,8 +143,9 @@
             try {
                 // Load the conversation blocks and generate context chains
                 const { conversationBlocks } = loadConversationEngine(fileContent);
-                const { dictionaryGlossaryTopicAndLinkedConversationGroups, independentGroups, hierarchicalRelationships } = generateAndDisplayAllRandomContextChain();
+                const { dictionaryGlossaryTopicAndLinkedConversationGroups } = generateAndDisplayAllRandomContextChain();
 
+        
                 // Store glossary and conversation blocks in global variables
                 window.glossary = dictionaryGlossaryTopicAndLinkedConversationGroups;
                 window.conversation_block = conversationBlocks;
@@ -168,27 +169,6 @@
                     console.error('Error saving glossary:', error);
                 });
 
-                // POST hierarchical relationships to the /saverelationships endpoint
-                fetch('/saverelationships', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        filename: filename,
-                        hierarchicalRelationships: hierarchicalRelationships
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Hierarchical relationships saved successfully:', data);
-                })
-                .catch(error => {
-                    console.error('Error saving hierarchical relationships:', error);
-                });
-
-
-
 
                 fetch('/saveglobalkeywordglossary', {
                     method: 'POST',
@@ -209,12 +189,45 @@
                 });
             
 
-                // Initialize and populate the treeview
-                const groupHierarchy = new GroupHierarchyWithTreeview(hierarchicalRelationships, independentGroups);
-                groupHierarchy.populateTreeview();
-
                 // Update the content display
-                $("#content-display").html("Conversation loaded. Select an item from the treeview.");
+                $("#content-display").html("Conversation loaded. Glossary Generated");
+
+
+                async function calculateTreeviewHierachy(filename) {
+                try {
+                    // Calculate the display glossary and extract independentGroups and hierarchicalRelationships
+                    const { independentGroups, hierarchicalRelationships } = calculateDisplayGlossary();
+
+                    // POST hierarchical relationships to the /saverelationships endpoint
+                    const response = await fetch('/saverelationships', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filename: filename,
+                            hierarchicalRelationships: hierarchicalRelationships
+                        })
+                    });
+
+                    const data = await response.json();
+                    console.log('Hierarchical relationships saved successfully:', data);
+
+                    // Initialize and populate the treeview
+                    const groupHierarchy = new GroupHierarchyWithTreeview(hierarchicalRelationships, independentGroups);
+                    groupHierarchy.populateTreeview();
+
+                    // Update the content display
+                    $("#content-display").html("Conversation loaded. Select an item from the treeview.");
+                } catch (error) {
+                    console.error('Error saving hierarchical relationships:', error);
+                }
+            }
+
+            // Usage
+            calculateTreeviewHierachy(filename);
+
+            
             } catch (error) {
                 console.error("Error loading conversation:", error);
                 $("#content-display").html("Failed to load conversation.");
@@ -281,7 +294,7 @@
                     const isRelationshipsEmpty = !relationshipsData || Object.keys(relationshipsData).length === 0;
                     
                     const reader = new FileReader();
-                    if ( true || isRelationshipsEmpty) {
+                    if ( isGlossaryEmpty || isRelationshipsEmpty) {
                         // If data from endpoints is empty, proceed to loadConversation
                         reader.onload = () => loadConversation(reader.result, filename);
                     } else {

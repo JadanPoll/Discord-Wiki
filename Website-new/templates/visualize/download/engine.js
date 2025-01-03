@@ -250,7 +250,7 @@ function generateAndDisplayAllRandomContextChain() {
         }
     }
 
-    return calculateThenDisplayGlossary()
+    return calculateGlossary()
 
 }
 
@@ -391,7 +391,7 @@ function intersectCompressor(data) {
     return data; // Ensure the modified data is returned
 }
 
-function calculateThenDisplayGlossary() {
+function calculateGlossary() {
     window.dictionaryGlossaryTopicAndLinkedConversationGroups = {};
 
     var completeStart = Date.now()
@@ -414,7 +414,17 @@ function calculateThenDisplayGlossary() {
 
     console.log(`End of 3: ${Date.now() - completeStart} ms`);
 
+
+    return {
+        dictionaryGlossaryTopicAndLinkedConversationGroups: window.dictionaryGlossaryTopicAndLinkedConversationGroups,
+    }
+
+}
+
+function calculateDisplayGlossary()
+{
     var completeStart = Date.now()
+
 
     const { independentGroups, hierarchicalRelationships } = generateSubtopicTreeAndDisplayTree(window.dictionaryGlossaryTopicAndLinkedConversationGroups);
 
@@ -422,13 +432,12 @@ function calculateThenDisplayGlossary() {
     console.log(`End of 4: ${Date.now() - completeStart} ms`);
 
     return {
-        dictionaryGlossaryTopicAndLinkedConversationGroups: window.dictionaryGlossaryTopicAndLinkedConversationGroups,
         independentGroups: independentGroups,
         hierarchicalRelationships: hierarchicalRelationships
     };
     
-
-
 }
 
-export { loadConversationEngine, generateAndDisplayAllRandomContextChain };
+
+
+export { loadConversationEngine, generateAndDisplayAllRandomContextChain,calculateGlossary,calculateDisplayGlossary };
