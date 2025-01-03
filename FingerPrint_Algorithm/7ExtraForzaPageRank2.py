@@ -1084,10 +1084,37 @@ def handle_incoming_summary_response(summary):
 
 
 
+# Function to save dictionary keys as an array to a file
+def save_glossary_keys_to_file(dictionary, file_path, directory):
+    try:
+        # Extract keys from the dictionary and convert to an array
+        keys_array = list(dictionary.keys())
+        
+        # Ensure the directory exists by creating it
+        os.makedirs(directory, exist_ok=True)
+        
+        # Get the filename from the file_path (without any directory part)
+        filename = os.path.basename(file_path)
+        
+        # Construct the full file path using the specified directory and just the filename
+        full_file_path = os.path.join(directory, filename)
+        
+        # Write the array to the specified file as JSON
+        with open(full_file_path, 'w') as file:
+            json.dump(keys_array, file, indent=4)
+        
+        print(f"Glossary keys saved to {full_file_path}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 
 dictionary_glossary_topic_and_linked_conversation_groups = {}
 def save_glossary():
+
+
+    #dictionary_glossary_topic_and_linked_conversation_groups.keys() as array save into demo/FILEPATH
+    save_glossary_keys_to_file(dictionary_glossary_topic_and_linked_conversation_groups, FILEPATH,"Demo")
+    
     with open(GLOSSARY_FILEPATH, 'w') as f:
         json.dump(dictionary_glossary_topic_and_linked_conversation_groups, f, indent=4)
     print(f"Glossary generated and saved to {GLOSSARY_FILEPATH}")
@@ -1111,12 +1138,17 @@ def intersect_compressor(data):
     print(f"End of end: {time.time() - complete_start}")
     return data  # Ensure the modified data is returned
 
+
+
+
 def calculate_then_display_glossary():
     global dictionary_glossary_topic_and_linked_conversation_groups
     dictionary_glossary_topic_and_linked_conversation_groups = {}
 
     calculate_topics_for_each_message()
     assign_each_topic_relevant_message_groups()
+
+
     dictionary_glossary_topic_and_linked_conversation_groups = intersect_compressor(dictionary_glossary_topic_and_linked_conversation_groups)
     generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
 

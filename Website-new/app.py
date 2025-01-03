@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify, send_file, abort,render_template, sen
 from flask_cors import CORS
 import requests
 from flask_session import Session
+import json
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
 app.secret_key = "DSearchPokémon"
 CORS(app)  # Enable CORS for all routes
@@ -207,6 +208,34 @@ Session(app)
 
 
 
+# Load demo titles from the static file during app startup
+@app.before_first_request
+def load_demo_titles():
+    try:
+        # Directory containing JSON files
+        directory = 'static/demo/'
+        demo_titles = {}
+
+        # Iterate through all JSON files in the directory
+        for filename in os.listdir(directory):
+            if filename.endswith('.json'):
+                filepath = os.path.join(directory, filename)
+                with open(filepath, 'r') as file:
+                    # Load JSON content
+                    demo_titles[filename] = json.load(file)
+
+        # Store in session
+        session['DemoTitlesGlossary'] = demo_titles
+        print(f"Loaded demo titles: {list(demo_titles.keys())}")
+    except FileNotFoundError:
+        print(f"Error: Directory '{directory}' not found.")
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+
+
 @app.route('/saveglobalkeywordglossary', methods=['POST'])
 def save_global_glossary():
     try:
@@ -270,6 +299,14 @@ def get_global_glossary():
     try:
         # Assuming the glossary is stored in session['GlobalGlossary']
         return jsonify(session.get('GlobalGlossary', {})), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Route to get demo titles
+@app.route('/getDemoTitles', methods=['GET'])
+def get_demo_titles():
+    try:
+        return jsonify(session.get('DemoTitlesGlossary', {})), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

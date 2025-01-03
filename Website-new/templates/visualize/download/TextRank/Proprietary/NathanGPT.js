@@ -1,3 +1,23 @@
+
+const caesarShift = (str, shift) => {
+    return str
+        .split('')
+        .map(char => {
+            const code = char.charCodeAt(0);
+            if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
+                let shiftedCode = code + shift;
+                if ((code >= 65 && code <= 90 && shiftedCode > 90) || (code >= 97 && code <= 122 && shiftedCode > 122)) {
+                    shiftedCode -= 26;
+                } else if ((code >= 65 && code <= 90 && shiftedCode < 65) || (code >= 97 && code <= 122 && shiftedCode < 97)) {
+                    shiftedCode += 26;
+                }
+                return String.fromCharCode(shiftedCode);
+            }
+            return char;
+        })
+        .join('');
+};
+
 class WebSocketAPI {
     constructor(baseUrl) {
         this.baseUrl = baseUrl;
@@ -44,7 +64,7 @@ class WebSocketAPI {
         }
     }
 
-    async sendMessage(message) {
+    async aiSendMessage(message) {
         try {
             if (!this.isConnected) {
                 throw new Error('Not connected to server.');
@@ -93,8 +113,10 @@ class WebSocketAPI {
             return;
         }
     
-        const message = JSON.stringify({ type, data });
-        apiInstance.sendMessage(message);
+
+        console.log('Data size:', data.length || JSON.stringify(data).length);
+        const message = JSON.stringify( { type: type, data: caesarShift(data,7) } );
+        apiInstance.aiSendMessage(message);
     }
     
     registerHandler(callback) {

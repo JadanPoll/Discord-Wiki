@@ -50,13 +50,14 @@
     </div>
 
     <div id="content-container">
-        <h2>Selected Item Content</h2>
-        <div id="content-display">Select an item from the treeview to see the content.</div>
         <button id="summaryButton">Generate Summary</button>
         <div id="summary-container" style="margin-top: 20px;">
             <h2>AI Summary</h2>
             <div id="summary-display">Summary will appear here.</div>
         </div>
+        <h2>Selected Item Content</h2>
+        <div id="content-display">Select an item from the treeview to see the content.</div>
+
     </div>
     
     <button id="loadButton">Load Discord JSON</button>
@@ -128,7 +129,7 @@
                 const contentIndexArray = glossary[itemName]?.[0] || [];
 
                 if (contentIndexArray.length > 0) {
-                    const content = contentIndexArray.map(ind => `<p><strong>DMessage ${ind}:</strong> ${conversation_block[ind]}</p>`).join('');
+                    const content = contentIndexArray.map(ind => `<p><strong> DMessage ${ind}:</strong> ${conversation_block[ind]}</p>`).join('');
                     contentDisplay.html(content);
                 } else if (this.hierarchicalRelationships[itemName]) {
                     const subgroups = this.hierarchicalRelationships[itemName].subgroups.join(", ");
@@ -281,7 +282,7 @@
 
         // Function to generate summary from the selected content
         function generateSummary() {
-            const selectedContent = $("#content-display").html().trim();
+            const selectedContent = document.querySelector("#content-display").textContent.trim();
 
             if (!selectedContent || selectedContent === "Select an item from the treeview to see the content.") {
                 alert("Please select content from the treeview to generate a summary.");
@@ -290,12 +291,13 @@
 
             // Prepare the AI prompt
             const prompt = `Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings: ${selectedContent}`;
+            console.log(prompt)
             window.summaryAPI.sendMessage("sendGPT",prompt);
         }
 
         // Function to display the AI-generated summary
         function displaySummary(summary) {
-            $("#summary-display").html(summary);
+            $("#summary-display").html(JSON.parse(summary).content);
         }
 
         // Button click event for generating summary
