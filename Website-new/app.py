@@ -202,6 +202,29 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_FILE_DIR'] = './flask_session'
 Session(app)
 
+
+
+@app.route('/saveglobalkeywordglossary', methods=['POST'])
+def save_glossary():
+    try:
+        data = request.get_json()
+        filename = data.get('filename')
+        glossary = data.get('glossary')
+
+        if not filename or not glossary:
+            return jsonify({"error": "Filename and glossary are required!"}), 400
+
+        # Store glossary in session
+        if 'GlobalGlossary' not in session:
+            session['GlobalGlossary'] = {}
+
+        session['GlobalGlossary'].update({filename: glossary})
+        session.modified = True  # Ensure session changes are saved
+
+        return jsonify({"message": f"Glossary for {filename} saved successfully!"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/saveglossary', methods=['POST'])
 def save_glossary():
     try:
@@ -235,6 +258,15 @@ def save_relationships():
         session[f'relationships_{filename}'] = relationships
         session.modified = True  # Ensure session changes are saved
         return jsonify({"message": f"Hierarchical relationships for {filename} saved successfully!"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/getglobalglossary', methods=['GET'])
+def get_global_glossary():
+    try:
+        # Assuming the glossary is stored in session['GlobalGlossary']
+        return jsonify(session.get('GlobalGlossary', {})), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

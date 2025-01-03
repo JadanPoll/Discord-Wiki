@@ -187,6 +187,28 @@
                     console.error('Error saving hierarchical relationships:', error);
                 });
 
+
+
+
+                fetch('/saveglobalkeywordglossary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        glossary: glossary.keys()
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Global Glossary saved successfully:', data);
+                })
+                .catch(error => {
+                    console.error('Error saving Global Glossary:', error);
+                });
+            
+
                 // Initialize and populate the treeview
                 const groupHierarchy = new GroupHierarchyWithTreeview(hierarchicalRelationships, independentGroups);
                 groupHierarchy.populateTreeview();
