@@ -290,7 +290,7 @@
 
             // Prepare the AI prompt
             const prompt = `Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings: ${selectedContent}`;
-            window.summaryAPI.sendMessage(prompt);
+            window.summaryAPI.sendMessage("sendGPT",prompt);
         }
 
         // Function to display the AI-generated summary
