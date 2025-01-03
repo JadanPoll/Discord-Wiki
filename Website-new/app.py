@@ -205,7 +205,7 @@ Session(app)
 
 
 @app.route('/saveglobalkeywordglossary', methods=['POST'])
-def save_glossary():
+def save_global_glossary():
     try:
         data = request.get_json()
         filename = data.get('filename')
