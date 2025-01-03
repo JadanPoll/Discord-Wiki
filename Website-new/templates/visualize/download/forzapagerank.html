@@ -97,47 +97,55 @@
                     }
                 });
 
-                // Add hierarchical relationships
+
+                // Add hierarchical relationships using a Map
+                const groupMap = new Map(); // Map to store groups and their references
+
                 for (const [groupName, relationship] of Object.entries(this.hierarchicalRelationships)) {
-                    // Check if the groupName (parent node) exists in the tree
-                    const existingGroup = treeData.find(group => group.id === groupName);
-                    if (!existingGroup) {
-                        // If the parent doesn't exist, add it to the tree
-                        treeData.push({
+                    // Check if the groupName (parent node) exists in the map
+                    if (!groupMap.has(groupName)) {
+                        // If the parent doesn't exist, add it to the tree and map
+                        const newGroup = {
                             id: groupName,
                             text: groupName,
                             items: [] // Initialize empty items array for subgroups
-                        });
+                        };
+                        treeData.push(newGroup);
+                        groupMap.set(groupName, newGroup);
                     }
 
                     // Add subgroups to the parent node
                     relationship.subgroups.forEach(subgroup => {
-                        // Check if the subgroup already exists as a node elsewhere in the tree
-                        const existingSubgroup = treeData.find(group => group.id === subgroup);
-                        if (existingSubgroup) {
-                            // If it exists, move it under the current parent
-                            const parentNode = treeData.find(group => group.id === groupName);
-                            if (parentNode) {
-                                parentNode.items.push(existingSubgroup);
-                                // Remove the existing subgroup from its original location
-                                const indexToRemove = treeData.indexOf(existingSubgroup);
-                                if (indexToRemove > -1) { 
-                                    treeData.splice(indexToRemove, 1);
-                                }
+                        const parentNode = groupMap.get(groupName); // Get the parent node from the map
+
+                        // Check if the subgroup already exists in the map
+                        if (groupMap.has(subgroup)) {
+                            // If it exists, retrieve it
+                            const existingSubgroup = groupMap.get(subgroup);
+
+                            // Remove the existing subgroup from its current position in the tree
+                            const indexToRemove = treeData.indexOf(existingSubgroup);
+                            if (indexToRemove > -1) {
+                                treeData.splice(indexToRemove, 1);
                             }
+
+                            // Add the existing subgroup to the parent node's items
+                            parentNode.items.push(existingSubgroup);
                         } else {
                             // If it doesn't exist, create a new subgroup and add it to the parent
-                            const parentNode = treeData.find(group => group.id === groupName);
-                            if (parentNode) {
-                                parentNode.items.push({
-                                    id: subgroup,
-                                    text: subgroup
-                                });
-                            }
+                            const newSubgroup = {
+                                id: subgroup,
+                                text: subgroup,
+                                items: [] // Initialize empty items array for subgroups
+                            };
+                            console.log(parentNode)
+                            parentNode.items.push(newSubgroup);
+                            groupMap.set(subgroup, newSubgroup); // Add the new subgroup to the map
                         }
                     });
                 }
 
+            console.log(treeData)
                 // Initialize dxTreeView with generated treeData
                 $("#treeview").dxTreeView({
                     items: treeData,
