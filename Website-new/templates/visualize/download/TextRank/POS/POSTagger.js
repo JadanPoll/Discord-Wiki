@@ -6,10 +6,10 @@
  * http://www.opensource.org/licenses/lgpl-3.0.html
  */
 
-import { TransformationRules } from './BrillTransformationRules.js';
-import { LEXICON } from './lexicon.js';
+import { BrillTransformationRules } from '/BrillTransformationRules.js';
+import { LEXICON } from '/lexicon.js';
 
-var transformationRules = new TransformationRules();
+var transformationRules = new BrillTransformationRules();
 
 
 export function POSTagger(){

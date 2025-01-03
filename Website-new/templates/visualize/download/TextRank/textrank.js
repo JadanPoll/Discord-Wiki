@@ -1,6 +1,6 @@
 
-import { util } from './util.js'
-import { Segmentation } from './Segmentation.js';
+import { util } from '/util.js'
+import { Segmentation } from '/Segmentation.js';
 export class TextRank4Keyword {
     constructor(stopWordsFile = null, allowSpeechTags = util.allowSpeechTags, delimiters = util.sentenceDelimiters) {
         /**
@@ -41,12 +41,13 @@ export class TextRank4Keyword {
         this.wordsNoStopWords = result.wordsNoStopWords;
         this.wordsAllFilters = result.wordsAllFilters;
 
-        const options = ['no_filter', 'no_stop_words', 'all_filters'];
-        const vertexSourceKey = options.includes(vertexSource) ? `words_${vertexSource}` : 'words_all_filters';
-        const edgeSourceKey = options.includes(edgeSource) ? `words_${edgeSource}` : 'words_no_stop_words';
+        const options = ['noFilter', 'noStopWords', 'allFilters'];
+        const vertexSourceKey = options.includes(vertexSource) ? `words${vertexSource}` : 'wordsAllFilters';
+        const edgeSourceKey = options.includes(edgeSource) ? `words${edgeSource}` : 'wordsNoStopWords';
 
         const vertexSourceWords = result[vertexSourceKey];
         const edgeSourceWords = result[edgeSourceKey];
+
 
         this.keywords = util.sortWords(vertexSourceWords, edgeSourceWords, window, pagerankConfig);
     }

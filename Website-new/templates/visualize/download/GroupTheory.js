@@ -1,9 +1,16 @@
-// Required Imports
-import { TextBlob } from 'textblob';
-import KneeLocator from 'knee-locator';
-import { TextRank4Keyword } from 'textrank4keyword';
-import glossal_compression from './glossal_compression';
-import GroupTheoryAPINonGUI2 from './GroupTheoryAPINonGUI2';
+
+const getUniqueId = (() => {
+    const idMap = new WeakMap();
+    let id = 0;
+
+    return (obj) => {
+        if (!idMap.has(obj)) {
+            idMap.set(obj, ++id);
+        }
+        return idMap.get(obj);
+    };
+})();
+
 
 // Utility Functions
 function loadGlossaryData(filePath) {
@@ -60,16 +67,21 @@ class GroupHierarchy {
         return { groupSets, groupSizes };
     }
 
+
+
     static cachedOverlap(parentSet, childSet, cache) {
-        const key = `${parentSet}-${childSet}`;
+        const key = `${getUniqueId(parentSet)}-${getUniqueId(childSet)}`;
         if (!(key in cache)) {
+
             cache[key] = new Set([...parentSet].filter(x => childSet.has(x))).size;
         }
+
         return cache[key];
     }
 
     calculateCost(parentSet, childSet, parentSize, childSize, overlapCache) {
         const overlap = GroupHierarchy.cachedOverlap(parentSet, childSet, overlapCache);
+
         if (overlap === 0 || childSize === 0) {
             return Infinity;
         }
@@ -105,6 +117,7 @@ class GroupHierarchy {
                 }
 
                 const cost = this.calculateCost(groupSets[parent], childSet, groupSizes[parent], childSize, overlapCache);
+
                 if (cost < minCost) {
                     minCost = cost;
                     bestParent = parent;
@@ -112,6 +125,9 @@ class GroupHierarchy {
             });
 
             if (bestParent) {
+
+                console.log(bestParent)
+
                 if (!hierarchy[bestParent]) {
                     hierarchy[bestParent] = { subgroups: [] };
                 }
@@ -131,6 +147,7 @@ class GroupHierarchy {
 
         this.hierarchicalRelationships = hierarchy;
         return hierarchy;
+
     }
 
     getHierarchy() {

@@ -4,7 +4,7 @@
 // GitHub: https://github.com/someus/
 
 
-import { pagerank } from './pagerank.js'
+import { pagerank } from '/pagerank.js'
 
 
 let debugMode = false;

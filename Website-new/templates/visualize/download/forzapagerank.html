@@ -85,14 +85,16 @@
         <h2>Selected Item Content</h2>
         <div id="content-display">Select an item from the treeview to see the content.</div>
     </div>
+    <div>
+        <button id="loadButton">Load Discord JSON</button>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://unpkg.com/compromise"></script>
 
     <script type="module" src="/discord-stopword-en.js"></script>
-    <script type="module" src="engine.js"></script>
+    <script type="module" src="/engine.js"></script>
     <script type="module">
-        import { loadConversationEngine, generateAndDisplayAllRandomContextChain } from '/rankengine';
+        import { loadConversationEngine, generateAndDisplayAllRandomContextChain } from '/engine.js';
         class GroupHierarchyWithTreeview {
             constructor(hierarchicalRelationships, independentGroups) {
                 this.hierarchicalRelationships = hierarchicalRelationships;
@@ -111,20 +113,34 @@
                     }
                 });
 
+
                 // Add hierarchical relationships
                 for (const [groupName, relationship] of Object.entries(this.hierarchicalRelationships)) {
+                    const escapedGroupName = $.escapeSelector(groupName);
+
+                 
                     if (!addedGroups.has(groupName)) {
-                        tree.append(`<li id="${groupName}" class="tree-item">${groupName}<ul id="${groupName}_subgroups"></ul></li>`);
+                        console.log("Adding");
+
+                        // Escape special characters in the group name for safe use in selectors
+
+                        // Append group to tree
+                        tree.append(`<li id="${escapedGroupName}" class="tree-item">${groupName}<ul id="${escapedGroupName}_subgroups"></ul></li>`);
                         addedGroups.add(groupName);
                     }
 
                     relationship.subgroups.forEach(subgroup => {
-                        const subgroupParent = $(`#${groupName}_subgroups`);
-                        if (!subgroupParent.find(`#${subgroup}`).length) {
-                            subgroupParent.append(`<li id="${subgroup}" class="tree-item">${subgroup}</li>`);
+                        // Escape special characters in the subgroup name for safe use in selectors
+                        const escapedSubgroup = $.escapeSelector(subgroup);
+                        
+                        const subgroupParent = $(`#${escapedGroupName}_subgroups`);
+                        if (!subgroupParent.find(`#${escapedSubgroup}`).length) {
+                            // Append subgroup to the group's subgroups
+                            subgroupParent.append(`<li id="${escapedSubgroup}" class="tree-item">${subgroup}</li>`);
                         }
                     });
                 }
+
 
                 // Add event listener for tree item clicks
                 $(".tree-item").on("click", (event) => {
@@ -173,24 +189,23 @@
             }
         }
 
-        function loadConversation() 
+        function loadConversation(fileContent) 
         {
             try {
 
 
                 console.log("Loading...")
                                 // Load the conversation blocks
-                const { conversation_blocks } = loadConversationEngine();
-
+                const { conversationBlocks } = loadConversationEngine(fileContent);
+                console.log(conversationBlocks)
                 // Call the function and destructure the object return value
-                const { dictionaryGlossaryTopicAndLinkedConversationGroups, independent_groups, hierarchical_relationships } = generateAndDisplayAllRandomContextChain();
-
-                const groupHierarchy = new GroupHierarchyWithTreeview(hierarchical_relationships, independent_groups);
-                groupHierarchy.populateTreeview();
-
+                const { dictionaryGlossaryTopicAndLinkedConversationGroups, independentGroups, hierarchicalRelationships } = generateAndDisplayAllRandomContextChain();
+                console.log(independentGroups,hierarchicalRelationships)
+                const temp = new GroupHierarchyWithTreeview(hierarchicalRelationships,independentGroups)
+                temp.populateTreeview()
                 // Store glossary and conversation blocks in global variables
                 window.glossary = dictionaryGlossaryTopicAndLinkedConversationGroups;
-                window.conversation_block = conversation_blocks;
+                window.conversation_block = conversationBlocks;
 
                 // Optionally, update initial content display
                 $("#content-display").html("Conversation loaded. Select an item from the treeview.");
@@ -201,10 +216,43 @@
         }
 
 
-        // Load conversation data when the page loads
+
+
+        // Event listener for the "Load JSON" button
         $(document).ready(function() {
-            loadConversation();
+            $("#loadButton").on("click", function() {
+                // Create a file input element dynamically
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';  // Set file input type
+                fileInput.accept = '.json';  // Restrict to JSON files
+
+                // Event listener for when a file is selected
+                fileInput.addEventListener('change', function(event) {
+                    const file = fileInput.files[0];  // Get the selected file
+                    if (!file) {
+                        console.log('No file selected.');
+                        return;
+                    }
+
+                    const fileReader = new FileReader();
+
+                    // When the file is loaded, process it
+                    fileReader.onload = function() {
+                        const fileContent = fileReader.result;
+                        loadConversation(fileContent); // Pass file content to loadConversation
+                    };
+
+                    // Read the selected file as text
+                    fileReader.readAsText(file);
+                });
+
+                // Trigger the file input dialog
+                fileInput.click();
+            });
         });
+
+
+
     </script>
 </body>
 </html>

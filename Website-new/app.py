@@ -116,7 +116,7 @@ def pagerank():
 
 
 # Serve 'engine.js'
-@app.route("/engine")
+@app.route("/engine.js")
 def engine():
     return send_from_directory('templates/visualize/download', 'engine.js')
 
@@ -145,6 +145,11 @@ def group_theory():
 def glossary_compression():
     return send_from_directory('templates/visualize/download', 'glossary_compression.js')
 
+# Serve 'pagerank.js'
+@app.route("/pagerank.js")
+def engine_page_rank():
+    return send_from_directory('templates/visualize/download/TextRank/', 'pagerank.js')
+
 # Serve 'util.js'
 @app.route("/util.js")
 def util():
@@ -154,11 +159,6 @@ def util():
 @app.route("/Segmentation.js")
 def segmentation():
     return send_from_directory('templates/visualize/download/TextRank', 'Segmentation.js')
-
-# Serve 'pagerank.js'
-@app.route("/pagerank.js")
-def pagerank():
-    return send_from_directory('templates/visualize/download/TextRank', 'pagerank.js')
 
 # Serve 'BrillTransformationRules.js'
 @app.route("/BrillTransformationRules.js")

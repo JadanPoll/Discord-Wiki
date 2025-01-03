@@ -3,8 +3,8 @@
 // Import required libraries
 //const jieba = require('node-jieba'); // Jieba library for segmentation
 
-import { POS } from './POS/index.js'
-import { util } from './util.js'
+import { POS } from '/index.js'
+import { util } from '/util.js'
 
 
 // Get the default stopwords file

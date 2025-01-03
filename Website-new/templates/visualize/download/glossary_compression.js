@@ -1,11 +1,3 @@
-// Required Imports
-import { TextBlob } from 'textblob';
-import KneeLocator from 'knee-locator';
-import { TextRank4Keyword } from 'textrank4keyword';
-import glossal_compression from './glossal_compression';
-import GroupTheoryAPINonGUI2 from './GroupTheoryAPINonGUI2';
-
-
 // Efficient Overlap and Merge Function
 function efficientOverlapAndMerge(arr1, arr2, threshold = 0.9) {
     const len1 = arr1.length;
@@ -29,7 +21,7 @@ function efficientOverlapAndMerge(arr1, arr2, threshold = 0.9) {
 }
 
 // Compress Glossary Entries Function
-function compressGlossaryEntries(keyword, entries, threshold = 0.9) {
+export function compressGlossaryEntries(keyword, entries, threshold = 0.9) {
     const n = entries.length;
     const mergedFlags = new Array(n).fill(false);
 

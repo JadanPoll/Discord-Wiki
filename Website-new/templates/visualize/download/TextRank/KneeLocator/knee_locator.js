@@ -233,5 +233,3 @@ export class KneeLocator {
     return { knee: null, normKnee: null };
   }
 }
-
-module.exports = KneeLocator;
