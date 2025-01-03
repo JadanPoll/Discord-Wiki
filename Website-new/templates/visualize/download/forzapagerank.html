@@ -197,7 +197,7 @@
                     },
                     body: JSON.stringify({
                         filename: filename,
-                        glossary: glossary.keys()
+                        glossary: Object.keys(glossary)
                     })
                 })
                 .then(response => response.json())
