@@ -52,8 +52,13 @@
     <div id="content-container">
         <h2>Selected Item Content</h2>
         <div id="content-display">Select an item from the treeview to see the content.</div>
+        <button id="summaryButton">Generate Summary</button>
+        <div id="summary-container" style="margin-top: 20px;">
+            <h2>AI Summary</h2>
+            <div id="summary-display">Summary will appear here.</div>
+        </div>
     </div>
-
+    
     <button id="loadButton">Load Discord JSON</button>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -61,10 +66,10 @@
 
     <script type="module" src="/discord-stopword-en.js"></script>
     <script type="module" src="/engine.js"></script>
-
+    
     <script type="module">
         import { loadConversationEngine, generateAndDisplayAllRandomContextChain,calculateGlossary, calculateDisplayGlossary } from '/engine.js';
-
+        import {  initializeAPI } from '/NathanGPT.js'
         class GroupHierarchyWithTreeview {
             constructor(hierarchicalRelationships, independentGroups=[]) {
                 this.hierarchicalRelationships = hierarchicalRelationships;
@@ -274,8 +279,46 @@
         }
 
 
+        // Function to generate summary from the selected content
+        function generateSummary() {
+            const selectedContent = $("#content-display").html().trim();
+
+            if (!selectedContent || selectedContent === "Select an item from the treeview to see the content.") {
+                alert("Please select content from the treeview to generate a summary.");
+                return;
+            }
+
+            // Prepare the AI prompt
+            const prompt = `Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings: ${selectedContent}`;
+            window.summaryAPI.sendMessage(prompt);
+        }
+
+        // Function to display the AI-generated summary
+        function displaySummary(summary) {
+            $("#summary-display").html(summary);
+        }
+
+        // Button click event for generating summary
+        $("#summaryButton").on("click", function () {
+            generateSummary();
+        });
+
+        // Start the WebSocket and register handler for incoming AI messages
+        function startSummaryFeature() {
+            const serverUrl = "https://ninth-swamp-orangutan.glitch.me";
+            window.summaryAPI = initializeAPI(serverUrl);
+
+            window.summaryAPI.registerHandler((message) => {
+                displaySummary(message); // Display the incoming AI-generated summary
+            });
+        }
+
+
 
         $(document).ready(function () {
+    startSummaryFeature();
+
+
     $("#searchMode").dxSelectBox({
         dataSource: ["contains", "startswith"],
         value: "contains",

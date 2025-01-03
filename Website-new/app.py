@@ -187,6 +187,10 @@ def lexicon():
 def pos_tagger():
     return send_from_directory('templates/visualize/download/TextRank/POS', 'POSTagger.js')
 
+@app.route("/engine.js")
+def prop_summary():
+    return send_from_directory('templates/visualize/download/TextRank/Proprietary', 'NathanGPT.js')
+
 
 
 
