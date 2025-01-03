@@ -199,8 +199,6 @@ def prop_summary():
 
 
 
-
-
 # Configure Flask-Session
 app.config['SESSION_TYPE'] = 'filesystem'  # Use 'redis', 'sqlalchemy', or others for production
 app.config['SESSION_PERMANENT'] = False
