@@ -14,12 +14,12 @@
     <link rel="stylesheet" href="/css/main.css">
 
     <style>
-        /* Center the search bar in the middle of the page */
+        /* Center the search bar in the middle of the page while keeping the navbar above */
         .search-container {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 80vh;
+            height: 70vh; /* Center within the remaining viewport height */
             flex-direction: column;
         }
 
@@ -95,6 +95,36 @@
 </script>
 
 <body>
+    <!-- Navbar at the top -->
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">D-Wiki</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+                aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                    <li class="nav-item">
+                        <a class="nav-link {{'active' if group == 'char'}}" href="/character">Character</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{'active' if group == 'story'}}" href="/storyboard">Storyboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{'active' if group == 'content'}}" href="/content">Content</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{'active' if group == 'dev'}}" href="/visualize" style="color: red;">
+                            Developer Tools
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Search bar centered on the page -->
     <div class="search-container">
         <form class="d-flex position-relative">
             <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" id="searchInput">
