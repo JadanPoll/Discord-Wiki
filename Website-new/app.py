@@ -208,10 +208,15 @@ Session(app)
 
 
 
-# Load demo titles from the static file during app startup
-@app.before_first_request
+
+@app.before_request
 def load_demo_titles():
+    # The following line will remove this handler, making it
+    # only run on the first request
+    app.before_request_funcs[None].remove(load_demo_titles)
+    print(os.getcwd())
     try:
+
         # Directory containing JSON files
         directory = 'static/demo/'
         demo_titles = {}
