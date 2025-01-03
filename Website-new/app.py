@@ -2,11 +2,12 @@ import os
 import subprocess
 import hmac
 import hashlib
-from flask import Flask, request, jsonify, send_file, abort,render_template, send_from_directory
+from flask import Flask, request, jsonify, send_file, abort,render_template, send_from_directory, session
 from flask_cors import CORS
 import requests
+from flask_session import Session
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
-
+app.secret_key = "DSearchPokémon"
 CORS(app)  # Enable CORS for all routes
 
 
@@ -185,6 +186,74 @@ def lexicon():
 @app.route("/POSTagger.js")
 def pos_tagger():
     return send_from_directory('templates/visualize/download/TextRank/POS', 'POSTagger.js')
+
+
+
+
+
+
+
+
+
+
+# Configure Flask-Session
+app.config['SESSION_TYPE'] = 'filesystem'  # Use 'redis', 'sqlalchemy', or others for production
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_FILE_DIR'] = './flask_session'
+Session(app)
+
+@app.route('/saveglossary', methods=['POST'])
+def save_glossary():
+    try:
+        data = request.get_json()
+        filename = data.get('filename')
+        glossary = data.get('glossary')
+
+        print("Glossary",glossary.keys(),'\n',filename,'\n\n')
+        if not filename or not glossary:
+            return jsonify({"error": "Filename and glossary are required!"}), 400
+
+        # Store glossary in session
+        session[f'glossary_{filename}'] = glossary
+        session.modified = True  # Ensure session changes are saved
+        return jsonify({"message": f"Glossary for {filename} saved successfully!"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/saverelationships', methods=['POST'])
+def save_relationships():
+    try:
+        data = request.get_json()
+        filename = data.get('filename')
+        relationships = data.get('hierarchicalRelationships')
+
+        print("Relationships",relationships.keys(),'\n',filename,'\n\n')
+        if not filename or not relationships:
+            return jsonify({"error": "Filename and hierarchical relationships are required!"}), 400
+
+        # Store relationships in session
+        session[f'relationships_{filename}'] = relationships
+        session.modified = True  # Ensure session changes are saved
+        return jsonify({"message": f"Hierarchical relationships for {filename} saved successfully!"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/getglossary/<filename>', methods=['GET'])
+def get_glossary(filename):
+    glossary = session.get(f'glossary_{filename}', None)
+    if glossary:
+        return jsonify({"glossary": glossary}), 200
+    return jsonify({}), 404
+
+@app.route('/getrelationships/<filename>', methods=['GET'])
+def get_relationships(filename):
+    relationships = session.get(f'relationships_{filename}', None)
+    if relationships:
+        return jsonify({"hierarchicalRelationships": relationships}), 200
+    return jsonify({}), 404
+
+
+
 
 
 

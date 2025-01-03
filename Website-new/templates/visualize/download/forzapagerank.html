@@ -66,7 +66,7 @@
         import { loadConversationEngine, generateAndDisplayAllRandomContextChain } from '/engine.js';
 
         class GroupHierarchyWithTreeview {
-            constructor(hierarchicalRelationships, independentGroups) {
+            constructor(hierarchicalRelationships, independentGroups=[]) {
                 this.hierarchicalRelationships = hierarchicalRelationships;
                 this.independentGroups = independentGroups;
                 this.searchMode = "contains";
@@ -136,17 +136,62 @@
             }
         }
 
-        function loadConversation(fileContent) {
+
+
+
+        function loadConversation(fileContent, filename) {
             try {
+                // Load the conversation blocks and generate context chains
                 const { conversationBlocks } = loadConversationEngine(fileContent);
                 const { dictionaryGlossaryTopicAndLinkedConversationGroups, independentGroups, hierarchicalRelationships } = generateAndDisplayAllRandomContextChain();
 
+                // Store glossary and conversation blocks in global variables
                 window.glossary = dictionaryGlossaryTopicAndLinkedConversationGroups;
                 window.conversation_block = conversationBlocks;
+                console.log(window.glossary)
+                // POST glossary to the /saveglossary endpoint
+                fetch('/saveglossary', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        glossary: window.glossary
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Glossary saved successfully:', data);
+                })
+                .catch(error => {
+                    console.error('Error saving glossary:', error);
+                });
 
+                // POST hierarchical relationships to the /saverelationships endpoint
+                fetch('/saverelationships', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        hierarchicalRelationships: hierarchicalRelationships
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Hierarchical relationships saved successfully:', data);
+                })
+                .catch(error => {
+                    console.error('Error saving hierarchical relationships:', error);
+                });
+
+                // Initialize and populate the treeview
                 const groupHierarchy = new GroupHierarchyWithTreeview(hierarchicalRelationships, independentGroups);
                 groupHierarchy.populateTreeview();
 
+                // Update the content display
                 $("#content-display").html("Conversation loaded. Select an item from the treeview.");
             } catch (error) {
                 console.error("Error loading conversation:", error);
@@ -154,30 +199,86 @@
             }
         }
 
+
+
+        function loadCachedConversation(fileContent, filename,glossaryData,relationshipsData) {
+            try {
+                // Load the conversation blocks and generate context chains
+                const { conversationBlocks } = loadConversationEngine(fileContent);
+
+                // Store glossary and conversation blocks in global variables
+                window.glossary = glossaryData;
+                window.conversation_block = conversationBlocks;
+
+                // Initialize and populate the treeview
+                const groupHierarchy = new GroupHierarchyWithTreeview(relationshipsData);
+                groupHierarchy.populateTreeview();
+
+                // Update the content display
+                $("#content-display").html("Conversation loaded. Select an item from the treeview.");
+            } catch (error) {
+                console.error("Error loading conversation:", error);
+                $("#content-display").html("Failed to load conversation.");
+            }
+        }
+
+
+
         $(document).ready(function () {
-            $("#searchMode").dxSelectBox({
-                dataSource: ["contains", "startswith"],
-                value: "contains",
-                onValueChanged: (data) => groupHierarchy.updateSearchMode(data.value)
-            });
+    $("#searchMode").dxSelectBox({
+        dataSource: ["contains", "startswith"],
+        value: "contains",
+        onValueChanged: (data) => groupHierarchy.updateSearchMode(data.value)
+    });
 
-            $("#loadButton").on("click", function () {
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = '.json';
+    $("#loadButton").on("click", function () {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
 
-                fileInput.addEventListener('change', (event) => {
-                    const file = event.target.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = () => loadConversation(reader.result);
-                        reader.readAsText(file);
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+
+            if (file) {
+                const filename = file.name.split('.').slice(0, -1).join('.'); // Extract filename without extension
+                
+                // Fetch data from both endpoints
+                try {
+                    const [glossaryResponse, relationshipsResponse] = await Promise.all([
+                        fetch(`/getglossary/${filename}`),
+                        fetch(`/getrelationships/${filename}`)
+                    ]);
+
+                    const glossaryData = await glossaryResponse.json();
+                    const relationshipsData = await relationshipsResponse.json();
+
+                    console.log("Loaded",Object.keys(glossaryData))
+                    console.log("Loaded", Object.keys(relationshipsData))
+                    // Check if both responses are empty
+                    const isGlossaryEmpty = !glossaryData || Object.keys(glossaryData).length === 0;
+                    const isRelationshipsEmpty = !relationshipsData || Object.keys(relationshipsData).length === 0;
+                    
+                    const reader = new FileReader();
+                    if (isGlossaryEmpty || isRelationshipsEmpty) {
+                        // If data from endpoints is empty, proceed to loadConversation
+                        reader.onload = () => loadConversation(reader.result, filename);
+                    } else {
+                        // If data exists, use loadCachedConversation
+                        alert("Loading Saved Cache")
+                        reader.onload = () => loadCachedConversation(reader.result,filename,glossaryData['glossary'], relationshipsData['hierarchicalRelationships']);
                     }
-                });
-
-                fileInput.click();
-            });
+                    reader.readAsText(file);
+                } catch (error) {
+                    console.error('Error checking cached data:', error);
+                    $("#content-display").html("Failed to load conversation. Please try again.");
+                }
+            }
         });
+
+        fileInput.click();
+    });
+});
+
     </script>
 </body>
 </html>
