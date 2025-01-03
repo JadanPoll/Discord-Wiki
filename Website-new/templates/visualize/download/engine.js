@@ -46,8 +46,6 @@ function extractTopics(text, visualize = false) {
     textRank.analyze(text, 5, true );
     const keywords = textRank.getKeywords(100, 3);
 
-    console.log(keywords)
-
     const scores = keywords.map(kw => kw.weight);
 
     if (!scores.length) {
@@ -317,7 +315,7 @@ function calculateTopicsForEachMessage() {
         const description = extractTopics(total);
         convo.push({ description });
 
-        console.log(`Next: ${i}`);
+
         i++;
     }
 }

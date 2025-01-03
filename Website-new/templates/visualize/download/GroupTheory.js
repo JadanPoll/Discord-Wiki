@@ -126,7 +126,6 @@ class GroupHierarchy {
 
             if (bestParent) {
 
-                console.log(bestParent)
 
                 if (!hierarchy[bestParent]) {
                     hierarchy[bestParent] = { subgroups: [] };
