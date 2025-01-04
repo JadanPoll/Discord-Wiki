@@ -387,6 +387,7 @@
                 console.log("Loading cached conversation...");
                 const response = await fetch(`/data/${filename}`);
                 const fileData = await response.text();
+                
                 // Load cached conversation
                 loadCachedConversation(fileData, filename, glossaryData["glossary"], relationshipsData["hierarchicalRelationships"]);
             }
