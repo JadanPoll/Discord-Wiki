@@ -77,7 +77,7 @@ def extract_topics(text):
     """
     # Analyze the text with TextRank
     text_rank.analyze(text, window=5, lower=True)
-    keywords = text_rank.get_keywords(100, word_min_len=3)
+    keywords = text_rank.get_keywords(5, word_min_len=3)
 
     # Sort keywords by scores in descending order
     scores = [kw.weight for kw in keywords]
@@ -95,7 +95,7 @@ def extract_topics(text):
     pos_to_keep = ["NN"]
     filtered_words = filter_words_by_Part_Of_Speech_Tag(optimal_keywords, pos_to_keep)
     print(filtered_words)
-    return filtered_words
+    return filtered_words[:5]
 
 
 
@@ -688,15 +688,18 @@ def calculate_topics_for_each_message():
             if topic not in topicalmatrix:
                 topicalmatrix[topic] = {}
         
-        # For each topic in the description, update the matrix with counts of prior topics
+
+        # For each topic in the description, update the matrix with counts of other topics
         for i, topic in enumerate(description):
-            for j in range(i):
-                previous_topic = description[j]
-                if previous_topic in topicalmatrix[topic]:
-                    topicalmatrix[topic][previous_topic] += 1/len(description)
-                else:
-                    topicalmatrix[topic][previous_topic] = 1/len(description)
-        
+            for j in range(len(description)):
+                if description[j] != topic:  # Ensure we skip the same topic
+                    previous_topic = description[j]
+                    if previous_topic in topicalmatrix[topic]:
+                        topicalmatrix[topic][previous_topic] += 1 / len(description)
+                    else:
+                        topicalmatrix[topic][previous_topic] = 1 / len(description)
+
+
         # Add the description to the conversation entry
         convo.append({"description": description})
         
@@ -1205,6 +1208,7 @@ def intersect_compressor(data):
 
 def calculate_then_display_glossary():
     global dictionary_glossary_topic_and_linked_conversation_groups
+    global topicalmatrix
     dictionary_glossary_topic_and_linked_conversation_groups = {}
 
     calculate_topics_for_each_message()
@@ -1212,7 +1216,48 @@ def calculate_then_display_glossary():
 
 
     dictionary_glossary_topic_and_linked_conversation_groups = intersect_compressor(dictionary_glossary_topic_and_linked_conversation_groups)
-    generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
+
+
+
+    # Initialize the topical matrix
+    key_structure = {}
+
+
+
+    # Build the topical matrix
+    for key, topics in topicalmatrix.items():
+        # Variables to track maximum score and topics with that score
+        max_score = -1
+        max_topics = []
+
+        # Iterate through topics and scores
+        for topic, score in topics.items():
+            if score > max_score:
+                max_score = score  # Update the maximum score
+                max_topics = [topic]  # Reset to this topic
+            elif score == max_score:
+                max_topics.append(topic)  # Add this topic to the list of max-score topics
+
+        # Handle the case where there are multiple topics with the same max score
+        if max_score != -1:
+            if len(max_topics) > 1:
+                # Choose the topic with the largest size in topicalmatrix
+                max_topic = max(
+                    max_topics,
+                    key=lambda t: len(topicalmatrix.get(t, {})),
+                )
+            else:
+                max_topic = max_topics[0]
+
+            # Add the key to the "subgroups" of the topic with the max score
+            if max_topic not in key_structure:
+                key_structure[max_topic] = {"subgroups": []}
+            key_structure[max_topic]["subgroups"].append(key)
+
+    print(key_structure)
+    #generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
+
+    alt_generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, key_structure)
 
 
 

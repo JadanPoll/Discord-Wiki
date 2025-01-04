@@ -38,7 +38,8 @@
             padding: 20px;
             background-color: #fff;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            overflow-y: auto;
+            height: calc(100vh - 120px); /* Set the height of content container */
+            overflow-y: auto; /* Enables vertical scrolling */
         }
         h1, h2 {
             color: #333;
@@ -48,6 +49,8 @@
             padding: 10px;
             border: 1px solid #ddd;
             background-color: #fafafa;
+            max-height: 400px; /* Optional: limit height for scrolling */
+            overflow-y: auto; /* Enables vertical scrolling */
         }
         footer {
             text-align: center;
@@ -56,31 +59,30 @@
             padding: 10px;
         }
     </style>
-</head>
-<body>
-    <header>
-        <h1>Title Screen</h1>
-        <p>Filename: {{ filename }}</p>
-        <p>Group: {{ group }}</p>
-    </header>
-
-    <main>
-        <div id="treeview-container">
-            <div id="searchMode"></div>
-            <div id="treeview"></div>
-        </div>
-
-        <div id="content-container">
-            <button id="summaryButton">Generate Summary</button>
-            <div id="summary-container" style="margin-top: 20px;">
-                <h2>AI Summary</h2>
-                <div id="summary-display">Summary will appear here.</div>
+    </head>
+    <body>
+        <header>
+            <h1>Title Screen</h1>
+            <p>Filename: {{ filename }}</p>
+            <p>Group: {{ group }}</p>
+        </header>
+    
+        <main>
+            <div id="treeview-container">
+                <div id="searchMode"></div>
+                <div id="treeview"></div>
             </div>
-            <h2>Selected Item Content</h2>
-            <div id="content-display">Select an item from the treeview to see the content.</div>
-        </div>
-    </main>
-
+    
+            <div id="content-container">
+                <button id="summaryButton">Generate Summary</button>
+                <div id="summary-container" style="margin-top: 20px;">
+                    <h2>AI Summary</h2>
+                    <div id="summary-display">Summary will appear here.</div>
+                </div>
+                <h2>Selected Item Content</h2>
+                <div id="content-display">Select an item from the treeview to see the content.</div>
+            </div>
+        </main>
     <footer>
         <p>&copy; 2025 Your Project Name</p>
     </footer>
@@ -383,8 +385,10 @@
                 loadConversation(fileData, filename);
             } else {
                 console.log("Loading cached conversation...");
+                const response = await fetch(`/data/${filename}`);
+                const fileData = await response.text();
                 // Load cached conversation
-                loadCachedConversation(null, filename, glossaryData["glossary"], relationshipsData["hierarchicalRelationships"]);
+                loadCachedConversation(fileData, filename, glossaryData["glossary"], relationshipsData["hierarchicalRelationships"]);
             }
         } catch (error) {
             console.error("Error loading data:", error);

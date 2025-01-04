@@ -171,6 +171,57 @@ def update_clustering(tree,slider_value,custom_groups = None):
     group_hierarchy.populate_treeview(tree)
 
 
+
+
+
+def break_cycles(graph):
+    visited = set()
+    stack = set()
+    edges_to_remove = []
+
+    def dfs(node, parent):
+        if node in stack:  # Cycle detected
+            return True
+        if node in visited:
+            return False
+
+        visited.add(node)
+        stack.add(node)
+
+        for neighbor in graph.get(node, {}).get("subgroups", []):
+            if dfs(neighbor, node):
+                # Add the problematic edge to a list for removal
+                edges_to_remove.append((node, neighbor))
+
+        stack.remove(node)
+        return False
+
+    # Detect cycles and track edges to remove
+    for node in graph:
+        dfs(node, None)
+
+    # Break the cycles by removing problematic edges
+    for parent, child in edges_to_remove:
+        if "subgroups" in graph[parent]:
+            graph[parent]["subgroups"].remove(child)
+            print(f"Removed cycle-causing edge: {parent} → {child}")
+
+    return graph
+
+def alt_generate_subtopic_tree_and_display_tree(tree,slider_value,custom_groups = None):
+    """ Update clustering based on the slider value. """
+    global groups
+    print("UPdated 2CLUSTERINGGGGGGGGGGG")
+
+    group_hierarchy.independent_groups = {}
+    group_hierarchy.hierarchical_relationships = break_cycles(custom_groups)
+    # Clear and repopulate Treeview
+    for item in tree.get_children():
+        tree.delete(item)
+    group_hierarchy.populate_treeview(tree)
+
+
+
 # Define file path for glossary data
 file_path = "glossary.json"
 
