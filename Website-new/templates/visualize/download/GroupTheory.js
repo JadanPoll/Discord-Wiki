@@ -109,7 +109,7 @@ class GroupHierarchy {
                     bestParent = parent;
             
                     // Early exit if cost is "good enough"
-                    if (cost < 1.0) {
+                    if (cost < 5.0) {
                         break;
                     }
                 }

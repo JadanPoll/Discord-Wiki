@@ -99,11 +99,17 @@
                     const listItem = document.createElement('li');
                     listItem.classList.add('list-group-item');
                     listItem.textContent = result.keyword;
+
                     listItem.addEventListener('click', function () {
                         alert(`Keyword "${result.keyword}" can be found in the file: ${result.filename}`);
+                        
+                        // Redirect to the TitleScreen and pass the filename as a query parameter
+                        window.location.href = `/servertitlescreen?filename=${encodeURIComponent(result.filename)}`;
+                        
                         searchInput.value = result.keyword; // Optionally set the input to the clicked suggestion
                         suggestionsContainer.innerHTML = ''; // Clear suggestions after selecting one
                     });
+
                     suggestionsContainer.appendChild(listItem);
                 });
             } else {

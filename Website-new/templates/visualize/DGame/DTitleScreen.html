@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Channels in Server</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        #treeview {
+            width: 300px;
+        }
+        .treeview-node {
+            cursor: pointer;
+        }
+        .treeview-node ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+        .treeview-node.open > ul {
+            display: block;
+        }
+        #backBtn {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="serverName"></h1>
+    
+    <!-- Treeview for channels -->
+    <div id="treeview"></div>
+
+    <!-- Back button to go back to the server list page -->
+    <button id="backBtn">Back to Server List</button>
+
+    <script>
+        // Assuming server and channels data are passed from index.html (via URL or JavaScript)
+        const serverName = new URLSearchParams(window.location.search).get('serverName');
+        const channels = JSON.parse(new URLSearchParams(window.location.search).get('channels'));
+
+        document.getElementById('serverName').innerText = serverName;
+
+        const treeviewContainer = document.getElementById('treeview');
+
+        // Build Treeview
+        function buildTreeView(channels, container) {
+            channels.forEach(channel => {
+                const node = document.createElement('div');
+                node.classList.add('treeview-node');
+                node.innerText = channel.name;
+                
+                if (channel.children && channel.children.length) {
+                    const childContainer = document.createElement('div');
+                    buildTreeView(channel.children, childContainer);
+                    node.appendChild(childContainer);
+                }
+
+                node.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    node.classList.toggle('open');
+                });
+
+                container.appendChild(node);
+            });
+        }
+
+        buildTreeView(channels, treeviewContainer);
+
+        // Back to the previous page
+        document.getElementById('backBtn').addEventListener('click', () => {
+            window.history.back();
+        });
+    </script>
+</body>
+</html>

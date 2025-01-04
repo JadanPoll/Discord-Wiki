@@ -100,7 +100,38 @@ def analyze():
     return render_template('visualize/analysis.html', group='dev')
 
 
+# Dynamic route to handle filename
+@app.route('/servertitlescreen')
+def titlescreen():
+    # Retrieve the 'filename' parameter from the query string
+    filename = request.args.get('filename')
+    
+    if filename:
+        # Pass the filename to the template
+        return render_template('visualize/servertitlescreen.html', filename=filename, group='dev')
+    else:
+        return "Filename parameter is missing.", 400
 
+
+DATA_DIRECTORY = 'static/demo/data'
+@app.route('/data/<filename>', methods=['GET'])
+def get_file_data(filename):
+    """
+    Serve the content of a JSON file by filename from the DATA_DIRECTORY.
+    """
+    try:
+        print("HereA")
+        # Ensure the file exists
+        filepath = os.path.join(DATA_DIRECTORY, f"{filename}")
+        print(filepath,filename)
+        if not os.path.isfile(filepath):
+            print("DOn't exits)")
+            return jsonify({"error": f"File {filename} not found"}), 404
+
+        # Send the file content
+        return send_from_directory(DATA_DIRECTORY, f"{filename}", as_attachment=False)
+    except Exception as e:
+        return
 
 @app.route("/visualize/live_server_update")
 def live_update():
@@ -344,10 +375,6 @@ def jsstopword():
     return send_from_directory('templates/visualize/download', 'discord-stopword-en.js')
 
 
-
-@app.route('/visualize/wordcloud')
-def wordcloud():
-    return render_template('visualize/wordcloud.html', group='dev')
 
 @app.route('/storyboard')
 def storyboard():
