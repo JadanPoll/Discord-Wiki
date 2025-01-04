@@ -128,6 +128,7 @@ def get_file_data(filename):
             print("DOn't exits)")
             return jsonify({"error": f"File {filename} not found"}), 404
 
+
         # Send the file content
         return send_from_directory(DATA_DIRECTORY, f"{filename}", as_attachment=False)
     except Exception as e:
