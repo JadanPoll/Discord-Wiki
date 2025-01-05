@@ -44,7 +44,7 @@ function extractTopics(text, visualize = false) {
     
     const textRank = new TextRank4Keyword(null, ['NN']);
     textRank.analyze(text, 5, true );
-    const keywords = textRank.getKeywords(7, 3);
+    const keywords = textRank.getKeywords(7, 5);
 
     const scores = keywords.map(kw => kw.weight);
 
