@@ -546,6 +546,7 @@ function calculateDisplayGlossary()
     let hierarchicalRelationships =  key_structure 
     let independentGroups = []
 
+    
     console.log(`End of 4: ${Date.now() - completeStart} ms`);
 
     return {
