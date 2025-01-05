@@ -300,6 +300,7 @@ function calculateTopicsForEachMessage() {
      * Processes topics in the conversation glossary tree and extracts descriptions.
      */
 
+    window.topicalMatrix = {}
     if (Object.keys(window.dictionarySeedConversationAndGeneratedChain).length === 0) {
 
         return;
@@ -311,6 +312,30 @@ function calculateTopicsForEachMessage() {
         const description = extractTopics(total);
         convo.push({ description });
 
+
+
+        // Ensure the topic matrix is initialized for each topic
+        for (let topic of description) {
+            if (!(topic in window.topicalMatrix)) {
+                window.topicalMatrix[topic] = {};
+            }
+        }
+
+        // For each topic in the description, update the matrix with counts of other topics
+        let descriptionLength = description.length;
+        for (let i = 0; i < descriptionLength; i++) {
+            let topic = description[i];
+            for (let j = 0; j < i; j++) {
+
+                let previousTopic = description[j];
+                if (previousTopic in window.topicalMatrix[topic]) {
+                    window.topicalMatrix[topic][previousTopic] += 1 / descriptionLength;
+                } else {
+                    window.topicalMatrix[topic][previousTopic] = 1 / descriptionLength;
+                }
+                
+            }
+        }
 
         i++;
     }
@@ -421,13 +446,105 @@ function calculateGlossary() {
 
 }
 
+
+function breakCycles(graph) {
+    let visited = new Set();
+    let stack = new Set();
+    let edgesToRemove = [];
+
+    // Depth-First Search (DFS) helper function
+    function dfs(node, parent) {
+        if (stack.has(node)) {  // Cycle detected
+            return true;
+        }
+        if (visited.has(node)) {
+            return false;
+        }
+
+        visited.add(node);
+        stack.add(node);
+
+        let subgroups = graph[node] && graph[node].subgroups ? graph[node].subgroups : [];
+        for (let neighbor of subgroups) {
+            if (dfs(neighbor, node)) {
+                // Add the problematic edge to a list for removal
+                edgesToRemove.push([node, neighbor]);
+            }
+        }
+
+        stack.delete(node);
+        return false;
+    }
+
+    // Detect cycles and track edges to remove
+    for (let node in graph) {
+        if (!visited.has(node)) {
+            dfs(node, null);
+        }
+    }
+
+    // Break the cycles by removing problematic edges
+    for (let [parent, child] of edgesToRemove) {
+        if (graph[parent] && graph[parent].subgroups) {
+            let index = graph[parent].subgroups.indexOf(child);
+            if (index > -1) {
+                graph[parent].subgroups.splice(index, 1);
+                console.log(`Removed cycle-causing edge: ${parent} → ${child}`);
+            }
+        }
+    }
+
+    return graph;
+}
+
 function calculateDisplayGlossary()
 {
     var completeStart = Date.now()
 
 
-    const { independentGroups, hierarchicalRelationships } = generateSubtopicTreeAndDisplayTree(window.dictionaryGlossaryTopicAndLinkedConversationGroups);
+    let key_structure = {}
+    // Build the topical matrix
+    for (let key in window.topicalMatrix) {
+        let topics = window.topicalMatrix[key];
+        let max_score = -1;
+        let max_topics = [];
 
+        // Iterate through topics and scores
+        for (let topic in topics) {
+            let score = topics[topic];
+            if (score > max_score) {
+                max_score = score; // Update the maximum score
+                max_topics = [topic]; // Reset to this topic
+            } else if (score === max_score) {
+                max_topics.push(topic); // Add this topic to the list of max-score topics
+            }
+        }
+
+        // Handle the case where there are multiple topics with the same max score
+        if (max_score !== -1) {
+            let max_topic;
+            if (max_topics.length > 1) {
+                // Choose the topic with the largest size in window.topicalMatrix
+                max_topic = max_topics.reduce((a, b) => 
+                    (Object.keys(window.topicalMatrix[a]).length > Object.keys(window.topicalMatrix[b]).length ? a : b)
+                );
+            } else {
+                max_topic = max_topics[0];
+            }
+
+            // Add the key to the "subgroups" of the topic with the max score
+            if (!(max_topic in key_structure)) {
+                key_structure[max_topic] = { "subgroups": [] };
+            }
+            key_structure[max_topic]["subgroups"].push(key);
+        }
+    }
+    console.log("Breaking cycles...")
+    key_structure = breakCycles(key_structure)
+    console.log("Ended that")
+    //const { independentGroups, hierarchicalRelationships } = generateSubtopicTreeAndDisplayTree(window.dictionaryGlossaryTopicAndLinkedConversationGroups);
+    let hierarchicalRelationships =  key_structure 
+    let independentGroups = []
 
     console.log(`End of 4: ${Date.now() - completeStart} ms`);
 
