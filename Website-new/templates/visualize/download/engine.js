@@ -52,12 +52,12 @@ function extractTopics(text, visualize = false) {
         return [];
     }
 
-    const x = Array.from({ length: scores.length }, (_, i) => i + 1);
-    const kneeLocator = new KneeLocator(x, scores, { curve: 'convex', direction: 'decreasing' });
-    const cutoff = kneeLocator.knee || scores.length;
+    //const x = Array.from({ length: scores.length }, (_, i) => i + 1);
+    //const kneeLocator = new KneeLocator(x, scores, { curve: 'convex', direction: 'decreasing' });
+    //const cutoff = kneeLocator.knee || scores.length;
 
 
-    const optimalKeywords = keywords.slice(0, cutoff).map(kw => kw.word);
+    const optimalKeywords = keywords.slice(0, 6).map(kw => kw.word);
 
     //console.log("Filtered",filteredWords);
     return optimalKeywords;
@@ -313,29 +313,33 @@ function calculateTopicsForEachMessage() {
         convo.push({ description });
 
 
-
         // Ensure the topic matrix is initialized for each topic
-        for (let topic of description) {
-            if (!(topic in window.topicalMatrix)) {
+        for (const topic of description) {
+            if (!window.topicalMatrix[topic]) {
                 window.topicalMatrix[topic] = {};
             }
         }
 
-        // For each topic in the description, update the matrix with counts of other topics
-        let descriptionLength = description.length;
-        for (let i = 0; i < descriptionLength; i++) {
-            let topic = description[i];
-            for (let j = 0; j < i; j++) {
+        const importance_weight = 3; // How many times it has to appear on top to be taken seriously as the main topic 1 point
+        const proximity_weight = 1; // How close it has to be to be taken seriously as strongly related (normalized by length due to potential noise)
 
-                let previousTopic = description[j];
-                if (previousTopic in window.topicalMatrix[topic]) {
-                    window.topicalMatrix[topic][previousTopic] += 1 / descriptionLength;
-                } else {
-                    window.topicalMatrix[topic][previousTopic] = 1 / descriptionLength;
+        // For each topic in the description, update the matrix with counts of other topics
+        description.forEach((topic, i) => {
+            for (let j = 0; j < i; j++) {
+                const previous_topic = description[j];
+                if (!window.topicalMatrix[topic][previous_topic]) {
+                    window.topicalMatrix[topic][previous_topic] = 0; // Initialize the count
                 }
-                
+
+                const importance_factor = 1 / (j + 1);
+                const normalized_proximity_factor = (1 / (i - j)) / i; // Divide by i because we only take it as seriously as the distance from the top
+                window.topicalMatrix[topic][previous_topic] += 
+                    (1 / importance_weight) * importance_factor + 
+                    (1 / proximity_weight) * normalized_proximity_factor;
             }
-        }
+        });
+
+
 
         i++;
     }
@@ -531,22 +535,25 @@ function calculateDisplayGlossary()
             } else {
                 max_topic = max_topics[0];
             }
-
+            if (Object.keys(window.topicalMatrix[max_topic]).length > Object.keys(window.topicalMatrix[key]).length)
+            {
             // Add the key to the "subgroups" of the topic with the max score
             if (!(max_topic in key_structure)) {
                 key_structure[max_topic] = { "subgroups": [] };
             }
             key_structure[max_topic]["subgroups"].push(key);
         }
+        }
     }
     console.log("Breaking cycles...")
     key_structure = breakCycles(key_structure)
+    console.log(key_structure)
     console.log("Ended that")
     //const { independentGroups, hierarchicalRelationships } = generateSubtopicTreeAndDisplayTree(window.dictionaryGlossaryTopicAndLinkedConversationGroups);
     let hierarchicalRelationships =  key_structure 
     let independentGroups = []
 
-    
+
     console.log(`End of 4: ${Date.now() - completeStart} ms`);
 
     return {
