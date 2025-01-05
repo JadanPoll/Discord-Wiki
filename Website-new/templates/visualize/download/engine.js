@@ -57,7 +57,7 @@ function extractTopics(text, visualize = false) {
     //const cutoff = kneeLocator.knee || scores.length;
 
 
-    const optimalKeywords = keywords.slice(0, 6).map(kw => kw.word);
+    const optimalKeywords = keywords.slice(0, 6).map(kw => kw.word);  //Too much and we see too much information to cluster
 
     //console.log("Filtered",filteredWords);
     return optimalKeywords;
@@ -331,6 +331,7 @@ function calculateTopicsForEachMessage() {
                     window.topicalMatrix[topic][previous_topic] = 0; // Initialize the count
                 }
 
+                
                 const importance_factor = 1 / (j + 1);
                 const normalized_proximity_factor = (1 / (i - j)) / i; // Divide by i because we only take it as seriously as the distance from the top
                 window.topicalMatrix[topic][previous_topic] += 

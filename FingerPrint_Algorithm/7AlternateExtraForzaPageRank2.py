@@ -689,15 +689,18 @@ def calculate_topics_for_each_message():
                 topicalmatrix[topic] = {}
         
 
+        importance_weight = 3#2 #How many times it has to appear on top to be taken seriously as the main topic 1 point, Convert a 1/w
+        proximity_weight = 1#3    # How close it has to be to be taken seriously as strongly  and number of times to be taken seriously as stronglu related( normalized bu length due to potential noise). Conbert as 1.k
         # For each topic in the description, update the matrix with counts of other topics
         for i, topic in enumerate(description):
-            for j in range(len(description)):
-                if description[j] != topic:  # Ensure we skip the same topic
-                    previous_topic = description[j]
-                    if previous_topic in topicalmatrix[topic]:
-                        topicalmatrix[topic][previous_topic] += 1 / len(description)
-                    else:
-                        topicalmatrix[topic][previous_topic] = 1 / len(description)
+            for j in range(i):
+                previous_topic = description[j]
+                if previous_topic not in topicalmatrix[topic]:
+                    topicalmatrix[topic][previous_topic] = 0# / len(description)
+
+                importance_factor =  (1 /(j+1))
+                normalized_proximity_factor =  (1/(i-j))/i  #divide i because we only take it as seriously as distance from top( 1/j) is how serious this factor is len(description)
+                topicalmatrix[topic][previous_topic] +=  (1/importance_weight) * importance_factor + (1/proximity_weight) * normalized_proximity_factor
 
 
         # Add the description to the conversation entry
@@ -1249,10 +1252,11 @@ def calculate_then_display_glossary():
             else:
                 max_topic = max_topics[0]
 
-            # Add the key to the "subgroups" of the topic with the max score
-            if max_topic not in key_structure:
-                key_structure[max_topic] = {"subgroups": []}
-            key_structure[max_topic]["subgroups"].append(key)
+            if len(topicalmatrix.get(max_topic,{})) >= len(topicalmatrix.get(key,{})):
+                # Add the key to the "subgroups" of the topic with the max score
+                if max_topic not in key_structure:
+                    key_structure[max_topic] = {"subgroups": []}
+                key_structure[max_topic]["subgroups"].append(key)
 
     print(key_structure)
     #generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
