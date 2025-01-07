@@ -18,25 +18,10 @@ app = Flask(__name__, template_folder='templates', static_url_path='/', static_f
 app.secret_key = "DSearchPokémon"
 CORS(app)  # Enable CORS for all routes
 
-
-# Regular SQLite URL format for local SQLite usage
-DATABASE_URL = "sqlite:///chinook.sqlite"
-# Configure SQLAlchemy database URI
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-
-# Create the SQLAlchemy engine
-engine = create_engine(DATABASE_URL)
-
-# Initialize the SQLAlchemy instance
-db = SQLAlchemy(app)
-
-# Attach SQLAlchemy engine to Flask-Session
-app.config['SESSION_SQLALCHEMY'] = db
-app.config['SESSION_TYPE'] = 'sqlalchemy'  # Use SQLAlchemy for session storage
-app.config['SESSION_PERMANENT'] = True
-app.config['SESSION_SQLALCHEMY_TABLE'] = 'flask_sessions'  # Table name for sessions
-
-# Initialize Flask-Session
+# Configure Flask-Session
+app.config['SESSION_TYPE'] = 'filesystem'  # Use 'redis', 'sqlalchemy', or others for production
+app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_FILE_DIR'] = './flask_session'
 Session(app)
 
 
