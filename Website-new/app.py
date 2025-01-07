@@ -60,6 +60,7 @@ DISCORD_API_BASE_URL = 'https://discord.com/api'
 OAUTH2_AUTHORIZE_URL = DISCORD_API_BASE_URL + '/oauth2/authorize'
 OAUTH2_TOKEN_URL = DISCORD_API_BASE_URL + '/oauth2/token'
 
+
 # OAuth2 scope
 SCOPE = ['identify', 'email']
 
