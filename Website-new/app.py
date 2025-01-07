@@ -55,7 +55,7 @@ def login():
 # Step 2: Handle the callback from Discord
 @app.route('/dauth')
 def callback():
-
+    discord.callback()
     # Get the access token
     token = discord.get_authorization_token()
 
