@@ -19,8 +19,6 @@ app.secret_key = "DSearchPokémon"
 CORS(app)  # Enable CORS for all routes
 
 
-
-
 # Regular SQLite URL format for local SQLite usage
 DATABASE_URL = "sqlite:///chinook.sqlite"
 # Configure SQLAlchemy database URI
