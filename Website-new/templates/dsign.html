@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Sign In with Discord</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #7289da;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #2c2f33;
+        }
+        .discord-button {
+            background-color: #5865F2;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .discord-button:hover {
+            background-color: #4854d7;
+        }
+        .discord-logo {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        footer {
+            margin-top: 20px;
+            color: #99aab5;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Sign In to Continue</h1>
+        <a href="/login" class="discord-button">
+            <img src="https://commons.wikimedia.org/wiki/File:Discord_Color_Text_Logo_(2015-2021).svg" class="discord-logo" alt="Discord Logo">
+            Sign In with Discord
+        </a>
+        <footer>
+            <p>Powered by Discord OAuth2</p>
+        </footer>
+    </div>
+
+</body>
+</html>

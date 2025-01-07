@@ -7,9 +7,39 @@ from flask_cors import CORS
 import requests
 from flask_session import Session
 import json
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from flask_sqlalchemy import SQLAlchemy
+import os
+from flask import Flask, redirect, request, session, url_for, jsonify
+from requests_oauthlib import OAuth2Session
+
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
 app.secret_key = "DSearchPokémon"
 CORS(app)  # Enable CORS for all routes
+
+
+
+
+# Regular SQLite URL format for local SQLite usage
+DATABASE_URL = "sqlite:///chinook.sqlite"
+# Configure SQLAlchemy database URI
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+
+# Create the SQLAlchemy engine
+engine = create_engine(DATABASE_URL)
+
+# Initialize the SQLAlchemy instance
+db = SQLAlchemy(app)
+
+# Attach SQLAlchemy engine to Flask-Session
+app.config['SESSION_SQLALCHEMY'] = db
+app.config['SESSION_TYPE'] = 'sqlalchemy'  # Use SQLAlchemy for session storage
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_SQLALCHEMY_TABLE'] = 'flask_sessions'  # Table name for sessions
+
+# Initialize Flask-Session
+Session(app)
 
 
 # Define configuration variables
@@ -21,6 +51,37 @@ SECRET = os.getenv('SECRET')  # GitHub webhook secret from environment variables
 
 
 
+
+# Discord app credentials
+CLIENT_ID = os.getenv("DCLIENT_ID")
+CLIENT_SECRET = os.getenv("DCLIENT_SECRET")
+REDIRECT_URI = 'http://localhost:5000/callback'
+DISCORD_API_BASE_URL = 'https://discord.com/api'
+OAUTH2_AUTHORIZE_URL = DISCORD_API_BASE_URL + '/oauth2/authorize'
+OAUTH2_TOKEN_URL = DISCORD_API_BASE_URL + '/oauth2/token'
+
+# OAuth2 scope
+SCOPE = ['identify', 'email']
+
+# Step 1: Redirect users to Discord to authenticate
+@app.route('/login')
+def login():
+    discord = OAuth2Session(CLIENT_ID, redirect_uri=REDIRECT_URI, scope=SCOPE)
+    authorization_url, state = discord.authorization_url(OAUTH2_AUTHORIZE_URL)
+    
+    # Save the state so we can verify the callback
+    session['oauth_state'] = state
+    return redirect(authorization_url)
+
+# Step 2: Handle the callback from Discord
+@app.route('/dauth')
+def callback():
+    discord = OAuth2Session(CLIENT_ID, redirect_uri=REDIRECT_URI, state=session['oauth_state'])
+    
+    # Get the access token
+    token = discord.fetch_token(OAUTH2_TOKEN_URL, client_secret=CLIENT_SECRET, authorization_response=request.url)
+
+    return render_template('visualize/download/live_server_update.html', group='dev', dtoken=token)
 
 
 # GitHub webhook handler
@@ -136,7 +197,8 @@ def get_file_data(filename):
 
 @app.route("/visualize/live_server_update")
 def live_update():
-    return render_template('visualize/download/live_server_update.html', group='dev')
+    return redirect('/login')
+    #return render_template('visualize/download/live_server_update.html', group='dev')
 
 @app.route("/visualize/forzapagerank")
 def pagerank():
@@ -229,14 +291,6 @@ def prop_summary():
 
 
 
-
-
-
-# Configure Flask-Session
-app.config['SESSION_TYPE'] = 'filesystem'  # Use 'redis', 'sqlalchemy', or others for production
-app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_FILE_DIR'] = './flask_session'
-Session(app)
 
 
 

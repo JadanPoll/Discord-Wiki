@@ -94,7 +94,7 @@ class GroupHierarchy {
             let minCost = Infinity;
             let bestParent = null;
 
-
+            let starttime=Date.now()
             for (let i = 0; i < sortedGroups.length; i++) {
                 const parent = sortedGroups[i];
             
@@ -109,12 +109,12 @@ class GroupHierarchy {
                     bestParent = parent;
             
                     // Early exit if cost is "good enough"
-                    if (cost < 5.0) {
-                        break;
-                    }
+                    //if (cost < 5.0) {
+                    //    break;
+                    //}
                 }
             }
-            
+            console.log(`Found bestParent: ${bestParent} in: ${Date.now() - starttime} ms`);
             if (bestParent) {
 
 

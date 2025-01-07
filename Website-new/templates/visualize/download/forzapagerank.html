@@ -27,15 +27,19 @@
             padding: 20px;
             background-color: #fff;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: calc(100vh - 120px); /* Set the height of content container */
+            overflow-y: auto; /* Enables vertical scrolling */
         }
         h2 {
             color: #333;
         }
-        #content-display {
+        #content-display, #summary-display {
             margin-top: 20px;
             padding: 10px;
             border: 1px solid #ddd;
             background-color: #fafafa;
+            max-height: 400px; /* Optional: limit height for scrolling */
+            overflow-y: auto; /* Enables vertical scrolling */
         }
         #searchMode {
             margin-bottom: 20px;

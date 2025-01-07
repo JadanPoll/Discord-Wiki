@@ -44,7 +44,7 @@ function extractTopics(text, visualize = false) {
     
     const textRank = new TextRank4Keyword(null, ['NN']);
     textRank.analyze(text, 5, true );
-    const keywords = textRank.getKeywords(7, 5);
+    const keywords = textRank.getKeywords(100, 5);
 
     const scores = keywords.map(kw => kw.weight);
 
@@ -52,10 +52,10 @@ function extractTopics(text, visualize = false) {
         return [];
     }
 
-    //const x = Array.from({ length: scores.length }, (_, i) => i + 1);
-    //const kneeLocator = new KneeLocator(x, scores, { curve: 'convex', direction: 'decreasing' });
-    //const cutoff = kneeLocator.knee || scores.length;
-
+    const x = Array.from({ length: scores.length }, (_, i) => i + 1);
+    const kneeLocator = new KneeLocator(x, scores, { curve: 'convex', direction: 'decreasing' });
+    const cutoff = kneeLocator.knee || scores.length;
+    //console.log(cutoff)
 
     const optimalKeywords = keywords.slice(0, 6).map(kw => kw.word);  //Too much and we see too much information to cluster
 

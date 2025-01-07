@@ -31,6 +31,19 @@
         #searchSuggestions {
             width: 100%;
         }
+
+        #searchSuggestions .suggestable {
+            width: 100%;
+            padding: 10px; /* Optional: Add spacing for better appearance */
+            transition: all 0.3s ease; /* Smooth transition for hover effect */
+        }
+
+        #searchSuggestions .suggestable:hover {
+            background-color: #f0f0f0; /* Change background color on hover */
+            border-radius: 5px;       /* Optional: Add rounded corners */
+            cursor: default;          /* Change cursor to indicate interactivity */
+        }
+
     </style>
 
     {% block head %}{% endblock %}
@@ -67,7 +80,6 @@
                     })
                     .then(demoData => {
                         glossaryData = demoData; // Store demo titles
-                        alert('Using Demo Titles');
                     });
             }
         })
@@ -98,16 +110,48 @@
                 results.forEach(result => {
                     const listItem = document.createElement('li');
                     listItem.classList.add('list-group-item');
+                    listItem.classList.add('suggestable')
                     listItem.textContent = result.keyword;
 
                     listItem.addEventListener('click', function () {
                         alert(`Keyword "${result.keyword}" can be found in the file: ${result.filename}`);
                         
-                        // Redirect to the TitleScreen and pass the filename as a query parameter
-                        window.location.href = `/servertitlescreen?filename=${encodeURIComponent(result.filename)}`;
-                        
+
+
+                        // Update the URL without reloading the page
+                        history.pushState({ filename: result.filename }, '', `/servertitlescreen?filename=${encodeURIComponent(result.filename)}`);
+
+                        // Fetch the new content dynamically
+
+                        fetch(`/servertitlescreen?filename=${encodeURIComponent(result.filename)}`)
+                            .then(response => response.text())
+                            .then(html => {
+                                const container = document.querySelector('#main-content');
+                                container.innerHTML = html;
+
+                                // Execute <script> tags, including those that import other scripts
+                                const scripts = container.querySelectorAll('script');
+                                scripts.forEach(script => {
+                                    const newScript = document.createElement('script');
+                                    if (script.src) {
+                                        // Copy the src and type attributes
+                                        newScript.src = script.src;
+                                        newScript.type = script.type || 'text/javascript';
+                                    } else {
+                                        // Inline scripts: Copy content and set type if it's a module
+                                        newScript.textContent = script.textContent;
+                                        if (script.type === 'module') {
+                                            newScript.type = 'module';
+                                        }
+                                    }
+                                    document.body.appendChild(newScript); // Append the new script to the DOM
+                                });
+                            })
+                            .catch(error => console.error('Error loading the page:', error));
+
                         searchInput.value = result.keyword; // Optionally set the input to the clicked suggestion
                         suggestionsContainer.innerHTML = ''; // Clear suggestions after selecting one
+                   
                     });
 
                     suggestionsContainer.appendChild(listItem);
@@ -123,6 +167,8 @@
 </script>
 
 <body>
+
+    <div id="main-content">
     <!-- Navbar at the top -->
     <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
         <div class="container-fluid">
@@ -166,6 +212,9 @@
         {% block body %}
         {% endblock %}
     </main>
+
+
+</div>
 </body>
 
 </html>
