@@ -46,24 +46,18 @@ OAUTH2_TOKEN_URL = DISCORD_API_BASE_URL + '/oauth2/token'
 
 # OAuth2 scope
 SCOPE = ['identify', 'email']
-
+discord = OAuth2Session(CLIENT_ID, redirect_uri=REDIRECT_URI, scope=SCOPE)
 # Step 1: Redirect users to Discord to authenticate
 @app.route('/login')
 def login():
-    discord = OAuth2Session(CLIENT_ID, redirect_uri=REDIRECT_URI, scope=SCOPE)
-    authorization_url, state = discord.authorization_url(OAUTH2_AUTHORIZE_URL)
-    
-    # Save the state so we can verify the callback
-    session['oauth_state'] = state
-    return redirect(authorization_url)
 
+    return discord.create_session()
 # Step 2: Handle the callback from Discord
 @app.route('/dauth')
 def callback():
-    discord = OAuth2Session(CLIENT_ID, redirect_uri=REDIRECT_URI, state=session['oauth_state'])
-    
+
     # Get the access token
-    token = discord.fetch_token(OAUTH2_TOKEN_URL, client_secret=CLIENT_SECRET, authorization_response=request.url)
+    token = discord.get_authorization_token()
 
     return render_template('visualize/download/live_server_update.html', group='dev', dtoken=token)
 
