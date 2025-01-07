@@ -38,7 +38,7 @@ SECRET = os.getenv('SECRET')  # GitHub webhook secret from environment variables
 # Discord app credentials
 CLIENT_ID = os.getenv("DCLIENT_ID")
 CLIENT_SECRET = os.getenv("DCLIENT_SECRET")
-REDIRECT_URI = 'http://localhost:5000/callback'
+REDIRECT_URI = 'https://discord-wiki.vercel.app/dauth'
 DISCORD_API_BASE_URL = 'https://discord.com/api'
 OAUTH2_AUTHORIZE_URL = DISCORD_API_BASE_URL + '/oauth2/authorize'
 OAUTH2_TOKEN_URL = DISCORD_API_BASE_URL + '/oauth2/token'
