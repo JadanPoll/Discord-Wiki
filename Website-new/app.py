@@ -7,12 +7,8 @@ from flask_cors import CORS
 import requests
 from flask_session import Session
 import json
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from flask_sqlalchemy import SQLAlchemy
 import os
 from flask import Flask, redirect, request, session, url_for, jsonify
-from requests_oauthlib import OAuth2Session
 
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
 app.secret_key = "DSearchPokémon"
@@ -31,35 +27,6 @@ PORT = 3000
 SECRET = os.getenv('SECRET')  # GitHub webhook secret from environment variables
 
 
-
-
-
-
-# Discord app credentials
-CLIENT_ID = os.getenv("DCLIENT_ID")
-CLIENT_SECRET = os.getenv("DCLIENT_SECRET")
-REDIRECT_URI = 'https://discord-wiki.vercel.app/dauth'
-DISCORD_API_BASE_URL = 'https://discord.com/api'
-OAUTH2_AUTHORIZE_URL = DISCORD_API_BASE_URL + '/oauth2/authorize'
-OAUTH2_TOKEN_URL = DISCORD_API_BASE_URL + '/oauth2/token'
-
-
-# OAuth2 scope
-SCOPE = ['identify', 'email']
-discord = OAuth2Session(CLIENT_ID, redirect_uri=REDIRECT_URI, scope=SCOPE)
-# Step 1: Redirect users to Discord to authenticate
-@app.route('/login')
-def login():
-
-    return discord.create_session()
-# Step 2: Handle the callback from Discord
-@app.route('/dauth')
-def callback():
-    discord.callback()
-    # Get the access token
-    token = discord.get_authorization_token()
-
-    return render_template('visualize/download/live_server_update.html', group='dev', dtoken=token)
 
 
 # GitHub webhook handler
@@ -128,7 +95,7 @@ def cors_bypass(target_url):
 
 @app.route("/")
 def main():
-    return render_template('frontpage.html')
+    return render_template('frontpage.html',include_search=True)
 
 @app.route('/visualize')
 def visualize():
@@ -175,8 +142,8 @@ def get_file_data(filename):
 
 @app.route("/visualize/live_server_update")
 def live_update():
-    return redirect('/login')
-    #return render_template('visualize/download/live_server_update.html', group='dev')
+    #return redirect('/login')
+    return render_template('visualize/download/live_server_update.html', group='dev')
 
 @app.route("/visualize/forzapagerank")
 def pagerank():

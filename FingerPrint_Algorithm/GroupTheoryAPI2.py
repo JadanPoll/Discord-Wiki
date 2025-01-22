@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from itertools import chain
 import json
-
+import time
 def load_glossary_data(file_path):
     """ Load the glossary data from a JSON file. """
     try:
@@ -94,8 +94,10 @@ class GroupHierarchy:
         # Sort groups by size in ascending order
         sorted_groups = sorted(self.groups.keys(), key=lambda x: group_sizes[x])
 
+        tstart = time.perf_counter()
         # Main hierarchy-building loop
         for child in sorted_groups:
+            start = time.perf_counter()
             child_set = group_sets[child]
             child_size = group_sizes[child]
             min_cost, best_parent = math.inf, None
@@ -113,12 +115,24 @@ class GroupHierarchy:
                     #if cost < 5.0:
                     #    break
 
+
+
+            end = time.perf_counter()
+
+            elapsed_time_ms = (end - start) * 1000
+            print(f"Best Parent: {best_parent}. Found in: {elapsed_time_ms:.3f} ms")
+
             # Assign child to best parent
             if best_parent:
                 hierarchy.setdefault(best_parent, {"subgroups": []})
                 hierarchy[best_parent]["subgroups"].append(child)
                 assigned_children.add(child)
                 depth_tracker[child] = depth_tracker[best_parent] + 1
+
+
+        end = time.perf_counter()
+        telapsed_time_ms = (end - tstart) * 1000
+        print(f"Total Time: {telapsed_time_ms:.3f} ms")
 
         # Add unassigned groups
         for group in self.groups:
@@ -140,7 +154,7 @@ class GroupHierarchyWithTreeview(GroupHierarchy):
     def populate_treeview(self, tree):
         """ Populate the Treeview with hierarchical relationships. """
         added_groups = set()
-        
+
         for group in self.independent_groups:
             if group not in added_groups:
                 tree.insert("", "end", group, text=group)
@@ -159,12 +173,13 @@ class GroupHierarchyWithTreeview(GroupHierarchy):
 def update_clustering(tree,slider_value,custom_groups = None):
     """ Update clustering based on the slider value. """
     global groups
-    print("UPdated CLUSTERINGGGGGGGGGGG")
+    print("1UPdated CLUSTERINGGGGGGGGGGG")
     if custom_groups is not None:
 
         group_hierarchy.reset( custom_groups)
     # Recompute hierarchy with new slider value
     group_hierarchy.build_hierarchy()
+    print("2UPdated CLUSTERINGGGGGGGGGGG")
     # Clear and repopulate Treeview
     for item in tree.get_children():
         tree.delete(item)

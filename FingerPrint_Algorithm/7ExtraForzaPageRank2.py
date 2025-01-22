@@ -87,14 +87,14 @@ def extract_topics(text):
     x = range(1, len(scores) + 1)  # X-axis (rank of keywords)
     knee_locator = KneeLocator(x, scores, curve="convex", direction="decreasing")
     cutoff = knee_locator.knee or len(scores)  # Default to all if no knee is found
-
+    #print(cutoff)
     # Select keywords up to the cutoff point
     optimal_keywords = [kw.word for kw in keywords[:cutoff]]
 
     pos_to_keep = ['NOUN','PROPN']# 'VERB']
     pos_to_keep = ["NN"]
     filtered_words = filter_words_by_Part_Of_Speech_Tag(optimal_keywords, pos_to_keep)
-    print(filtered_words)
+    #print(filtered_words)
     return filtered_words
 
 
@@ -1146,10 +1146,13 @@ def calculate_then_display_glossary():
     dictionary_glossary_topic_and_linked_conversation_groups = {}
 
     calculate_topics_for_each_message()
+
     assign_each_topic_relevant_message_groups()
 
 
     dictionary_glossary_topic_and_linked_conversation_groups = intersect_compressor(dictionary_glossary_topic_and_linked_conversation_groups)
+
+    print(dictionary_glossary_topic_and_linked_conversation_groups)
     generate_subtopic_tree_and_display_tree(glossary_tree, 0.0, dictionary_glossary_topic_and_linked_conversation_groups)
 
 
