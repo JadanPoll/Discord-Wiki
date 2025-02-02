@@ -2,11 +2,9 @@
 # DO NOT install pinecone-client
 from pinecone import Pinecone, ServerlessSpec
 import json
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModel
+import os
 
-pc = Pinecone(api_key="")
+pc = Pinecone(api_key="pcsk_68RpQp_U1uWtNsxDGA7sh6tEVtbQz1kDPprmSogeCr74nRWtBNCNuUkyQQQZnADxtC6fw")
 
 index_name = "rag-test"
 
@@ -73,6 +71,8 @@ for i, entry in enumerate(data):
 user_query = input("Enter your query: ")
 
 def get_response(user_query):
+
+
     # Generate embedding for the user query
     x = pc.inference.embed(
         model="multilingual-e5-large",
@@ -102,3 +102,21 @@ def get_response(user_query):
     return responses[0]  # Or apply additional ranking logic
 
 print(get_response(user_query))
+
+from groq import Groq
+
+client = Groq(
+    api_key=os.environ.get("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"),
+)
+
+chat_completion = client.chat.completions.create(
+    messages=[
+        {
+            "role": "user",
+            "content": "Explain the importance of fast language models",
+        }
+    ],
+    model="llama3-8b-8192",
+)
+
+print(chat_completion.choices[0].message.content)

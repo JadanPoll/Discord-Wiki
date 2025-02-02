@@ -4,7 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModel
 
-pc = Pinecone(api_key="")
+pc = Pinecone(api_key="pcsk_68RpQp_U1uWtNsxDGA7sh6tEVtbQz1kDPprmSogeCr74nRWtBNCNuUkyQQQZnADxtC6fw")
 
 namespace="ECE 120 Fall 2024 exams"
 index_name = "rag-test"
