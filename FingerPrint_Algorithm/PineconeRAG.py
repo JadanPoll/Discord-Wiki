@@ -4,7 +4,7 @@ from pinecone import Pinecone, ServerlessSpec
 import json
 import os
 
-pc = Pinecone(api_key="pcsk_68RpQp_U1uWtNsxDGA7sh6tEVtbQz1kDPprmSogeCr74nRWtBNCNuUkyQQQZnADxtC6fw")
+pc = Pinecone(api_key="")
 
 index_name = "rag-test"
 
@@ -106,7 +106,7 @@ print(get_response(user_query))
 from groq import Groq
 
 client = Groq(
-    api_key=os.environ.get("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"),
+    api_key=os.environ.get(""),
 )
 
 chat_completion = client.chat.completions.create(
