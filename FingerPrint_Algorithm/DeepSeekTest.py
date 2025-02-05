@@ -1,7 +1,7 @@
 from pinecone import Pinecone, ServerlessSpec
 import json
 
-pc = Pinecone(api_key="pcsk_68RpQp_U1uWtNsxDGA7sh6tEVtbQz1kDPprmSogeCr74nRWtBNCNuUkyQQQZnADxtC6fw")
+pc = Pinecone(api_key="")
 
 index_name = "rag-test"
 
@@ -356,7 +356,7 @@ from openai import OpenAI
 
 client = OpenAI(
   base_url="https://openrouter.ai/api/v1",
-  api_key="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",
+  api_key="",
 )
 
 completion = client.chat.completions.create(

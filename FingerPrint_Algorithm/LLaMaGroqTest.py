@@ -2,8 +2,8 @@
 
 from pinecone import Pinecone, ServerlessSpec
 import json
-
-pc = Pinecone(api_key="pcsk_68RpQp_U1uWtNsxDGA7sh6tEVtbQz1kDPprmSogeCr74nRWtBNCNuUkyQQQZnADxtC6fw")
+'''
+pc = Pinecone(api_key="")
 
 index_name = "rag-test"
 
@@ -17,7 +17,7 @@ if not pc.has_index(index_name):
             region="us-east-1"
         ) 
     )
-
+'''
 import getpass
 import platform
 user_platform = platform.uname().system
@@ -344,7 +344,7 @@ def make_context_chain_message():
     #create message chain from chain that corresponds with the key
     message_chain = ""
     for msg in tree[str(ind)]:
-        message = msg["message"] + " (Message ID: " + str(msg["message_id"]) + "). "
+        message = msg["message"] + " (Message ID: " + str(msg["message_id"]) + ").\n"
 
         message_chain += message
     return message_chain
@@ -358,20 +358,23 @@ import os
 
 from groq import Groq
 
-client = Groq(
-    api_key=os.environ.get("GROQ_API_KEY"),
-)
+# in terminal, type export GROQ_API_KEY=<api_key>
+# you can find the api_key on D-Wikis server in algorithms channel
+def summarize():
+    client = Groq(
+        api_key=os.environ.get("GROQ_API_KEY"),
+    )
 
-chat_completion = client.chat.completions.create(
-    messages=[
-        {
-            "role": "user",
-            "content": "Summarize this conversation. Don't include in summary information that doesn't relate to the topic specified in the conversation chain. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings:" + chain_msg
-        }
-    ],
-    model="deepseek-r1-distill-llama-70b",
-)
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": "Summarize this conversation. Don't include in summary information that doesn't relate to the topic specified in the conversation chain. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings:" + chain_msg
+            }
+        ],
+        model="deepseek-r1-distill-llama-70b",
+    )
+    print(type(chat_completion.choices[0].message.content))
+    print(chat_completion.choices[0].message.content)
 
-print(chat_completion)
-print(type(chat_completion.choices[0].message.content))
-print(chat_completion.choices[0].message.content)
+summarize()
