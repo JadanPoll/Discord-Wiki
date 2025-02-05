@@ -319,12 +319,29 @@
 
 
 
-        saveMessagesToFile(messages) {
+        async saveMessagesToFile(messages) {
             // Reverse the order of the messages
             console.log(messages);
 
+            // SAVE TO SESSION
+            let response = await fetch("/savedata", {
+            method: "POST",
+            body: JSON.stringify({
+                messages: messages
+            }),
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+            });
+            await response.text();
+
+            // redirect to main page
+            document.location.href="/";
+
+            /*
             // Serialize the entire array of reversed messages as a JSON string
             const reversedMessages = JSON.stringify(messages.reverse(), null, 2);  // Proper JSON format with indentation
+
 
             // Create a Blob from the JSON string
             const blob = new Blob([reversedMessages], { type: 'application/json' });  // Save as JSON, not plain text
@@ -347,6 +364,7 @@
             window.parent.document.body.removeChild(a);  // Remove the link from the document
 
             console.log('Messages saved to discord_messages.json in reversed order.');
+            */
         }
 
 

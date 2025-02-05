@@ -95,6 +95,10 @@ def cors_bypass(target_url):
 
 @app.route("/")
 def main():
+    # check if DB is available
+    if 'db' not in session:
+        return render_template('frontpage_nodb.html',include_search=False)
+
     return render_template('frontpage.html',include_search=True)
 
 @app.route('/visualize')
@@ -144,6 +148,14 @@ def get_file_data(filename):
 def live_update():
     #return redirect('/login')
     return render_template('visualize/download/live_server_update.html', group='dev')
+
+# helper for live_server_update, puts data into session
+@app.route("/savedata", methods=["POST"])
+def live_update_save():
+    # todo: guard against putting garbage data (or is it okay b/c it's session?)
+    # messages are found in request.json["messages"]
+    session["db"] = request.json["messages"]
+    return ""
 
 @app.route("/visualize/forzapagerank")
 def pagerank():
