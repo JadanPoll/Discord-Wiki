@@ -2,3 +2,10 @@ tkinterweb
 textrank4zh
 matplotlib
 kneed
+aiohttp
+bs4
+halo
+spacy
+glossary_compression
+nltk.stem
+textblob
