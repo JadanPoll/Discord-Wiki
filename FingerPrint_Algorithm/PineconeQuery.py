@@ -65,7 +65,7 @@ def get_response(user_query):
 results = get_response(user_query)
 print(results)
 
-# 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
+# 
 
 import json
 results_string = results[0]
