@@ -1,3 +1,5 @@
+#unlike what the title suggests this is using DeepSeek!
+
 from pinecone import Pinecone, ServerlessSpec
 import json
 
@@ -350,28 +352,26 @@ def make_context_chain_message():
 chain_msg = make_context_chain_message()
 print(chain_msg)
 
-#deepseek fun!
+# deepseek through groq?
 
-from openai import OpenAI
+import os
 
-client = OpenAI(
-  base_url="https://openrouter.ai/api/v1",
-  api_key="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",
+from groq import Groq
+
+client = Groq(
+    api_key=os.environ.get("GROQ_API_KEY"),
 )
 
-completion = client.chat.completions.create(
-  extra_headers={
-    "HTTP-Referer": "<YOUR_SITE_URL>", # Optional. Site URL for rankings on openrouter.ai.
-    "X-Title": "<YOUR_SITE_NAME>", # Optional. Site title for rankings on openrouter.ai.
-  },
-  model="deepseek/deepseek-r1:free",
-  messages=[
-    {
-      "role": "user",
-      "content": "Don't include in summary information that doesn't relate to the topic specified in the conversation chain. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings:" + chain_msg
-    }
-  ]
+chat_completion = client.chat.completions.create(
+    messages=[
+        {
+            "role": "user",
+            "content": "Summarize this conversation. Don't include in summary information that doesn't relate to the topic specified in the conversation chain. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings:" + chain_msg
+        }
+    ],
+    model="deepseek-r1-distill-llama-70b",
 )
-print(completion)
-print(type(completion.choices[0].message))
-print(completion.choices[0].message)
+
+print(chat_completion)
+print(type(chat_completion.choices[0].message.content))
+print(chat_completion.choices[0].message.content)
