@@ -5,3 +5,10 @@ flask-session
 sqlalchemy
 flask_sqlalchemy
 requests-oauthlib
+bs4
+halo
+cssutils
+textrank4zh
+kneed
+nltk
+txtblob
