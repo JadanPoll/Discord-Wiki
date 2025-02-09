@@ -3,19 +3,66 @@
 {% block title %}FrontPage{% endblock %}
 
 {% block head %}
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background-color: #151f4a;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
 
+    .container {
+        text-align: center;
+    }
+
+    h1 {
+        font-size: 2.5em;
+        margin: 0;
+        color: white;
+    }
+
+    .highlight {
+        color: #ff5733;
+    }
+
+    .subtitle {
+        font-size: 1.2em;
+        color: whitesmoke;
+        margin-top: 10px;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        font-size: 1em;
+        color: #fff;
+        background-color: #007bff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        text-decoration: none;
+        margin-top: 20px;
+        transition: 0.3s;
+    }
+
+    .btn:hover {
+        background-color: #0056b3;
+    }
+</style>
 {% endblock %}
 
 {% block body %}
-<h1>
-    (Some fancy intro)
-    <strong style="color: pink;">(੭｡╹▿╹｡)੭</strong>
-</h1>
-<h2>
-<pre>
-Welcome to DSearch!
-</pre>
-Please load data <a href="/visualize/live_server_update">here</a>
-</h2>
+<div class="container">
+    <h1>Discord Conversations</h1>
+    <h1>Made <span class="highlight">Searchable</span>.</h1>
 
+    <p class="subtitle">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce vel sapien elit.</p>
+
+    <a href="/visualize/live_server_update" class="btn">Start Here</a>
+</div>
 {% endblock %}
