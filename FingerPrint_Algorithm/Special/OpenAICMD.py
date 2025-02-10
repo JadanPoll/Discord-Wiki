@@ -135,6 +135,7 @@ class WebSocketClientApp:
             ],
             model="llama-3.3-70b-versatile",
         )
+        
         content = chat_completion.choices[0].message.content
         print(content)
         # Once the chat completion is done, call handle_message with the result
