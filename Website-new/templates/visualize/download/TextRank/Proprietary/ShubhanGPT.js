@@ -90,7 +90,7 @@ export function initializeAPI(apiKeys) {
               }
             });
   
-            console.log(`Type: ${type}\nContent: ${contentAfterThink}`);
+            console.log(`Type: ${type}\nContent: ${messageContent}`);
             return; // Successfully processed the request.
           }
   
