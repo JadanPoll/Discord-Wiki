@@ -240,9 +240,9 @@ def pos_tagger():
     return send_from_directory('templates/visualize/download/TextRank/POS', 'POSTagger.js')
 
 #Serve Proprietart Algorithm
-@app.route("/NathanGPT.js")
+@app.route("/ShubhanGPT.js")
 def prop_summary():
-    return send_from_directory('templates/visualize/download/TextRank/Proprietary', 'NathanGPT.js')
+    return send_from_directory('templates/visualize/download/TextRank/Proprietary', 'ShubhanGPT.js')
 
 
 

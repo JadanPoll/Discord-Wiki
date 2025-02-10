@@ -68,13 +68,14 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn3.devexpress.com/jslib/21.1.4/js/dx.all.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.6/lib/marked.umd.js"></script>
     <script type="module" src="/discord-stopword-en.js"></script>
     <script type="module" src="/engine.js"></script>
     
     <script type="module">
         import { loadConversationEngine, generateAndDisplayAllRandomContextChain,calculateGlossary, calculateDisplayGlossary } from '/engine.js';
-        import {  initializeAPI } from '/NathanGPT.js'
+        import {  initializeAPI } from '/ShubhanGPT.js'
+
         class GroupHierarchyWithTreeview {
             constructor(hierarchicalRelationships, independentGroups=[]) {
                 this.hierarchicalRelationships = hierarchicalRelationships;
@@ -296,12 +297,12 @@
             // Prepare the AI prompt
             const prompt = `Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings: ${selectedContent}`;
             console.log(prompt)
-            window.summaryAPI.sendMessage("sendGPT",prompt);
+            window.summaryAPI.sendMessage("sendShubhan",prompt);
         }
 
         // Function to display the AI-generated summary
         function displaySummary(summary) {
-            $("#summary-display").html(JSON.parse(summary).content);
+            $("#summary-display").html(window.marked.marked(summary));
         }
 
         // Button click event for generating summary
@@ -311,10 +312,11 @@
 
         // Start the WebSocket and register handler for incoming AI messages
         function startSummaryFeature() {
-            const serverUrl = "https://ninth-swamp-orangutan.glitch.me";
-            window.summaryAPI = initializeAPI(serverUrl);
 
-            window.summaryAPI.registerHandler((message) => {
+            window.summaryAPI = initializeAPI("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");
+
+
+            window.summaryAPI.registerMessageHandler((message) => {
                 displaySummary(message); // Display the incoming AI-generated summary
             });
         }
