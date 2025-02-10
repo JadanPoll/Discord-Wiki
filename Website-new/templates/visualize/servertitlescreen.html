@@ -316,10 +316,18 @@
                 return;
             }
 
+            console.log(selectedContent.length)
+            // Limit the content to 22,000 characters
+            const maxLength = 22000;
+            const truncatedContent = selectedContent.length > maxLength 
+                ? selectedContent.substring(0, maxLength) + "..." 
+                : selectedContent;
+
             // Prepare the AI prompt
-            const prompt = `Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings: ${selectedContent}`;
-            console.log(prompt)
-            window.summaryAPI.sendMessage("sendGPT",prompt);
+            const prompt = `Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10). If possible break it into subheadings: ${truncatedContent}`;
+            
+            console.log(prompt);
+            window.summaryAPI.sendMessage("senShubhan", prompt);
         }
 
         // Function to display the AI-generated summary
