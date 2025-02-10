@@ -80,17 +80,11 @@ export function initializeAPI(apiKeys) {
             const chatCompletion = await response.json();
             const messageContent = chatCompletion.choices[0].message.content;
   
-            // Extract content after the </think> tag if present.
-            let contentAfterThink = "";
-            const thinkEndIndex = messageContent.indexOf("</think>");
-            if (thinkEndIndex !== -1) {
-              contentAfterThink = messageContent.slice(thinkEndIndex + 8).trim();
-            }
   
             // Notify all registered message handlers.
             messageHandlers.forEach((handler) => {
               try {
-                handler(contentAfterThink);
+                handler(messageContent);
               } catch (handlerError) {
                 console.error("Error executing handler:", handlerError);
               }
