@@ -14,7 +14,7 @@ import threading
 from tkinter import filedialog
 
 from ModifiedNotebook import Notebook
-from nltk.stem import PorterStemmer
+
 from textblob import TextBlob
 text_rank = TextRank4Keyword()  # Initialize TextRank globally
 text_rank.analyze("Removing cold start", window=5, lower=True) #Here to reduce cold start
@@ -384,13 +384,6 @@ def load_conversation():
         glossary = {}
         update_clustering(glossary_tree, 0.0, glossary)
         pass
-    
-porter_stemmer = PorterStemmer()
-porter_stemmer.stem("Heatup")
-def Null(word):
-    return word
-porter_stemmer.stem = Null
-
 
 # Optimized function to search for a query within a message block using set operations
 def find_query_in_message_block(query_set, message_block):
@@ -624,7 +617,7 @@ def summarize_context_chain():
             ChatGPT.send_message(
                 "sendShubhan",
                 "Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings:" + context_chain_text,
-                api_key="gsk_key"
+                api_key="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"
             )
         else:
             print(f"Found in results {search}")
