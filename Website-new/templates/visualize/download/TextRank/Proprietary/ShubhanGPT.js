@@ -59,9 +59,11 @@ export function initializeAPI(apiKey) {
           headers,
           body
         });
-  
+        
+        // Check if the response is not ok and throw an error with detailed info
         if (!response.ok) {
-          throw new Error(`POST ${url} ${response.status} (${response.statusText})`);
+            const errorDetails = `POST ${url} ${response.status} (${response.statusText})`;
+            throw new Error(errorDetails);  // Throwing detailed error
         }
   
         // Parse the JSON response from the API
