@@ -62,10 +62,10 @@ export function initializeAPI(apiKey) {
   
         if (!response.ok) {
 
-            const errorData = await response.json();
+            const error = await response.json();
 
             if (response.status === 429) {
-                alert(`Error: ${url} too many requests`);
+                alert(`Error: ${error.type} ${error.message}`);
               }
               console.log(response.message,errorData)
           throw new Error(`POST ${url} ${response.status} (${response.statusText})`);
