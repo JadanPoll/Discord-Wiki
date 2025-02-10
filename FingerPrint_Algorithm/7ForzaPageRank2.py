@@ -624,7 +624,7 @@ def summarize_context_chain():
             ChatGPT.send_message(
                 "sendShubhan",
                 "Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings:" + context_chain_text,
-                api_key="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"
+                api_key="gsk_key"
             )
         else:
             print(f"Found in results {search}")
