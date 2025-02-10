@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 import re
 import cssutils
-
+import markdown
 class ConvertLatex:
     def __init__(self):
         # Extended LaTeX-to-HTML mapping for both basic symbols, complex structures, and calculus-related notations
@@ -415,7 +415,15 @@ class HTMLGenerator:
 
 
 
-    def generate_and_display_html(self, prompt, contents, theme="default", use_backgrounding=True):
+    def markdown_to_html(self,markdown_content):
+        """Convert Markdown to HTML."""
+        return markdown.markdown(markdown_content)
+
+    def generate_and_display_html(self, prompt, contents, theme="default", use_backgrounding=True,markdown=False):
+        if markdown:
+
+            contents = self.markdown_to_html(contents)
         html_response = self.respond_with_html(prompt, contents, theme, use_backgrounding)
         #self.display_html(html_response)
+
         return html_response

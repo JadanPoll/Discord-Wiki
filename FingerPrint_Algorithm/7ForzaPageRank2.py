@@ -622,15 +622,14 @@ def summarize_context_chain():
         search = f"{glossary_tree.item(glossary_tree.selection())['text']}_{conversation_spinbox.get()}"
         if search not in summary_array_html_results:
             ChatGPT.send_message(
-                "sendGPT",
+                "sendShubhan",
                 "Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10) . If possible break it into subheadings:" + context_chain_text,
-                learn=True
+                api_key="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"
             )
         else:
             print(f"Found in results {search}")
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
-
 
 
 
@@ -684,7 +683,7 @@ def display_summary_popup(page_name = None,page_content = None):
 
             new_html_result = wrap_all_dmessages_with_hoverable(new_html_result)
 
-            new_html_result = generator.generate_and_display_html("", new_html_result, theme="ocean")
+            new_html_result = generator.generate_and_display_html("", new_html_result, theme="ocean",markdown=True)
             
             selected_frame.load_html(new_html_result)  # Update the HtmlFrame with the new HTML content
 
@@ -730,7 +729,7 @@ def display_summary_popup(page_name = None,page_content = None):
         summary_display.bind("<Button-1>", lambda event, frame=summary_display:  doubleclick(frame),add=True)
         
         page_content = wrap_all_dmessages_with_hoverable(page_content)
-        page_content = generator.generate_and_display_html("", page_content, theme="ocean")
+        page_content = generator.generate_and_display_html("", page_content, theme="ocean",markdown=True)
         summary_display.load_html(page_content)
         summary_display.hidden_index = 0
         # Add the new page to the notebook
@@ -802,7 +801,7 @@ def display_summary_popup(page_name = None,page_content = None):
                 summary_display.hidden_index = 0
 
                 summaries = wrap_all_dmessages_with_hoverable(summaries)
-                summaries = generator.generate_and_display_html("", summaries, theme="ocean")
+                summaries = generator.generate_and_display_html("", summaries, theme="ocean",markdown=True)
                 
                 summary_display.load_html(summaries)
 
@@ -875,7 +874,7 @@ def handle_incoming_summary_response(summary):
         if "initial" not in handle_incoming_summary_response.__dict__:
             handle_incoming_summary_response.initial = current_page
             # Generate the HTML result
-            html_result = generator.generate_and_display_html("", summary, theme="ocean")
+            html_result = generator.generate_and_display_html("", summary, theme="ocean",markdown=True)
             app_main_window.after(0, display_summary_popup,selected_item, html_result)
 
         summary_array_html_results[f"{selected_item}_{conversation_spinbox.get()}"] = summary
