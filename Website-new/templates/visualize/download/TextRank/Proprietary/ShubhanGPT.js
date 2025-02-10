@@ -59,11 +59,17 @@ export function initializeAPI(apiKey) {
           headers,
           body
         });
-  
+      
         if (!response.ok) {
           throw new Error(`Network response was not ok: ${response.statusText}`);
         }
-  
+      
+        // Handle the successful response here
+      } catch (error) {
+        // Add the alert here for any errors
+        alert(`Error encountered: ${error.message}`);
+      }
+      
         // Parse the JSON response from the API
         const chatCompletion = await response.json();
   
