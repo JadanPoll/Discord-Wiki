@@ -263,7 +263,7 @@ def load_demo_titles():
         # Directory containing JSON files
         directory = 'static/demo/glossary'
         demo_titles = {}
-
+        print(os.listdir(directory))
         # Iterate through all JSON files in the directory
         for filename in os.listdir(directory):
             if filename.endswith('.json'):
@@ -323,6 +323,7 @@ def save_glossary():
         return jsonify({"message": f"Glossary for {filename} saved successfully!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/saverelationships', methods=['POST'])
 def save_relationships():
