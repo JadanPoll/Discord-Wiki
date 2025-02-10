@@ -254,36 +254,37 @@ def prop_summary():
 
 @app.before_request
 def load_demo_titles():
-    # The following line will remove this handler, making it
-    # only run on the first request
-    app.before_request_funcs[None].remove(load_demo_titles)
-    print(os.getcwd())
-    try:
+    # Check if the flag 'first_request_done' exists in the session
+    if 'first_request_done' not in session:
+        print(os.getcwd())
+        try:
+            # Directory containing JSON files
+            directory = 'static/demo/glossary'
+            demo_titles = {}
+            print(os.listdir(directory))
+            
+            # Iterate through all JSON files in the directory
+            for filename in os.listdir(directory):
+                if filename.endswith('.json'):
+                    filepath = os.path.join(directory, filename)
+                    with open(filepath, 'r') as file:
+                        # Load JSON content
+                        demo_titles[filename] = json.load(file)
 
-        # Directory containing JSON files
-        directory = 'static/demo/glossary'
-        demo_titles = {}
-        print(os.listdir(directory))
-        # Iterate through all JSON files in the directory
-        for filename in os.listdir(directory):
-            if filename.endswith('.json'):
-                filepath = os.path.join(directory, filename)
-                with open(filepath, 'r') as file:
-                    # Load JSON content
-                    demo_titles[filename] = json.load(file)
+            # Store the demo titles in session
+            session['DemoTitlesGlossary'] = demo_titles
+            session["glossary_exists"] = True
+            print(f"Loaded demo titles: {list(demo_titles.keys())}")
 
-        # Store in session
-        session['DemoTitlesGlossary'] = demo_titles
-        session["glossary_exists"]=True
-        print(f"Loaded demo titles: {list(demo_titles.keys())}")
-    except FileNotFoundError:
-        print(f"Error: Directory '{directory}' not found.")
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON: {e}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-
-
+            # Set the session flag to indicate the first request has been processed
+            session['first_request_done'] = True
+            
+        except FileNotFoundError:
+            print(f"Error: Directory '{directory}' not found.")
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
 
 @app.route('/saveglobalkeywordglossary', methods=['POST'])
 def save_global_glossary():
