@@ -61,7 +61,7 @@ export function initializeAPI(apiKey) {
         });
   
         if (!response.ok) {
-          throw new Error(`Network response was not ok: ${response.statusText}`);
+          throw new Error(`POST ${url} ${response.status} (${response.statusText})`);
         }
   
         // Parse the JSON response from the API
