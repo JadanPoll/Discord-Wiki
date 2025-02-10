@@ -64,6 +64,7 @@ export function initializeAPI(apiKey) {
             if (response.status === 429) {
                 alert(`Error: ${url} too many requests`);
               }
+              console.log(response.message)
           throw new Error(`POST ${url} ${response.status} (${response.statusText})`);
         }
   
