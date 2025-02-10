@@ -11,4 +11,4 @@ cssutils
 textrank4zh
 kneed
 nltk
-txtblob
+textblob
