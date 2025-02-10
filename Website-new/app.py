@@ -96,7 +96,7 @@ def cors_bypass(target_url):
 @app.route("/")
 def main():
     # check if DB is available
-    if 'db' not in session:
+    if 'db' not in session and 'glossary_exists' not in session:
         return render_template('frontpage_nodb.html',include_search=False)
 
     return render_template('frontpage.html',include_search=True)
@@ -123,8 +123,8 @@ def titlescreen():
         return "Filename parameter is missing.", 400
 
 
-DATA_DIRECTORY = 'static/demo/data'
-@app.route('/data/<filename>', methods=['GET'])
+DATA_DIRECTORY = 'static/demo/messages'
+@app.route('/messages/<filename>', methods=['GET'])
 def get_file_data(filename):
     """
     Serve the content of a JSON file by filename from the DATA_DIRECTORY.
@@ -261,7 +261,7 @@ def load_demo_titles():
     try:
 
         # Directory containing JSON files
-        directory = 'static/demo/'
+        directory = 'static/demo/glossary'
         demo_titles = {}
 
         # Iterate through all JSON files in the directory
@@ -274,6 +274,7 @@ def load_demo_titles():
 
         # Store in session
         session['DemoTitlesGlossary'] = demo_titles
+        session["glossary_exists"]=True
         print(f"Loaded demo titles: {list(demo_titles.keys())}")
     except FileNotFoundError:
         print(f"Error: Directory '{directory}' not found.")

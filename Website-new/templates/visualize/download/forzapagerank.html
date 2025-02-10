@@ -120,7 +120,7 @@
                     width: 500,
                     searchEnabled: true,
                     searchMode: this.searchMode,
-                    onItemClick: (e) => this.displaySelectedContent(e.itemData.text)
+                    onItemClick: (e) => this.displaySelectedContent(e.itemData.text,0)
                 });
             }
 
@@ -129,9 +129,9 @@
                 $("#treeview").dxTreeView("instance").option("searchMode", mode);
             }
 
-            displaySelectedContent(itemName) {
+            displaySelectedContent(itemName,index) {
                 const contentDisplay = $("#content-display");
-                const contentIndexArray = glossary[itemName]?.[0] || [];
+                const contentIndexArray = glossary[itemName]?.[index] || [];
 
                 if (contentIndexArray.length > 0) {
                     const content = contentIndexArray.map(ind => `<p><strong> DMessage ${ind}:</strong> ${conversation_block[ind]}</p>`).join('');
@@ -361,7 +361,7 @@
                     const isRelationshipsEmpty = !relationshipsData || Object.keys(relationshipsData).length === 0;
                     
                     const reader = new FileReader();
-                    if ( true || isRelationshipsEmpty) {
+                    if ( isGlossaryEmpty || isRelationshipsEmpty) {
                         // If data from endpoints is empty, proceed to loadConversation
                         reader.onload = () => loadConversation(reader.result, filename);
                     } else {
