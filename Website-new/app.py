@@ -96,8 +96,8 @@ def cors_bypass(target_url):
 @app.route("/")
 def main():
     # check if DB is available
-    if 'db' not in session and 'glossary_exists' not in session:
-        return render_template('frontpage_nodb.html',include_search=False)
+    #if 'db' not in session and 'glossary_exists' not in session:
+    #    return render_template('frontpage_nodb.html',include_search=False)
 
     return render_template('frontpage.html',include_search=True)
 
