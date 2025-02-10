@@ -12,7 +12,7 @@ from PIL import Image
 import functools
 from halo import Halo
 import time
-
+from groq import Groq
 def halo_spinner(text="Loading", spinner="dots", color="cyan"):
     def decorator(func):
         @functools.wraps(func)
@@ -101,18 +101,45 @@ class WebSocketClientApp:
         self.callbacks.append(callback)
 
     @halo_spinner(text="Sending Message", spinner="dots12", color="magenta")
-    def send_message(self, message_type, input_data, learn=False):
+    def send_message(self, message_type, input_data,api_key = None):
         """Send a message with optional learning prompt."""
-        if learn:
-            input_data =  input_data+PROMPT_JSON
 
         if not input_data:
             return
 
+        if message_type == "sendShubhan":
+            if not hasattr(self, 'groq_client'):
+                self.groq_client = Groq(api_key=api_key)
+
+
+            asyncio.run_coroutine_threadsafe(self.send_groq(input_data),self.loop)
+            return
         caesar_shifted_data = self.caesar_shift(input_data, 7)
         message = json.dumps({"type": message_type, "data": caesar_shifted_data})
         print("Message sent!",message)
         asyncio.run_coroutine_threadsafe(self.websocket_client.send(message), self.loop)
+    
+
+    async def send_groq(self, chain_msg):
+        """Send message to Groq and handle the response asynchronously."""
+        
+        # Make an asynchronous request to the Groq chat completion API
+        chat_completion = self.groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Summarize this conversation. Don't include in summary information that doesn't relate to the topic specified in the conversation chain. "
+                               f"Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10). "
+                               f"If possible break it into subheadings: {chain_msg}"
+                }
+            ],
+            model="llama-3.3-70b-versatile",
+        )
+        content = chat_completion.choices[0].message.content
+        print(content)
+        # Once the chat completion is done, call handle_message with the result
+        self.handle_message(json.dumps({"content":content}) )
+
 
     @halo_spinner(text="Receiving Message", spinner="dots12", color="magenta")
     def handle_message(self, message):
