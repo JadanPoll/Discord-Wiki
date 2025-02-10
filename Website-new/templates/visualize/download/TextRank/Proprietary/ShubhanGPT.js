@@ -45,7 +45,8 @@ export function initializeAPI(apiKey) {
             content: `${chain_msg}`
           }
         ],
-        model: "llama-3.3-70b-versatile"
+        //The favourite but rate limiting issues -> model: "llama-3.3-70b-versatile"
+        model: "deepseek-r1-distill-llama-70b"
       });
   
       const headers = {
@@ -74,18 +75,31 @@ export function initializeAPI(apiKey) {
         // Parse the JSON response from the API
         const chatCompletion = await response.json();
   
+
         // Extract the message content (adjust path if needed)
         const messageContent = chatCompletion.choices[0].message.content;
-  
+
+        // Declare contentAfterThink outside the if block to ensure it's accessible later
+        let contentAfterThink = "";
+
+        // Find the position of the closing </think> tag
+        const thinkEndIndex = messageContent.indexOf("</think>");
+
+        // Check if </think> tag exists in the content
+        if (thinkEndIndex !== -1) {
+        // Extract content after the </think> tag (add 8 to skip over "</think>")
+        contentAfterThink = messageContent.slice(thinkEndIndex + 8).trim();
+        }
+
         // Call each registered message handler with the message content
         messageHandlers.forEach(handler => {
-          try {
-            handler(messageContent);
-          } catch (handlerError) {
+        try {
+            handler(contentAfterThink);
+        } catch (handlerError) {
             console.error("Error executing handler:", handlerError);
-          }
+        }
         });
-  
+
         // Log the type and content for debugging purposes
   
       } catch (error) {
