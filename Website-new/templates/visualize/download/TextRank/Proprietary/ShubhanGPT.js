@@ -59,11 +59,12 @@ export function initializeAPI(apiKey) {
           headers,
           body
         });
-        
-        // Check if the response is not ok and throw an error with detailed info
+  
         if (!response.ok) {
-            const errorDetails = `POST ${url} ${response.status} (${response.statusText})`;
-            throw new Error(errorDetails);  // Throwing detailed error
+            if (response.status === 429) {
+                alert(`Error: ${url} too many requests`);
+              }
+          throw new Error(`POST ${url} ${response.status} (${response.statusText})`);
         }
   
         // Parse the JSON response from the API
