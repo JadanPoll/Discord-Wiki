@@ -65,7 +65,7 @@ export function initializeAPI(apiKey) {
             const error = await response.json();
 
             if (response.status === 429) {
-                alert(`Error: ${error.type} ${error.message}`);
+                alert(`Error: ${error.error.type} ${error.error.message}`);
               }
               console.log(response.message,error)
           throw new Error(`POST ${url} ${response.status} (${response.statusText})`);
