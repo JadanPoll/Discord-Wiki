@@ -319,23 +319,40 @@
 
 
 
-        async saveMessagesToFile(messages) {
-            // Reverse the order of the messages
-            console.log(messages);
+        async saveMessagesToFile(channelId, messages) {
+            // ask for nickname
+            let nickname = ""
+
+            while (true)
+            {
+                nickname = prompt("What name would you like to give to this file? You may only use alphanumerics and underbars(_).")
+                if (/^\w*$/.test(nickname)) break;
+                alert("You may only use alphanumerics and underbars(_).");
+            }
+            
+            if (nickname === null) nickname = "" //empty name denotes using file name, but the server will do that thing
+
+            // determine file name
+            let filename = `${channelId}_${Date.now()}`
+            console.log(`saving as ${filename}`)
 
             // SAVE TO SESSION
             let response = await fetch("/savedata", {
             method: "POST",
             body: JSON.stringify({
+                nickname: nickname,
+                filename: filename,
                 messages: messages
             }),
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
             }
             });
-            await response.text();
+            await response.json();
 
+            // todo: check whether response is OK
             alert("Data loaded. You will be redirected to the main page.")
+
             // redirect to main page
             document.location.href="/";
 
@@ -610,7 +627,7 @@
 
         if (messages.length > 0) {
 
-            discordAPI.saveMessagesToFile(messages);
+            discordAPI.saveMessagesToFile(channelId, messages);
             downloadBtn.disabled = true;
             downloadBtn.style.backgroundColor = 'gray';
 

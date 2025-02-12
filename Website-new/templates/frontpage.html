@@ -3,7 +3,6 @@
 {% block title %}FrontPage{% endblock %}
 
 {% block head %}
-
 {% endblock %}
 
 {% block body %}
@@ -15,6 +14,9 @@
         <ul id="searchSuggestions" class="list-group position-absolute w-100"
             style="top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;"></ul>
     </form>
+    <div class="mt-2">
+        <a href="/visualize/live_server_update">Add another file</a> | <a href="#">Swtich active file (unimplemented)</a>
+    </div>
 </div>
 <h1>
     <strong style="color: pink;">(੭｡╹▿╹｡)੭</strong>
@@ -22,6 +24,8 @@
 <h2>
 <pre>
 Welcome to DSearch!
+
+Active file: {{activefile}}
 </pre>
 </h2>
 

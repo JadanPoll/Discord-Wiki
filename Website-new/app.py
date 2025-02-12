@@ -99,10 +99,10 @@ def cors_bypass(target_url):
 @app.route("/")
 def main():
     # check if DB is available
-    #if 'db' not in session and 'glossary_exists' not in session:
-    #    return render_template('frontpage_nodb.html',include_search=False)
+    if 'db' not in session and 'glossary_exists' not in session:
+        return render_template('frontpage_nodb.html',include_search=False)
 
-    return render_template('frontpage.html')
+    return render_template('frontpage.html', activefile=session["db"])
 
 @app.route('/visualize')
 def visualize():
@@ -123,42 +123,16 @@ def titlescreen():
         # Pass the filename to the template
         return render_template('visualize/servertitlescreen.html', filename=filename, group='dev')
     else:
-        return "Filename parameter is missing.", 400
+        # See if we can redirect to active file
+        if "db" in session:
+            return redirect(f"/servertitlescreen?filename={session['db']}")
 
-
-DATA_DIRECTORY = 'static/demo/messages'
-@app.route('/messages/<filename>', methods=['GET'])
-def get_file_data(filename):
-    """
-    Serve the content of a JSON file by filename from the DATA_DIRECTORY.
-    """
-    try:
-        print("HereA")
-        # Ensure the file exists
-        filepath = os.path.join(DATA_DIRECTORY, f"{filename}")
-        print(filepath,filename)
-        if not os.path.isfile(filepath):
-            print("DOn't exits)")
-            return jsonify({"error": f"File {filename} not found"}), 404
-
-
-        # Send the file content
-        return send_from_directory(DATA_DIRECTORY, f"{filename}", as_attachment=False)
-    except Exception as e:
-        return
+        return "Filename parameter is missing and active DB file is not found.", 400
 
 @app.route("/visualize/live_server_update")
 def live_update():
     #return redirect('/login')
     return render_template('visualize/download/live_server_update.html', group='dev')
-
-# helper for live_server_update, puts data into session
-@app.route("/savedata", methods=["POST"])
-def live_update_save():
-    # todo: guard against putting garbage data (or is it okay b/c it's session?)
-    # messages are found in request.json["messages"]
-    session["db"] = request.json["messages"]
-    return ""
 
 @app.route("/visualize/forzapagerank")
 def pagerank():
@@ -289,6 +263,62 @@ def load_demo_titles():
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
 
+# helper for live_server_update, puts data into session
+@app.route("/savedata", methods=["POST"])
+def live_update_save():
+    # todo: guard against putting garbage data (or is it okay b/c it's session?)
+    # session "messages_<filename>" stores JSON of raw data
+    # session "db" stores the JSON of active file
+    # session "messages_nicknames" is a dict from filename -> nickname
+    try:
+        assert(request.json["filename"] != "")
+        assert(request.json["messages"] != "")
+        session[f"messages_{request.json['filename']}"] = request.json["messages"]
+        session["db"] = request.json["filename"]
+
+        if "dblist" in session:
+            session["dblist"].append(str(request.json['filename']))
+        else:
+            session["dblist"] = [str(request.json['filename'])]
+
+        if "messages_nicknames" not in session: session["messages_nicknames"] = {} #init'ise dict
+        if request.json['nickname'] == "":
+            # fallback
+            session["messages_nicknames"][str(request.json['filename'])] = str(request.json['filename'])
+        else:
+            session["messages_nicknames"][str(request.json['filename'])] = str(request.json['nickname'])
+
+        session.modified = True
+        return jsonify({"ok": True})
+    except:
+        return jsonify({"ok": False})
+
+DATA_DIRECTORY = 'static/demo/messages'
+@app.route('/messages/<filename>', methods=['GET'])
+def get_file_data(filename):
+    """
+    Serve the content of a conversation JSON file saved to session.
+    If not found, attempt to serve the content of a JSON file by filename from the DATA_DIRECTORY.
+    """
+    try:
+        # ATTEMPT TO FIND IT FROM SESSION
+        if f"messages_{filename}" in session:
+            return jsonify(session[f"messages_{filename}"])
+
+        # OTHERWISE, FALLBACK TO LOCAL
+        # Ensure the file exists
+        filepath = os.path.join(DATA_DIRECTORY, f"{filename}")
+        print(filepath,filename)
+        if not os.path.isfile(filepath):
+            print("DOn't exits)")
+            return jsonify({"error": f"File {filename} not found"}), 404
+
+
+        # Send the file content
+        return send_from_directory(DATA_DIRECTORY, f"{filename}", as_attachment=False)
+    except Exception as e:
+        return
+
 @app.route('/saveglobalkeywordglossary', methods=['POST'])
 def save_global_glossary():
     try:
@@ -405,6 +435,17 @@ def content():
 @app.route('/character')
 def character():
     return render_template('character/content.html', group='char')
+
+
+
+# helper function to determine what to show as active db file. For use in main.html.
+def determineDBName():
+    if "db" not in session: return ""
+    if "messages_nicknames" not in session or session["db"] not in session["messages_nicknames"]: return session["db"]
+    return session["messages_nicknames"][session["db"]]
+
+app.jinja_env.globals.update(determineDBName=determineDBName)
+
 
 print("Yes we are running your app.py")
 
