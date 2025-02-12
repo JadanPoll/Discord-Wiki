@@ -20,11 +20,14 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_FILE_DIR'] = './flask_session'
 Session(app)
 
+os.chdir(os.path.dirname(__file__))
 
 # Define configuration variables
 GIT_SCRIPT = "../../git.sh"
 PORT = 3000
 SECRET = os.getenv('SECRET')  # GitHub webhook secret from environment variables
+
+
 
 
 
@@ -99,7 +102,7 @@ def main():
     #if 'db' not in session and 'glossary_exists' not in session:
     #    return render_template('frontpage_nodb.html',include_search=False)
 
-    return render_template('frontpage.html',include_search=True)
+    return render_template('frontpage.html')
 
 @app.route('/visualize')
 def visualize():

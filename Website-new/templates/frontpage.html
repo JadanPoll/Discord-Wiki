@@ -7,6 +7,15 @@
 {% endblock %}
 
 {% block body %}
+<!-- Search bar centered on the page -->
+<div class="search-container">
+    <form class="d-flex position-relative">
+        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" id="searchInput" autocomplete="off">
+        <button class="btn btn-outline-success" type="submit">Search</button>
+        <ul id="searchSuggestions" class="list-group position-absolute w-100"
+            style="top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;"></ul>
+    </form>
+</div>
 <h1>
     <strong style="color: pink;">(੭｡╹▿╹｡)੭</strong>
 </h1>
