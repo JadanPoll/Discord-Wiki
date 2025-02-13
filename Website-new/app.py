@@ -222,6 +222,7 @@ def prop_summary():
     return send_from_directory('templates/visualize/download/TextRank/Proprietary', 'ShubhanGPT.js')
 
 
+# TODO: Move all the above js's into dedicated /js directory
 
 
 
@@ -229,6 +230,7 @@ def prop_summary():
 
 
 
+"""
 @app.before_request
 def load_demo_titles():
     # Check if the flag 'first_request_done' exists in the session
@@ -262,6 +264,7 @@ def load_demo_titles():
             print(f"Error decoding JSON: {e}")
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
+"""
 
 # helper for live_server_update, puts data into session
 @app.route("/savedata", methods=["POST"])

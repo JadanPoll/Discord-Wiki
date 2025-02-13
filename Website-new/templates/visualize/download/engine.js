@@ -65,7 +65,7 @@ function extractTopics(text, visualize = false) {
 
 
 
-
+console.log("HI");
 
 
 let FILEPATH = null;

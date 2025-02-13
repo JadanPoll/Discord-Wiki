@@ -205,9 +205,116 @@
 
 
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn3.devexpress.com/jslib/21.1.4/js/dx.all.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.6/lib/marked.umd.js"></script>
+<script type="module" src="/discord-stopword-en.js"></script>
+<script type="module" src="/engine.js"></script>
 
-<script>
+<script type="module">
     // This code is responsible for extracting messages from the discord.
+
+    // REGION analyse messages & gen glossary
+
+    import { loadConversationEngine, generateAndDisplayAllRandomContextChain,calculateGlossary, calculateDisplayGlossary } from '/engine.js';
+
+    async function loadConversation(fileContent, filename) {
+        try {
+            // Load the conversation blocks and generate context chains
+            const { conversationBlocks } = loadConversationEngine(fileContent);
+            const { dictionaryGlossaryTopicAndLinkedConversationGroups } = generateAndDisplayAllRandomContextChain();
+
+    
+            // Store glossary and conversation blocks in global variables
+            window.glossary = dictionaryGlossaryTopicAndLinkedConversationGroups;
+            window.conversation_block = conversationBlocks;
+            console.log(window.glossary)
+            // POST glossary to the /saveglossary endpoint
+            let saveglossaryres = await fetch('/saveglossary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    filename: filename,
+                    glossary: window.glossary
+                })
+            })
+
+            if ("error" in saveglossaryres)
+            {
+                throw new Error(saveglossaryres["error"])
+            }
+
+
+            let saveglobalglossaryres = await fetch('/saveglobalkeywordglossary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    filename: filename,
+                    glossary: Object.keys(glossary)
+                })
+            })
+            
+            if ("error" in saveglobalglossaryres)
+            {
+                throw new Error(saveglobalglossaryres["error"])
+            }
+
+            async function calculateTreeviewHierachy(filename) {
+            try {
+                // Step 1: Offload the long-running calculateDisplayGlossary() to a separate function to avoid blocking
+                const { independentGroups, hierarchicalRelationships } = await offloadGlossaryCalculation();
+
+                // Step 2: POST hierarchical relationships to the /saverelationships endpoint
+                const response = await fetch('/saverelationships', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        hierarchicalRelationships: hierarchicalRelationships
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Hierarchical relationships saved successfully:', data);
+
+            } catch (error) {
+                console.error('Error saving hierarchical relationships:', error);
+            }
+        }
+
+        // Function to offload the glossary calculation and return a promise
+        function offloadGlossaryCalculation() {
+            return new Promise((resolve, reject) => {
+                // Use setTimeout to allow event loop to process other tasks
+                setTimeout(() => {
+                    try {
+                        const { independentGroups, hierarchicalRelationships } = calculateDisplayGlossary();
+                        resolve({ independentGroups, hierarchicalRelationships });
+                    } catch (error) {
+                        reject(error); // Handle any error from the glossary calculation
+                    }
+                }, 0); // This will make sure the task is offloaded to the next event loop tick
+            });
+        }
+
+        // Usage
+        await calculateTreeviewHierachy(filename);
+
+        // DONE.
+        return {"status": true, "message": "Success"}
+        
+        } catch (error) {
+            return {"status": false, "message": error}
+        }
+    }
+
+    // REGION extract messages
     var input_url = null;
     class DiscordAPI {
         constructor(authToken) {
@@ -349,12 +456,23 @@
             }
             });
             await response.json();
-
             // todo: check whether response is OK
-            alert("Data loaded. You will be redirected to the main page.")
 
-            // redirect to main page
-            document.location.href="/";
+            console.log("Analysing data...");
+            
+            // for some reason loadConversation() complains if messages isn't JSON.
+            let analysisRes = await loadConversation(JSON.stringify(messages), filename);
+            if (analysisRes.status == true)
+            {
+                alert("Data loaded. You will be redirected to the main page.")
+
+                // redirect to main page
+                document.location.href="/";
+            }
+            else
+            {
+                alert("Error:" + analysisRes.message);
+            }
 
             /*
             // Serialize the entire array of reversed messages as a JSON string
@@ -388,11 +506,6 @@
 
     }
 
-</script>
-
-
-
-<script>
     const SCRIPT_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.0/pako.js';
     const WS_URL = 'wss://gateway.discord.gg/?encoding=json&v=9&compress=zlib-stream';
 
