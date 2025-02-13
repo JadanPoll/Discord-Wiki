@@ -23,6 +23,7 @@
         flex-grow: 1;
     }
     #treeview-container {
+        min-width: 250px;
         width: 320px;
         padding: 20px;
         border-right: 2px solid #ddd;
@@ -235,6 +236,7 @@
 
                 // Step 4: Update the content display
                 $("#content-display").html("Conversation loaded. Select an item from the treeview.");
+
             } catch (error) {
                 console.error('Error saving hierarchical relationships:', error);
             }
@@ -283,6 +285,18 @@
 
             // Update the content display
             $("#content-display").html("Conversation loaded. Select an item from the treeview.");
+
+            // if 'keyword' query is provided, (attempt to) load that
+
+            // get query string
+            //https://stackoverflow.com/questions/7731778/get-query-string-parameters-url-values-with-jquery-javascript-querystring
+            var urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has("keyword")) return; //abort
+            let keyword = urlParams.get('keyword')
+
+            console.log("Loading predefined keyword: " + keyword)
+
+            groupHierarchy.displaySelectedContent(keyword)
         } catch (error) {
             console.error("Error loading conversation:", error);
             $("#content-display").html("Failed to load conversation.");
@@ -368,24 +382,14 @@ $(document).ready(function () {
             console.log("Loaded", Object.keys(glossaryData));
             console.log("Loaded", Object.keys(relationshipsData));
 
-            // Check if data from both endpoints is empty
-            const isGlossaryEmpty = !glossaryData || Object.keys(glossaryData).length === 0;
-            const isRelationshipsEmpty = !relationshipsData || Object.keys(relationshipsData).length === 0;
+            // NOTE [20250213] removed uncached route because all data are cached upon DL now.
 
-            if (isGlossaryEmpty || isRelationshipsEmpty) {
-                console.log("Cache data is empty. Loading conversation...");
-                // Load conversation without cached data
-                const response = await fetch(`/messages/${filename}`);
-                const fileData = await response.text();
-                loadConversation(fileData, filename);
-            } else {
-                console.log("Loading cached conversation...");
-                const response = await fetch(`/messages/${filename}`);
-                const fileData = await response.text();
+            console.log("Loading cached conversation...");
+            const response = await fetch(`/messages/${filename}`);
+            const fileData = await response.text();
 
-                // Load cached conversation
-                loadCachedConversation(fileData, filename, glossaryData["glossary"], relationshipsData["hierarchicalRelationships"]);
-            }
+            // Load cached conversation
+            loadCachedConversation(fileData, filename, glossaryData["glossary"], relationshipsData["hierarchicalRelationships"]);
         } catch (error) {
             console.error("Error loading data:", error);
             $("#content-display").html("Failed to load conversation. Please try again.");

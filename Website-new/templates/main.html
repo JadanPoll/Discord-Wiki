@@ -50,123 +50,6 @@
     {% block head %}{% endblock %}
 </head>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const searchInput = document.querySelector('#searchInput');
-        const suggestionsContainer = document.querySelector('#searchSuggestions');
-
-        let glossaryData = {};
-
-
-    // Fetch global keys from the server
-    fetch('/getglobalglossary')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            glossaryData = data; // Store glossary data
-
-            // Check if glossaryData is empty
-            if (!glossaryData || Object.keys(glossaryData).length === 0) {
-                // Fetch demo titles if glossaryData is empty
-                return fetch('/getDemoTitles')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(demoData => {
-                        glossaryData = demoData; // Store demo titles
-                    });
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching glossary or demo titles:', error);
-        });
-
-        // Search for keys matching the user input and display suggestions
-        searchInput.addEventListener('input', function () {
-            const searchTerm = searchInput.value.toLowerCase();
-            suggestionsContainer.innerHTML = ''; // Clear previous suggestions
-
-            if (!searchTerm) return; // If the input is empty, don't show suggestions
-
-            const results = [];
-
-            for (const filename in glossaryData) {
-                const keywords = glossaryData[filename];
-                keywords.forEach(keyword => {
-                    if (keyword.toLowerCase().includes(searchTerm)) {
-                        results.push({ keyword, filename });
-                    }
-                });
-            }
-
-            if (results.length) {
-                // Display the results as suggestions
-                results.forEach(result => {
-                    const listItem = document.createElement('li');
-                    listItem.classList.add('list-group-item');
-                    listItem.classList.add('suggestable')
-                    listItem.textContent = result.keyword;
-
-                    listItem.addEventListener('click', function () {
-                        alert(`Keyword "${result.keyword}" can be found in the file: ${result.filename}`);
-                        
-
-
-                        // Update the URL without reloading the page
-                        history.pushState({ filename: result.filename }, '', `/servertitlescreen?filename=${encodeURIComponent(result.filename)}`);
-
-                        // Fetch the new content dynamically
-
-                        fetch(`/servertitlescreen?filename=${encodeURIComponent(result.filename)}`)
-                            .then(response => response.text())
-                            .then(html => {
-                                const container = document.querySelector('#main-content');
-                                container.innerHTML = html;
-
-                                // Execute <script> tags, including those that import other scripts
-                                const scripts = container.querySelectorAll('script');
-                                scripts.forEach(script => {
-                                    const newScript = document.createElement('script');
-                                    if (script.src) {
-                                        // Copy the src and type attributes
-                                        newScript.src = script.src;
-                                        newScript.type = script.type || 'text/javascript';
-                                    } else {
-                                        // Inline scripts: Copy content and set type if it's a module
-                                        newScript.textContent = script.textContent;
-                                        if (script.type === 'module') {
-                                            newScript.type = 'module';
-                                        }
-                                    }
-                                    document.body.appendChild(newScript); // Append the new script to the DOM
-                                });
-                            })
-                            .catch(error => console.error('Error loading the page:', error));
-
-                        searchInput.value = result.keyword; // Optionally set the input to the clicked suggestion
-                        suggestionsContainer.innerHTML = ''; // Clear suggestions after selecting one
-                   
-                    });
-
-                    suggestionsContainer.appendChild(listItem);
-                });
-            } else {
-                const noResultItem = document.createElement('li');
-                noResultItem.classList.add('list-group-item', 'text-muted');
-                noResultItem.textContent = 'No matching keywords';
-                suggestionsContainer.appendChild(noResultItem);
-            }
-        });
-    });
-</script>
-
 <body>
 
 
@@ -183,7 +66,13 @@
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item">
                         <a class="nav-link disabled" aria-disabled="true">{{determineDBName()}}</a>
-                    </li>              
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{'active' if group == 'server'}}" id="char-link" href="/servertitlescreen">Analyse</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{'active' if group == 'files'}}" id="char-link" href="/listfiles">Manage files</a>
+                    </li>         
                     <li class="nav-item">
                         <a class="nav-link {{'active' if group == 'char'}}" id="char-link" href="/character">Character</a>
                     </li>

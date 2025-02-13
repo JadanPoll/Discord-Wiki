@@ -9,6 +9,8 @@ from flask_session import Session
 import json
 import os
 from flask import Flask, redirect, request, session, url_for, jsonify
+import datetime
+import random
 
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
 app.secret_key = "DSearchPokémon"
@@ -104,6 +106,13 @@ def main():
 
     return render_template('frontpage.html', activefile=session["db"])
 
+
+# AUX to /, probably just i'm feeling lucky
+@app.route("/bored")
+def bored():
+    res = random.choice(list(session[f"glossary_{session['db']}"].keys()))
+    return redirect(f"/servertitlescreen?filename={session['db']}&keyword={res}")
+
 @app.route('/visualize')
 def visualize():
     return render_template('visualize/index.html', group='dev')
@@ -121,7 +130,7 @@ def titlescreen():
     
     if filename:
         # Pass the filename to the template
-        return render_template('visualize/servertitlescreen.html', filename=filename, group='dev')
+        return render_template('visualize/servertitlescreen.html', filename=filename, group='server')
     else:
         # See if we can redirect to active file
         if "db" in session:
@@ -139,10 +148,88 @@ def pagerank():
     return render_template('visualize/download/forzapagerank.html', group='dev')
 
 
+@app.route("/listfiles")
+def listfiles():
+    # prepare data, i.e. a single array containing all the req'd info
+    res = []
 
+    # traverse dblist in REVERSE order; this in effect sorts in recent
+    if "dblist" in session:
+        id: str # does nothing tbh, just easy linting
+        for id in session["dblist"][::-1]:
+            # calc dl'd datetime using epoch
+            # https://stackoverflow.com/questions/26276906/python-convert-seconds-from-epoch-time-into-human-readable-time
+            createdAt = ""
+            try:
+                if "_" in id: # if it doesnt exist theres either error or we're using old format...
+                    epoch = id.split("_")[1]
+                    print(epoch)
+                    parseddt = datetime.datetime.fromtimestamp(int(epoch)/1000)
+                    createdAt = parseddt.strftime("%d %b %Y, %H:%M:%S") #'%Y-%m-%d %H:%M:%S' can be used, but really?
+            except Exception as e:
+                print(e)
 
+            # determine nickname if exists, otherwise default to ""
+            nickname = ""
+            if id in session["messages_nicknames"]:
+                nickname = session["messages_nicknames"][id]
+            
+            # push in
+            res.append({
+                "id": id,
+                "nickname": nickname,
+                "createdAt": createdAt,
+                "isActive": (id == session["db"])
+            })
+    return render_template('listfiles.html', dblist=res, activefile=session["db"], group='files')
 
+# saveactivefile GET route is aux to listfiles.
 
+# Aux to listfiles
+@app.route("/deletefile")
+def deletefile():
+    # get args
+    id = ""
+    try:
+        id = request.args.get("fileid")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404 # means no argument
+    
+    if id not in session["dblist"]:
+        # invalid request
+        return jsonify({"error": str(e)}), 404
+    
+    # special case: this is the only file. This is effectly purging.
+    if len(session["dblist"]) == 1:
+        session.clear()
+        return redirect("/")
+
+    # delete JSON
+    if f"messages_{id}" in session:
+        session.pop(f"messages_{id}")
+    
+    # delete from nicknames
+    session["messages_nicknames"].pop(id)
+    
+    # delete caches (TWO, if exists)
+    if f'glossary_{id}' in session:
+        session.pop(f'glossary_{id}')
+    
+    if f'relationships_{id}' in session:
+        session.pop(f'relationships_{id}')
+    
+    # delete from globalglossary
+    if id in session['GlobalGlossary']:
+        session['GlobalGlossary'].pop(id)
+
+    # delete from dblist
+    session["dblist"].remove(id);
+
+    # IF active file, replace active file to the most recent one
+    if session["db"] == id:
+        session["db"] = session["dblist"][-1]
+
+    return redirect('/listfiles')
 
 
 
@@ -379,6 +466,23 @@ def save_relationships():
         return jsonify({"message": f"Hierarchical relationships for {filename} saved successfully!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/saveactivefile', methods=['POST'])
+def save_activefile():
+    try:
+        session["db"] = request.get_json().get("fileid");
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404 # means no argument presented
+    
+@app.route('/saveactivefile', methods=['GET'])
+def save_activefileGET():
+    # this is auxiliary to /listfiles. Redirects back to /listfiles. May add an argument in the future if used somewhere else.
+    try:
+        session["db"] = request.args.get("fileid");
+        return redirect("/listfiles")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404 # means no argument presented
+
 
 
 @app.route('/getglobalglossary', methods=['GET'])
@@ -412,6 +516,13 @@ def get_relationships(filename):
     return jsonify({}), 404
 
 
+@app.route('/purgefiles', methods=['GET'])
+def purge():
+    # PURGE ALL FILES. ONLY CALL WITH DOUBLE CHECK!!!
+    session.clear()
+    return redirect("/")
+
+
 
 
 
@@ -441,14 +552,18 @@ def character():
 
 
 
-# helper function to determine what to show as active db file. For use in main.html.
+# helper functions to determine what to show as active db file. For use in main.html.
+def determineDBId():
+    if "db" not in session: return ""
+    return session["db"]
+
 def determineDBName():
     if "db" not in session: return ""
     if "messages_nicknames" not in session or session["db"] not in session["messages_nicknames"]: return session["db"]
     return session["messages_nicknames"][session["db"]]
 
+app.jinja_env.globals.update(determineDBId=determineDBId)
 app.jinja_env.globals.update(determineDBName=determineDBName)
-
 
 print("Yes we are running your app.py")
 

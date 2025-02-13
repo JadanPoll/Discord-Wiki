@@ -3,19 +3,159 @@
 {% block title %}FrontPage{% endblock %}
 
 {% block head %}
+<script>
+    document.addEventListener('DOMContentLoaded', async function () {
+        const searchInput = document.querySelector('#searchInput');
+        const suggestionsContainer = document.querySelector('#searchSuggestions');
+
+        let glossaryData = {};
+
+
+    // Fetch global keys from the server
+    fetch('/getglobalglossary')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            glossaryData = data; // Store glossary data
+
+            /*
+                Do postprocessing.
+                That is, if multiple keywords are present in multiple files,
+                we only keep the one in the active file.
+                That way, we are effectively prioritising the active file.
+            */
+
+            let activeDBID = `{{determineDBId()}}` // comes from jinja
+            if (activeDBID == "") return; //abort
+
+            let activeFileSet = new Set(glossaryData[activeDBID])
+
+            // https://stackoverflow.com/questions/684672/how-do-i-loop-through-or-enumerate-a-javascript-object
+            for (let k of Object.keys(glossaryData))
+            {
+                if (k == activeDBID) continue; // active DB
+
+                // take the set difference to eliminate values also present in active db
+                let valuesSet = new Set(glossaryData[k]);
+
+                glossaryData[k] = Array.from(valuesSet.difference(activeFileSet));
+            }
+
+            /*
+            // TODO: remove this (we no longer need demo data dont we)
+            // Check if glossaryData is empty
+            if (!glossaryData || Object.keys(glossaryData).length === 0) {
+                // Fetch demo titles if glossaryData is empty
+                return fetch('/getDemoTitles')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(demoData => {
+                        glossaryData = demoData; // Store demo titles
+                    });
+            }
+            */
+        })
+        .catch(error => {
+            console.error('Error fetching glossary or demo titles:', error);
+        });
+
+        // Search for keys matching the user input and display suggestions
+        searchInput.addEventListener('input', function () {
+            const searchTerm = searchInput.value.toLowerCase();
+            suggestionsContainer.innerHTML = ''; // Clear previous suggestions
+
+            if (!searchTerm) return; // If the input is empty, don't show suggestions
+
+            const results = [];
+
+            for (const filename in glossaryData) {
+                const keywords = glossaryData[filename];
+                keywords.forEach(keyword => {
+                    if (keyword.toLowerCase().includes(searchTerm)) {
+                        results.push({ keyword, filename });
+                    }
+                });
+            }
+
+            if (results.length) {
+                // Display the results as suggestions
+                results.forEach(result => {
+                    const listItem = document.createElement('li');
+                    listItem.classList.add('list-group-item');
+                    listItem.classList.add('suggestable')
+                    listItem.textContent = result.keyword;
+
+                    let activedbId = "{{determineDBId()}}"
+                    let activedbName = "{{determineDBName()}}"
+
+                    listItem.addEventListener('click', function () {
+                        if (result.filename != activedbId)
+                        {
+                            let proceed = confirm(`Keyword "${result.keyword}" can not be found active file, but can be found in the file ${activedbName}(${activedbId}). Change active file and proceed?`);
+                        
+                            if (!proceed)
+                            {
+                                // abort
+                                return
+                            }
+                            
+                            // update active file
+                            fetch('/saveglossary', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    fileid: activedbId
+                                })
+                            });
+                        }
+
+                        // Fetch the new content
+                        window.location.href = `/servertitlescreen?filename=${encodeURIComponent(result.filename)}&keyword=${result.keyword}`
+
+                        searchInput.value = result.keyword; // Optionally set the input to the clicked suggestion
+                        suggestionsContainer.innerHTML = ''; // Clear suggestions after selecting one
+                   
+                    }); // listener end
+
+                    suggestionsContainer.appendChild(listItem);
+                });
+            } else {
+                const noResultItem = document.createElement('li');
+                noResultItem.classList.add('list-group-item', 'text-muted');
+                noResultItem.textContent = 'No matching keywords';
+                suggestionsContainer.appendChild(noResultItem);
+            }
+        });
+    });
+
+    let bored = () =>
+    {
+        window.location.href = '/bored';
+    }
+</script>
 {% endblock %}
 
 {% block body %}
 <!-- Search bar centered on the page -->
 <div class="search-container">
+    <h2>Search from {{determineDBName()}}</h2>
     <form class="d-flex position-relative">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" id="searchInput" autocomplete="off">
-        <button class="btn btn-outline-success" type="submit">Search</button>
+        <input class="form-control me-2" type="search" placeholder="Start typing to search keyword..." aria-label="Search" id="searchInput" autocomplete="off">
         <ul id="searchSuggestions" class="list-group position-absolute w-100"
             style="top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;"></ul>
     </form>
     <div class="mt-2">
-        <a href="/visualize/live_server_update">Add another file</a> | <a href="#">Swtich active file (unimplemented)</a>
+        <a href="/visualize/live_server_update">Add another file</a> | <a href="/listfiles">Manage files</a> | <a href="javascript:bored()">I'm bored</a> 
     </div>
 </div>
 <h1>
