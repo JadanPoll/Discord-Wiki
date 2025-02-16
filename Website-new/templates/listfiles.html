@@ -56,6 +56,9 @@
 
 {% block body %}
 <h1>File List</h1>
+{% if dblist == None %}
+No file is loaded. Get started by loading a file first.
+{% else %}
 {% for file in dblist %}
     <div class="card">
         <div class="card-body {% if file['isActive'] %} shadow {% endif %} ">
@@ -76,4 +79,6 @@
     <button type="button" class="btn btn-danger float-end mx-1" onclick="purge()">Delete All Files</button>
     <a href="/visualize/live_server_update" class="btn btn-primary mx-1 float-end" role="button">Load a file</a>
 </div>
+
+{% endif %}
 {% endblock %}

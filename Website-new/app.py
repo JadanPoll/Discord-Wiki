@@ -154,7 +154,7 @@ def listfiles():
     res = []
 
     # traverse dblist in REVERSE order; this in effect sorts in recent
-    if "dblist" in session:
+    if "dblist" in session and len(session["dblist"]) != 0:
         id: str # does nothing tbh, just easy linting
         for id in session["dblist"][::-1]:
             # calc dl'd datetime using epoch
@@ -181,6 +181,8 @@ def listfiles():
                 "createdAt": createdAt,
                 "isActive": (id == session["db"])
             })
+    else:
+        return render_template('listfiles.html', dblist=None, activefile="", group='files')
     return render_template('listfiles.html', dblist=res, activefile=session["db"], group='files')
 
 # saveactivefile GET route is aux to listfiles.
