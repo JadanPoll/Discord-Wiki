@@ -3,12 +3,15 @@
 {% block title %}FrontPage{% endblock %}
 
 {% block head %}
+<link href="https://fonts.cdnfonts.com/css/unbounded" rel="stylesheet">
+                
 <style>
     body {
-        background-color: #151f4a;
+        background-color: #090d1e;
+        background-image: linear-gradient(160deg, #151f4a 0%, #7289da 100%);
         margin: 0;
         padding: 0;
-        font-family: Arial, sans-serif;
+        font-family: Proxima Nova 900;
     }
 
     .non-nav-body {
@@ -16,17 +19,25 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 100vh;
+        min-height: calc(100vh - 10vh); /* Adjust 60px to your actual navbar height */
+        flex-grow: 1;
+        position: relative;
+        background-image: url("{{ url_for('static', filename='/img/phone-discord.png') }}");
+        background-size: 400px auto; /* Makes the image smaller */
+        background-position: right bottom; /* Moves it to the right */
+        background-repeat: no-repeat;
     }
 
-    .container {
+
+    /* .container {
         text-align: center;
-    }
+    } */
 
     h1 {
         font-size: 2.5em;
         margin: 0;
         color: white;
+        font-family: 'Unbounded', sans-serif;
     }
 
     .highlight {
@@ -44,7 +55,7 @@
         padding: 12px 24px;
         font-size: 1em;
         color: #fff;
-        background-color: #007bff;
+        background-color: #ff5733;
         border: none;
         border-radius: 5px;
         cursor: pointer;
@@ -54,7 +65,8 @@
     }
 
     .btn:hover {
-        background-color: #0056b3;
+        background-color: black;
+        color: white;
     }
 </style>
 {% endblock %}
@@ -64,11 +76,13 @@
     <div class="container">
         <h1>Discord Conversations</h1>
         <h1>Made <span class="highlight">Searchable</span>.</h1>
-    
-        <p class="subtitle">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce vel sapien elit.</p>
+
+        <p class="subtitle">Create your own personalized Wikipedia page for any Discord channel, for any topic.</p>
     
         <a href="/visualize/live_server_update" class="btn">Start Here</a>
     </div>
 </div>
+
+
 
 {% endblock %}
