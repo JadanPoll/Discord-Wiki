@@ -3,6 +3,35 @@
 {% block title %}FrontPage{% endblock %}
 
 {% block head %}
+<link href="https://fonts.cdnfonts.com/css/unbounded" rel="stylesheet">
+<style>
+    body {
+        background-color: #090d1e;
+        background-image: linear-gradient(160deg, #090d1e 0%, #7289da 100%);
+        margin: 0;
+        padding: 0;
+        font-family: Proxima Nova 900;
+        color: white;
+    }
+
+    h2 {
+        font-size: 2.5em;
+        margin-bottom: 20px;
+        color: white;
+        font-family: 'Unbounded', sans-serif;
+    }
+
+    .highlight {
+        color: #ff5733;
+    }
+
+    a {
+        color: #ff5733
+    }
+
+</style>
+
+
 <script>
     document.addEventListener('DOMContentLoaded', async function () {
         const searchInput = document.querySelector('#searchInput');
@@ -148,7 +177,7 @@
 {% block body %}
 <!-- Search bar centered on the page -->
 <div class="search-container">
-    <h2>Search from {{determineDBName()}}</h2>
+    <h2>Search from Channel: <span class="highlight">{{determineDBName()}}</span></h2>
     <form class="d-flex position-relative">
         <input class="form-control me-2" type="search" placeholder="Start typing to search keyword..." aria-label="Search" id="searchInput" autocomplete="off">
         <ul id="searchSuggestions" class="list-group position-absolute w-100"
@@ -158,12 +187,12 @@
         <a href="/visualize/live_server_update">Add another file</a> | <a href="/listfiles">Manage files</a> | <a href="javascript:bored()">I'm bored</a> 
     </div>
 </div>
-<h1>
+<!-- <h1>
     <strong style="color: pink;">(੭｡╹▿╹｡)੭</strong>
-</h1>
+</h1> -->
 <h2>
 <pre>
-Welcome to DSearch!
+<!-- Welcome to DSearch! -->
 
 Active file: {{activefile}}
 </pre>
