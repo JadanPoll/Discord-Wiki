@@ -11,7 +11,7 @@ What's Discords AI Solution for 2025? My team and I are working on code to turn 
 #### Glossary:
 Explore any topic from a web of info, right from your Discord Community!
 
-<img src="https://github.com/JadanPoll/Discord-Wiki/blob/a61b64478e297a24b7621bfa292cff191bfaf7de/Books_For_Research/DFinalVisuals2.png" alt="App" width="600" height="300"> 
+<img src="https://github.com/JadanPoll/Discord-Wiki/blob/a61b64478e297a24b7621bfa292cff191bfaf7de/Books_For_Research/DFinalVisuals2.png?raw=true" alt="App" width="600" height="300"> 
 
 ## Insights:
 Every great search engine boasts a host of cool unique features, and so do we! We call these **Insights**—special tools that add fun functionality to elevate your search experience.  
