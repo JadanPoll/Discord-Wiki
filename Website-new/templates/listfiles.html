@@ -1,0 +1,84 @@
+{% extends "main.html" %}
+
+{% block title %}Files available{% endblock %}
+
+{% block head %}
+<style>
+    .card
+    {
+        display:inline-block;
+        margin: 10px 5px;
+        width: 22rem;
+        max-width: 100%;
+    }
+</style>
+
+<script>
+    let purge = () =>
+    {
+        let confirmfirstres = confirm("You are about to remove all saved data. THIS ACTION IS IRREVERSIBLE. Continue?")
+        if (confirmfirstres !== true)
+        {
+            alert("Aborted.")
+            return
+        }
+
+        let confirmsecondres = confirm("Again, this will remove ALL DATA. Are you really sure? THIS IS YOUR LAST CHANCE!")
+        if (confirmsecondres !== true)
+        {
+            alert("Aborted.")
+            return
+        }
+
+        // call /purgefiles GET route
+        location.href = "/purgefiles"
+    }
+
+    let deleteFile = (id) =>
+    {
+        if (id == `{{activefile}}`)
+        {
+            alert("You are about to delete the active file. The newest file will become the next active file.")
+        }
+
+        let confirmfirstres = confirm("You are about to delete this file. Continue?")
+        if (confirmfirstres !== true)
+        {
+            alert("Aborted.")
+            return
+        }
+
+        location.href = `/deletefile?fileid=${id}`
+    }
+</script>
+
+{% endblock %}
+
+{% block body %}
+<h1>File List</h1>
+{% if dblist == None %}
+No file is loaded. Get started by loading a file first.
+{% else %}
+{% for file in dblist %}
+    <div class="card">
+        <div class="card-body {% if file['isActive'] %} shadow {% endif %} ">
+        <h5 class="card-title">{{file["nickname"] if file["nickname"] != "" else file["id"]}}</h5>
+        <h6 class="card-subtitle mb-2 text-body-secondary">ID: {{file["id"]}}</h6>
+        <p class="card-text">Created at {{file["createdAt"]}}</p>
+        {% if file["isActive"] %}
+            <span href="#" class="card-link"><i>Active File</i></span>
+        {% else %}
+            <a href="/saveactivefile?fileid={{file['id']}}" class="card-link">Set as active file</a>
+        {% endif %}
+        <a href="#" class="card-link" onclick="deleteFile(`{{file['id']}}`)">Delete</a>
+        </div>
+    </div>
+{% endfor %}
+
+<div>
+    <button type="button" class="btn btn-danger float-end mx-1" onclick="purge()">Delete All Files</button>
+    <a href="/visualize/live_server_update" class="btn btn-primary mx-1 float-end" role="button">Load a file</a>
+</div>
+
+{% endif %}
+{% endblock %}

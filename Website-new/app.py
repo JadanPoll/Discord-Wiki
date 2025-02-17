@@ -9,6 +9,8 @@ from flask_session import Session
 import json
 import os
 from flask import Flask, redirect, request, session, url_for, jsonify
+import datetime
+import random
 
 app = Flask(__name__, template_folder='templates', static_url_path='/', static_folder='static')
 app.secret_key = "DSearchPokémon"
@@ -20,11 +22,14 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_FILE_DIR'] = './flask_session'
 Session(app)
 
+os.chdir(os.path.dirname(__file__))
 
 # Define configuration variables
 GIT_SCRIPT = "../../git.sh"
 PORT = 3000
 SECRET = os.getenv('SECRET')  # GitHub webhook secret from environment variables
+
+
 
 
 
@@ -96,10 +101,17 @@ def cors_bypass(target_url):
 @app.route("/")
 def main():
     # check if DB is available
-    #if 'db' not in session and 'glossary_exists' not in session:
-    #    return render_template('frontpage_nodb.html',include_search=False)
+    if 'db' not in session and 'glossary_exists' not in session:
+        return render_template('frontpage_nodb.html',include_search=False)
 
-    return render_template('frontpage.html',include_search=True)
+    return render_template('frontpage.html', activefile=session["db"])
+
+
+# AUX to /, probably just i'm feeling lucky
+@app.route("/bored")
+def bored():
+    res = random.choice(list(session[f"glossary_{session['db']}"].keys()))
+    return redirect(f"/servertitlescreen?filename={session['db']}&keyword={res}")
 
 @app.route('/visualize')
 def visualize():
@@ -118,54 +130,108 @@ def titlescreen():
     
     if filename:
         # Pass the filename to the template
-        return render_template('visualize/servertitlescreen.html', filename=filename, group='dev')
+        return render_template('visualize/servertitlescreen.html', filename=filename, group='server')
     else:
-        return "Filename parameter is missing.", 400
+        # See if we can redirect to active file
+        if "db" in session:
+            return redirect(f"/servertitlescreen?filename={session['db']}")
 
-
-DATA_DIRECTORY = 'static/demo/messages'
-@app.route('/messages/<filename>', methods=['GET'])
-def get_file_data(filename):
-    """
-    Serve the content of a JSON file by filename from the DATA_DIRECTORY.
-    """
-    try:
-        print("HereA")
-        # Ensure the file exists
-        filepath = os.path.join(DATA_DIRECTORY, f"{filename}")
-        print(filepath,filename)
-        if not os.path.isfile(filepath):
-            print("DOn't exits)")
-            return jsonify({"error": f"File {filename} not found"}), 404
-
-
-        # Send the file content
-        return send_from_directory(DATA_DIRECTORY, f"{filename}", as_attachment=False)
-    except Exception as e:
-        return
+        return "Filename parameter is missing and active DB file is not found.", 400
 
 @app.route("/visualize/live_server_update")
 def live_update():
     #return redirect('/login')
     return render_template('visualize/download/live_server_update.html', group='dev')
 
-# helper for live_server_update, puts data into session
-@app.route("/savedata", methods=["POST"])
-def live_update_save():
-    # todo: guard against putting garbage data (or is it okay b/c it's session?)
-    # messages are found in request.json["messages"]
-    session["db"] = request.json["messages"]
-    return ""
-
 @app.route("/visualize/forzapagerank")
 def pagerank():
     return render_template('visualize/download/forzapagerank.html', group='dev')
 
 
+@app.route("/listfiles")
+def listfiles():
+    # prepare data, i.e. a single array containing all the req'd info
+    res = []
 
+    # traverse dblist in REVERSE order; this in effect sorts in recent
+    if "dblist" in session and len(session["dblist"]) != 0:
+        id: str # does nothing tbh, just easy linting
+        for id in session["dblist"][::-1]:
+            # calc dl'd datetime using epoch
+            # https://stackoverflow.com/questions/26276906/python-convert-seconds-from-epoch-time-into-human-readable-time
+            createdAt = ""
+            try:
+                if "_" in id: # if it doesnt exist theres either error or we're using old format...
+                    epoch = id.split("_")[1]
+                    print(epoch)
+                    parseddt = datetime.datetime.fromtimestamp(int(epoch)/1000)
+                    createdAt = parseddt.strftime("%d %b %Y, %H:%M:%S") #'%Y-%m-%d %H:%M:%S' can be used, but really?
+            except Exception as e:
+                print(e)
 
+            # determine nickname if exists, otherwise default to ""
+            nickname = ""
+            if id in session["messages_nicknames"]:
+                nickname = session["messages_nicknames"][id]
+            
+            # push in
+            res.append({
+                "id": id,
+                "nickname": nickname,
+                "createdAt": createdAt,
+                "isActive": (id == session["db"])
+            })
+    else:
+        return render_template('listfiles.html', dblist=None, activefile="", group='files')
+    return render_template('listfiles.html', dblist=res, activefile=session["db"], group='files')
 
+# saveactivefile GET route is aux to listfiles.
 
+# Aux to listfiles
+@app.route("/deletefile")
+def deletefile():
+    # get args
+    id = ""
+    try:
+        id = request.args.get("fileid")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404 # means no argument
+    
+    if id not in session["dblist"]:
+        # invalid request
+        return jsonify({"error": str(e)}), 404
+    
+    # special case: this is the only file. This is effectly purging.
+    if len(session["dblist"]) == 1:
+        session.clear()
+        return redirect("/")
+
+    # delete JSON
+    if f"messages_{id}" in session:
+        session.pop(f"messages_{id}")
+    
+    # delete from nicknames
+    session["messages_nicknames"].pop(id)
+    
+    # delete caches (TWO, if exists)
+    if f'glossary_{id}' in session:
+        session.pop(f'glossary_{id}')
+    
+    if f'relationships_{id}' in session:
+        session.pop(f'relationships_{id}')
+    
+    # delete from globalglossary
+    if id in session['GlobalGlossary']:
+        session['GlobalGlossary'].pop(id)
+
+    # delete from dblist
+    session["dblist"].remove(id);
+
+    # IF active file, replace active file to the most recent one
+    if session["db"] == id:
+        session["db"] = session["dblist"][-1]
+
+    return redirect('/listfiles')
 
 
 
@@ -245,6 +311,7 @@ def prop_summary():
     return send_from_directory('templates/visualize/download/TextRank/Proprietary', 'ShubhanGPT.js')
 
 
+# TODO: Move all the above js's into dedicated /js directory
 
 
 
@@ -252,6 +319,7 @@ def prop_summary():
 
 
 
+"""
 @app.before_request
 def load_demo_titles():
     # Check if the flag 'first_request_done' exists in the session
@@ -285,6 +353,63 @@ def load_demo_titles():
             print(f"Error decoding JSON: {e}")
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
+"""
+
+# helper for live_server_update, puts data into session
+@app.route("/savedata", methods=["POST"])
+def live_update_save():
+    # todo: guard against putting garbage data (or is it okay b/c it's session?)
+    # session "messages_<filename>" stores JSON of raw data
+    # session "db" stores the JSON of active file
+    # session "messages_nicknames" is a dict from filename -> nickname
+    try:
+        assert(request.json["filename"] != "")
+        assert(request.json["messages"] != "")
+        session[f"messages_{request.json['filename']}"] = request.json["messages"]
+        session["db"] = request.json["filename"]
+
+        if "dblist" in session:
+            session["dblist"].append(str(request.json['filename']))
+        else:
+            session["dblist"] = [str(request.json['filename'])]
+
+        if "messages_nicknames" not in session: session["messages_nicknames"] = {} #init'ise dict
+        if request.json['nickname'] == "":
+            # fallback
+            session["messages_nicknames"][str(request.json['filename'])] = str(request.json['filename'])
+        else:
+            session["messages_nicknames"][str(request.json['filename'])] = str(request.json['nickname'])
+
+        session.modified = True
+        return jsonify({"ok": True})
+    except:
+        return jsonify({"ok": False})
+
+DATA_DIRECTORY = 'static/demo/messages'
+@app.route('/messages/<filename>', methods=['GET'])
+def get_file_data(filename):
+    """
+    Serve the content of a conversation JSON file saved to session.
+    If not found, attempt to serve the content of a JSON file by filename from the DATA_DIRECTORY.
+    """
+    try:
+        # ATTEMPT TO FIND IT FROM SESSION
+        if f"messages_{filename}" in session:
+            return jsonify(session[f"messages_{filename}"])
+
+        # OTHERWISE, FALLBACK TO LOCAL
+        # Ensure the file exists
+        filepath = os.path.join(DATA_DIRECTORY, f"{filename}")
+        print(filepath,filename)
+        if not os.path.isfile(filepath):
+            print("DOn't exits)")
+            return jsonify({"error": f"File {filename} not found"}), 404
+
+
+        # Send the file content
+        return send_from_directory(DATA_DIRECTORY, f"{filename}", as_attachment=False)
+    except Exception as e:
+        return
 
 @app.route('/saveglobalkeywordglossary', methods=['POST'])
 def save_global_glossary():
@@ -343,6 +468,23 @@ def save_relationships():
         return jsonify({"message": f"Hierarchical relationships for {filename} saved successfully!"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/saveactivefile', methods=['POST'])
+def save_activefile():
+    try:
+        session["db"] = request.get_json().get("fileid");
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404 # means no argument presented
+    
+@app.route('/saveactivefile', methods=['GET'])
+def save_activefileGET():
+    # this is auxiliary to /listfiles. Redirects back to /listfiles. May add an argument in the future if used somewhere else.
+    try:
+        session["db"] = request.args.get("fileid");
+        return redirect("/listfiles")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404 # means no argument presented
+
 
 
 @app.route('/getglobalglossary', methods=['GET'])
@@ -376,6 +518,13 @@ def get_relationships(filename):
     return jsonify({}), 404
 
 
+@app.route('/purgefiles', methods=['GET'])
+def purge():
+    # PURGE ALL FILES. ONLY CALL WITH DOUBLE CHECK!!!
+    session.clear()
+    return redirect("/")
+
+
 
 
 
@@ -402,6 +551,21 @@ def content():
 @app.route('/character')
 def character():
     return render_template('character/content.html', group='char')
+
+
+
+# helper functions to determine what to show as active db file. For use in main.html.
+def determineDBId():
+    if "db" not in session: return ""
+    return session["db"]
+
+def determineDBName():
+    if "db" not in session: return ""
+    if "messages_nicknames" not in session or session["db"] not in session["messages_nicknames"]: return session["db"]
+    return session["messages_nicknames"][session["db"]]
+
+app.jinja_env.globals.update(determineDBId=determineDBId)
+app.jinja_env.globals.update(determineDBName=determineDBName)
 
 print("Yes we are running your app.py")
 
