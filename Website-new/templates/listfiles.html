@@ -57,7 +57,7 @@
 {% block body %}
 <h1>File List</h1>
 {% if dblist == None %}
-No file is loaded. Get started by loading a file first.
+No file is loaded. Get started by <a href="/visualize/live_server_update">loading a file first</a>!
 {% else %}
 {% for file in dblist %}
     <div class="card">

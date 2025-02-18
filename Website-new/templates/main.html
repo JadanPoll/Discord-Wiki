@@ -64,26 +64,19 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                    {% if determineDBName() %}
                     <li class="nav-item">
                         <a class="nav-link disabled" aria-disabled="true">{{determineDBName()}}</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{'active' if group == 'server'}}" id="char-link" href="/servertitlescreen">Analyse</a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link {{'active' if group == 'files'}}" id="char-link" href="/listfiles">Manage files</a>
-                    </li>         
-                    <li class="nav-item">
-                        <a class="nav-link {{'active' if group == 'char'}}" id="char-link" href="/character">Character</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{'active' if group == 'story'}}" id="story-link" href="/storyboard">Storyboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{'active' if group == 'content'}}" id="content-link" href="/content">Content</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{'active' if group == 'dev'}}" id="dev-link" href="/visualize" style="color: red;">Developer Tools</a>
+                        <a class="nav-link {{'active' if group == 'dev'}}" id="dev-link" href="/visualize">Developer Tools</a>
                     </li>                    
                 </ul>
             </div>

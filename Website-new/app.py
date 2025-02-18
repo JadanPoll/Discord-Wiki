@@ -102,7 +102,7 @@ def cors_bypass(target_url):
 def main():
     # check if DB is available
     if 'db' not in session and 'glossary_exists' not in session:
-        return render_template('frontpage_nodb.html',include_search=False)
+        return render_template('frontpage_nodb.html',include_search=False, isintro=True)
 
     return render_template('frontpage.html', activefile=session["db"])
 
