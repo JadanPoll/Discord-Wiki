@@ -516,7 +516,10 @@
                 "Content-type": "application/json; charset=UTF-8"
             }
             });
-            await response.json();
+            if (!response.ok)
+            {
+                alert("There was an error saving the file. Please check your internet connection or try again with a different file.");
+            }
             // todo: check whether response is OK
 
             console.log("Analysing data...");

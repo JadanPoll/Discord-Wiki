@@ -383,7 +383,7 @@ def live_update_save():
         session.modified = True
         return jsonify({"ok": True})
     except:
-        return jsonify({"ok": False})
+        return jsonify({"ok": False}), 500
 
 DATA_DIRECTORY = 'static/demo/messages'
 @app.route('/messages/<filename>', methods=['GET'])
