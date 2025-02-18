@@ -22,8 +22,6 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_FILE_DIR'] = './flask_session'
 Session(app)
 
-os.chdir(os.path.dirname(__file__))
-
 # Define configuration variables
 GIT_SCRIPT = "../../git.sh"
 PORT = 3000
@@ -397,19 +395,10 @@ def get_file_data(filename):
         if f"messages_{filename}" in session:
             return jsonify(session[f"messages_{filename}"])
 
-        # OTHERWISE, FALLBACK TO LOCAL
-        # Ensure the file exists
-        filepath = os.path.join(DATA_DIRECTORY, f"{filename}")
-        print(filepath,filename)
-        if not os.path.isfile(filepath):
-            print("DOn't exits)")
+        else:
             return jsonify({"error": f"File {filename} not found"}), 404
-
-
-        # Send the file content
-        return send_from_directory(DATA_DIRECTORY, f"{filename}", as_attachment=False)
     except Exception as e:
-        return
+        return jsonify({"error": f"File {filename} not found"}), 404
 
 @app.route('/saveglobalkeywordglossary', methods=['POST'])
 def save_global_glossary():
