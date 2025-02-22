@@ -504,22 +504,42 @@
             let filename = `${channelId}_${Date.now()}`
             console.log(`saving as ${filename}`)
 
-            // SAVE TO SESSION
-            let response = await fetch("/savedata", {
-            method: "POST",
-            body: JSON.stringify({
-                nickname: nickname,
-                filename: filename,
-                messages: messages
-            }),
-            headers: {
-                "Content-type": "application/json; charset=UTF-8"
-            }
-            });
-            if (!response.ok)
+            // send data in max 1.44MB
+            let messagesStr = JSON.stringify(messages);
+            let len = messagesStr.length;
+            let ptr = 0;
+
+            const PAYLOADSZ = 368640
+            
+            while (ptr < len)
             {
-                alert("There was an error saving the file. Please check your internet connection or try again with a different file.");
+                let to = Math.min(len, ptr+PAYLOADSZ);
+
+                let status = "continued";
+                if (ptr == 0) status = "new";
+                if (ptr+PAYLOADSZ >= len) status = "last";
+
+                // SAVE TO SESSION
+                let response = await fetch("/savedata", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        nickname: nickname,
+                        filename: filename,
+                        status: status,
+                        data: messagesStr.substring(ptr, to)
+                    }),
+                    headers: {
+                        "Content-type": "application/json; charset=UTF-8"
+                    }
+                    });
+                if (!response.ok)
+                {
+                    alert("There was an error saving the file. Please check your internet connection or try again with a different file.");
+                    return;
+                }
+                ptr = to;    
             }
+
             // todo: check whether response is OK
 
             console.log("Analysing data...");

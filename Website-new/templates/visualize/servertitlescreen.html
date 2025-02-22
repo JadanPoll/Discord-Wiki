@@ -385,8 +385,27 @@ $(document).ready(function () {
             // NOTE [20250213] removed uncached route because all data are cached upon DL now.
 
             console.log("Loading cached conversation...");
-            const response = await fetch(`/messages/${filename}`);
-            const fileData = await response.text();
+
+            let fileData = "";
+            let ptr = 0;
+            const PAYLOADSZ = 368640
+
+            for (;;)
+            {
+                console.log(`Loading data from i=${ptr} to ${ptr+PAYLOADSZ}`)
+                let response = await fetch(`/messagespt/${filename}?from=${ptr}&to=${ptr+PAYLOADSZ}`);
+                if (!response.ok)
+                {
+                    alert("There was an error reading the file. Please check your internet connection or try again with a different file.");
+                    return;
+                }
+                let responseJSON = await response.json();
+                fileData += responseJSON.data;
+                if (responseJSON.end) break;
+                ptr = ptr + PAYLOADSZ
+            }
+
+            //const fileData = await response.text();
 
             // Load cached conversation
             loadCachedConversation(fileData, filename, glossaryData["glossary"], relationshipsData["hierarchicalRelationships"]);

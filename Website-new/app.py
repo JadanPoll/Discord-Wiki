@@ -360,10 +360,25 @@ def live_update_save():
     # session "messages_<filename>" stores JSON of raw data
     # session "db" stores the JSON of active file
     # session "messages_nicknames" is a dict from filename -> nickname
+
+    # is data being received?
+    if request.json["status"] == "new":
+        session["temp_savedata"] = request.json["data"]
+        return jsonify({"ok": True})
+    elif request.json["status"] == "continued":
+        session["temp_savedata"] += request.json["data"]
+        return jsonify({"ok": True})
+
     try:
         assert(request.json["filename"] != "")
-        assert(request.json["messages"] != "")
-        session[f"messages_{request.json['filename']}"] = request.json["messages"]
+        # put last data
+        session["temp_savedata"] += request.json["data"]
+
+
+        # parse
+        session[f"messages_{request.json['filename']}"] = json.loads(session["temp_savedata"])
+        session["temp_savedata"] = ""
+
         session["db"] = request.json["filename"]
 
         if "dblist" in session:
@@ -384,11 +399,13 @@ def live_update_save():
         return jsonify({"ok": False}), 500
 
 DATA_DIRECTORY = 'static/demo/messages'
+
+
 @app.route('/messages/<filename>', methods=['GET'])
 def get_file_data(filename):
     """
     Serve the content of a conversation JSON file saved to session.
-    If not found, attempt to serve the content of a JSON file by filename from the DATA_DIRECTORY.
+    DO NOT USE WITH VERCEL (PAYLOAD WILL BE TOO LARGE)
     """
     try:
         # ATTEMPT TO FIND IT FROM SESSION
@@ -399,6 +416,39 @@ def get_file_data(filename):
             return jsonify({"error": f"File {filename} not found"}), 404
     except Exception as e:
         return jsonify({"error": f"File {filename} not found"}), 404
+
+@app.route('/messagespt/<filename>', methods=['GET'])
+def get_file_data_fromto(filename):
+    """
+    Serve the content of a conversation JSON file saved to session, but only substring [from, min(to, len)).
+    CAN BE USED WITH VERCEL
+    """
+    messagesSTR = ""
+    try:
+        # ATTEMPT TO FIND IT FROM SESSION
+        if f"messages_{filename}" in session:
+            if 'from' not in request.args or 'to' not in request.args:
+                return jsonify({"error": f"From or to argument not found."}), 500
+            messagesSTR = json.dumps(session[f"messages_{filename}"])
+
+        else:
+            return jsonify({"error": f"File {filename} not found"}), 404
+    except Exception as e:
+        return jsonify({"error": f"File {filename} not found"}), 404
+    
+    try:
+        end = len(messagesSTR) <= int(request.args.get('to'))
+
+        # compute indicies
+        substrBgn = int(request.args.get('from'))
+        substrEnd = min(int(request.args.get('to')), len(messagesSTR))
+
+        return jsonify({
+            "end": end,
+            "data": messagesSTR[substrBgn:substrEnd]
+        })
+    except Exception as e:
+        return jsonify({"error": f"INTERNAL SERVER ERROR"}), 500
 
 @app.route('/saveglobalkeywordglossary', methods=['POST'])
 def save_global_glossary():
