@@ -595,7 +595,7 @@ def character():
     return render_template('character/content.html', group='char')
 
 @app.route('/about')
-def character():
+def aboutrt():
     return jsonify({"version": "20250224a"}), 200
 
 
