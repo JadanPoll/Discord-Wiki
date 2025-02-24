@@ -403,8 +403,11 @@
         async fetchMessages(apiUrl) {
             try {
                 // First attempt using the cors-bypass path
-                const response = await fetch(`/cors-bypass/${apiUrl}`, {
-                    method: 'GET',
+                // @Kyubin Short-circuited to direct route
+                //const response = await fetch(`/cors-bypass/${apiUrl}`, {
+                const response = await fetch(`${apiUrl}`, {
+
+                method: 'GET',
                     headers: {
                         Authorization: this.authToken,  // Make sure this.authToken is set properly
                         'Content-Type': 'application/json'
