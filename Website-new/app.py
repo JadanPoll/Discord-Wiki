@@ -594,6 +594,10 @@ def content():
 def character():
     return render_template('character/content.html', group='char')
 
+@app.route('/about')
+def character():
+    return jsonify({"version": "20250224a"}), 200
+
 
 
 # helper functions to determine what to show as active db file. For use in main.html.
