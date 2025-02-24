@@ -365,10 +365,10 @@ def live_update_save():
     try:
         if request.json["status"] == "new":
             session["temp_savedata"] = request.json["data"]
-            return jsonify({"ok": True})
+            return jsonify({"ok": True, "actionDone": "Temp session created"})
         elif request.json["status"] == "continued":
             session["temp_savedata"] += request.json["data"]
-            return jsonify({"ok": True})
+            return jsonify({"ok": True, "actionDone": "Data pushed"})
     except Exception as e:
         return jsonify({"ok": False, "reason": "Failed while receiving data", "exception": repr(e)}), 500
 
@@ -397,7 +397,7 @@ def live_update_save():
             session["messages_nicknames"][str(request.json['filename'])] = str(request.json['nickname'])
 
         session.modified = True
-        return jsonify({"ok": True})
+        return jsonify({"ok": True, "actionDone": "Completed"})
     except Exception as e:
         return jsonify({"ok": False, "reason": "Error while finalising the process", "exception": repr(e)}), 500
 
@@ -596,7 +596,7 @@ def character():
 
 @app.route('/about')
 def aboutrt():
-    return jsonify({"version": "20250224a"}), 200
+    return jsonify({"version": "20250224b"}), 200
 
 
 
