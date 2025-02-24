@@ -362,12 +362,15 @@ def live_update_save():
     # session "messages_nicknames" is a dict from filename -> nickname
 
     # is data being received?
-    if request.json["status"] == "new":
-        session["temp_savedata"] = request.json["data"]
-        return jsonify({"ok": True})
-    elif request.json["status"] == "continued":
-        session["temp_savedata"] += request.json["data"]
-        return jsonify({"ok": True})
+    try:
+        if request.json["status"] == "new":
+            session["temp_savedata"] = request.json["data"]
+            return jsonify({"ok": True})
+        elif request.json["status"] == "continued":
+            session["temp_savedata"] += request.json["data"]
+            return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "reason": "Failed while receiving data", "exception": str(e)})
 
     try:
         assert(request.json["filename"] != "")
@@ -395,8 +398,8 @@ def live_update_save():
 
         session.modified = True
         return jsonify({"ok": True})
-    except:
-        return jsonify({"ok": False}), 500
+    except Exception as e:
+        return jsonify({"ok": False, "reason": "Error while finalising the process", "exception": str(e)}), 500
 
 DATA_DIRECTORY = 'static/demo/messages'
 
