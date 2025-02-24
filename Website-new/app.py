@@ -99,6 +99,7 @@ def cors_bypass(target_url):
 @app.route("/")
 def main():
     # check if DB is available
+    session["sessiontest"] = True # testing whether session works
     if 'db' not in session and 'glossary_exists' not in session:
         return render_template('frontpage_nodb.html',include_search=False, isintro=True)
 
@@ -370,7 +371,7 @@ def live_update_save():
             session["temp_savedata"] += request.json["data"]
             return jsonify({"ok": True, "actionDone": "Data pushed"})
     except Exception as e:
-        return jsonify({"ok": False, "reason": "Failed while receiving data", "exception": repr(e)}), 500
+        return jsonify({"ok": False, "reason": "Failed while receiving data", "exception": repr(e), "sessions": str(session.keys())}), 500
 
     try:
         assert(request.json["filename"] != "")
@@ -596,7 +597,7 @@ def character():
 
 @app.route('/about')
 def aboutrt():
-    return jsonify({"version": "20250224b"}), 200
+    return jsonify({"version": "20250224c"}), 200
 
 
 
