@@ -370,7 +370,7 @@ def live_update_save():
             session["temp_savedata"] += request.json["data"]
             return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"ok": False, "reason": "Failed while receiving data", "exception": str(e)})
+        return jsonify({"ok": False, "reason": "Failed while receiving data", "exception": repr(e)}), 500
 
     try:
         assert(request.json["filename"] != "")
@@ -399,7 +399,7 @@ def live_update_save():
         session.modified = True
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"ok": False, "reason": "Error while finalising the process", "exception": str(e)}), 500
+        return jsonify({"ok": False, "reason": "Error while finalising the process", "exception": repr(e)}), 500
 
 DATA_DIRECTORY = 'static/demo/messages'
 
