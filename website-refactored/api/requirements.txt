@@ -1,0 +1,8 @@
+flask
+flask_cors
+requests
+flask-session
+sqlalchemy
+flask_sqlalchemy
+requests-oauthlib
+python-dotenv

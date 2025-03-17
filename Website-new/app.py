@@ -24,7 +24,7 @@ Session(app)
 
 # Define configuration variables
 GIT_SCRIPT = "../../git.sh"
-PORT = 3000
+PORT = 9999
 SECRET = os.getenv('SECRET')  # GitHub webhook secret from environment variables
 
 
@@ -618,4 +618,4 @@ print("Yes we are running your app.py")
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0", port=PORT)

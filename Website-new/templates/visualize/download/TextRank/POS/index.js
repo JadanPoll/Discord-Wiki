@@ -1,6 +1,6 @@
 // Importing modules using relative paths
-import { POSTagger } from '/POSTagger.js';
-import { Lexer } from '/lexer.js';
+import { POSTagger } from './POSTagger';
+import { Lexer } from './lexer';
 
 // Assign the POSTagger to a new variable Tagger
 const Tagger = POSTagger;

@@ -571,34 +571,6 @@
             {
                 alert("Error:" + analysisRes.message);
             }
-
-            /*
-            // Serialize the entire array of reversed messages as a JSON string
-            const reversedMessages = JSON.stringify(messages.reverse(), null, 2);  // Proper JSON format with indentation
-
-
-            // Create a Blob from the JSON string
-            const blob = new Blob([reversedMessages], { type: 'application/json' });  // Save as JSON, not plain text
-
-            // Create a link element for downloading the Blob
-            const a = window.parent.document.createElement('a');  // Create link in the parent document
-            a.style.display = 'none';  // Hide the link element
-            a.href = window.parent.URL.createObjectURL(blob);  // Create a URL for the Blob
-            a.download = 'discord_messages.json';  // Save the file as a JSON file
-            a.innerText = "Download Discord Messages";
-
-            // Append the link to the parent document
-            window.parent.document.body.appendChild(a);
-
-            // Trigger the download
-            a.click();
-
-            // Cleanup after the download
-            window.parent.URL.revokeObjectURL(a.href);  // Revoke the Blob URL to free memory
-            window.parent.document.body.removeChild(a);  // Remove the link from the document
-
-            console.log('Messages saved to discord_messages.json in reversed order.');
-            */
         }
 
 
@@ -757,6 +729,7 @@
 
 
         afterDataDecompressed(status) {
+            console.log(status)
             if (status === 0) {
                 this.result = JSON.parse(this.inflater.chunks.join(''));
                 if (this.result.t == "READY") {
