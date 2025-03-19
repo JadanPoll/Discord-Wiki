@@ -74,23 +74,6 @@
                 glossaryData[k] = Array.from(valuesSet.difference(activeFileSet));
             }
 
-            /*
-            // TODO: remove this (we no longer need demo data dont we)
-            // Check if glossaryData is empty
-            if (!glossaryData || Object.keys(glossaryData).length === 0) {
-                // Fetch demo titles if glossaryData is empty
-                return fetch('/getDemoTitles')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(demoData => {
-                        glossaryData = demoData; // Store demo titles
-                    });
-            }
-            */
         })
         .catch(error => {
             console.error('Error fetching glossary or demo titles:', error);

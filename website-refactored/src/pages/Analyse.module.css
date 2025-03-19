@@ -1,0 +1,44 @@
+.contentbody
+{
+    display: flex;
+    margin: 0 auto;
+}
+.main {
+    display: flex;
+    justify-content: space-between;
+    flex-grow: 1;
+}
+.treeviewContainer {
+    min-width: 250px;
+    width: 320px;
+    padding: 20px;
+    border-right: 2px solid #ddd;
+    background-color: #fff;
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+.contentContainer {
+    width: 100%;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    height: calc(100vh - 120px); /* Set the height of content container */
+    overflow-y: auto; /* Enables vertical scrolling */
+}
+.heading {
+    color: #333;
+}
+.contentDisplay, .summaryDisplay {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: #fafafa;
+    max-height: 400px; /* Optional: limit height for scrolling */
+    overflow-y: auto; /* Enables vertical scrolling */
+}
+
+@media (min-width: 1200px) {
+    .contentbody{
+        max-width: 1400px;
+    }
+}

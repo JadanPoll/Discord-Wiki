@@ -1,0 +1,43 @@
+.heading {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    color: white;
+    font-family: 'Unbounded', sans-serif;
+}
+
+.highlight {
+    color: #ff5733;
+}
+
+.link {
+    color: #ff5733
+}
+
+.searchContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 70vh; /* Center within the remaining viewport height */
+    flex-direction: column;
+}
+
+.searchContainer form {
+    width: 50%;
+    max-width: 600px;
+}
+
+.searchSuggestions {
+    width: 100%;
+}
+
+.searchSuggestions .suggestable {
+    width: 100%;
+    padding: 10px; /* Optional: Add spacing for better appearance */
+    transition: all 0.3s ease; /* Smooth transition for hover effect */
+}
+
+.searchSuggestions .suggestable:hover {
+    background-color: #f0f0f0; /* Change background color on hover */
+    border-radius: 5px;       /* Optional: Add rounded corners */
+    cursor: default;          /* Change cursor to indicate interactivity */
+}

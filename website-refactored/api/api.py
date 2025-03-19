@@ -54,6 +54,7 @@ def on_webhook():
     return '', 200
 
 # CORS bypass route for proxying requests
+# TODO guard this route so that ppl don't use this as free proxy
 @app.route('/cors-bypass/<path:target_url>', methods=["GET", "POST", "PUT", "DELETE"])
 def cors_bypass(target_url):
     try:
