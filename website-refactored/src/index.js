@@ -31,7 +31,7 @@ root.render(
           <Route path="download" element={<Download />} />
           <Route path="listfiles" element={<Listfiles />} />
           <Route path="analyse" element={<Analyse />} />
-          <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<NotFound />} status={404}/>
         </Route>
       </Routes>
     </BrowserRouter>
