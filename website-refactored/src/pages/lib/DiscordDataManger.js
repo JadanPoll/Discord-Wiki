@@ -34,7 +34,7 @@ export class DiscordDataManager {
             localStorage.setItem("dblist", JSON.stringify([]))
 
         if (localStorage.getItem("channel_nicknames") === null)
-            localStorage.setItem("channel_nicknames", JSON.stringify({}))
+            localStorage.setItem("channel_nicknames", JSON.stringify(Object.create(null)))
 
         this.dbname = 'dwikistore'
         this.glossarytablename = 'glossaries'

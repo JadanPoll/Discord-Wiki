@@ -53,7 +53,7 @@ function getSimilarity(wordList1, wordList2) {
 // Sort words by importance using PageRank
 function sortWords(vertexSource, edgeSource, window = 2, pagerankConfig = { alpha: 0.85 }) {
     const wordIndex = Object.create(null);
-    const indexWord = {};
+    const indexWord = Object.create(null);
     let wordsNumber = 0;
 
     vertexSource.forEach(wordList => {

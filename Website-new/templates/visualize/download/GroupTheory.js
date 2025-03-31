@@ -14,7 +14,7 @@ const getUniqueId = (() => {
 
 // GroupHierarchy Class
 class GroupHierarchy {
-    constructor(groups = {}) {
+    constructor(groups = Object.create(null)) {
         this.params = {
             lambdaBreadth: 0.5,
             muImbalance: 0.5,
@@ -27,7 +27,7 @@ class GroupHierarchy {
 
     reset(groups) {
         this.groups = this._processGroups(groups);
-        this.hierarchicalRelationships = {};
+        this.hierarchicalRelationships = Object.create(null);
         this.independentGroups = new Set();
     }
 
@@ -80,10 +80,10 @@ class GroupHierarchy {
     }
 
     buildHierarchy() {
-        const hierarchy = {};
+        const hierarchy = Object.create(null);
         const assignedChildren = new Set();
         const { groupSets, groupSizes } = GroupHierarchy.precomputeGroups(this.groups);
-        const overlapCache = {};
+        const overlapCache = Object.create(null);
         const depthTracker = Object.fromEntries(Object.keys(this.groups).map(group => [group, 0]));
 
         const sortedGroups = Object.keys(this.groups).sort((a, b) => groupSizes[a] - groupSizes[b]);
@@ -162,6 +162,6 @@ function generateSubtopicTreeAndDisplayTree(customGroups) {
     };
 }
 
-const groupHierarchy = new GroupHierarchyWithTreeview({});
+const groupHierarchy = new GroupHierarchyWithTreeview(Object.create(null));
 
 export {  GroupHierarchy, GroupHierarchyWithTreeview, generateSubtopicTreeAndDisplayTree };

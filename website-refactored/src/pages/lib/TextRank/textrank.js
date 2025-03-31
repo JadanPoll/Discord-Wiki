@@ -30,8 +30,8 @@ export class TextRank4Keyword {
          * @param {Object} pagerankConfig - PageRank configuration
          */
         this.text = text;
-        this.wordIndex = {};
-        this.indexWord = {};
+        this.wordIndex = Object.create(null);
+        this.indexWord = Object.create(null);
         this.keywords = [];
         this.graph = null;
 

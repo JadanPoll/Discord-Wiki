@@ -163,8 +163,8 @@ function groupAndPreprocessMessagesByAuthor(messageData) {
 
 
 
-window.dictionaryGlossaryTopicAndLinkedConversationGroups = {};
-let summaryArrayHtmlResults = {};
+window.dictionaryGlossaryTopicAndLinkedConversationGroups = Object.create(null);
+let summaryArrayHtmlResults = Object.create(null);
 
 
 
@@ -229,7 +229,7 @@ function constructContextChain(inheritedWordsSet, searchRadius, currentMessageIn
 }
 
 
-window.dictionarySeedConversationAndGeneratedChain = {};
+window.dictionarySeedConversationAndGeneratedChain = Object.create(null);
 let setIdsOfFoundConversations = new Set();
 let i = 0;
 
@@ -240,7 +240,7 @@ function generateAndDisplayAllRandomContextChain() {
      */
 
     setIdsOfFoundConversations = new Set();
-    window.dictionarySeedConversationAndGeneratedChain = {};
+    window.dictionarySeedConversationAndGeneratedChain = Object.create(null);
 
 
     for (let index = 0; index < window.processedConversationBlocks.length; index++) {
@@ -300,7 +300,7 @@ function calculateTopicsForEachMessage() {
      * Processes topics in the conversation glossary tree and extracts descriptions.
      */
 
-    window.topicalMatrix = {}
+    window.topicalMatrix = Object.create(null)
     if (Object.keys(window.dictionarySeedConversationAndGeneratedChain).length === 0) {
 
         return;
@@ -316,7 +316,7 @@ function calculateTopicsForEachMessage() {
         // Ensure the topic matrix is initialized for each topic
         for (const topic of description) {
             if (!window.topicalMatrix[topic]) {
-                window.topicalMatrix[topic] = {};
+                window.topicalMatrix[topic] = Object.create(null);
             }
         }
 
@@ -422,7 +422,7 @@ function intersectCompressor(data) {
 }
 
 function calculateGlossary() {
-    window.dictionaryGlossaryTopicAndLinkedConversationGroups = {};
+    window.dictionaryGlossaryTopicAndLinkedConversationGroups = Object.create(null);
 
     var completeStart = Date.now()
     
@@ -507,7 +507,7 @@ function calculateDisplayGlossary()
     var completeStart = Date.now()
 
 
-    let key_structure = {}
+    let key_structure = Object.create(null);
     // Build the topical matrix
     for (let key in window.topicalMatrix) {
         let topics = window.topicalMatrix[key];

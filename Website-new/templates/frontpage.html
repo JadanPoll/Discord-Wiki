@@ -37,7 +37,7 @@
         const searchInput = document.querySelector('#searchInput');
         const suggestionsContainer = document.querySelector('#searchSuggestions');
 
-        let glossaryData = {};
+        let glossaryData = Object.create(null);
 
 
     // Fetch global keys from the server

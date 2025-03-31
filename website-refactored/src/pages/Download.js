@@ -31,13 +31,13 @@ const Download = () => {
 
     /* servers a map of servers loaded during the first stage of DL.
     it maps serverID to {serverName: string, channels: json}. */
-    const [servers, setServers] = useState({})
+    const [servers, setServers] = useState(Object.create(null))
 
     // currently selected server
     const [selectedServer, setSelectedServer] = useState(null)
 
     // ref's for server grids
-    const gridButtonRef = useRef({})
+    const gridButtonRef = useRef(Object.create(null))
 
     // position for popup
     const [popupVisible, setpopupVisible] = useState(false)
@@ -104,7 +104,7 @@ const Download = () => {
 
                 // build list of objects, as described before channels
 
-                let serverList = {}
+                let serverList = Object.create(null)
                 for (const server of json.d.guilds) {
                     let serverName = server.properties.name
                     let serverID = server.properties.id

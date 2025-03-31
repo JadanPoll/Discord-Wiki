@@ -81,7 +81,7 @@ export class DiscordAPI {
     }
 
 
-    async fetchChannelMessages(channelId, options, ondownloadcallback = (msgLength, totalmsg) => {}) {
+    async fetchChannelMessages(channelId, options, ondownloadcallback = (msgLength, totalmsg) => Object.create(null)) {
 
         //TODO: add some logic that verifies channel (or just use response code?)
         // ondownloadcallback(msgLength, totalsg): callback function to do something with downloaded msg so far

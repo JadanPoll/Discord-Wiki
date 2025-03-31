@@ -186,7 +186,7 @@ const Analyse = () => {
     // https://github.com/brimdata/react-arborist
     function Node({ node, style, dragHandle }) {
         /* This node instance can do many things. See the API reference. */
-        let customstyle = {}
+        let customstyle = Object.create(null)
         if (node.isSelected) {
             customstyle.backgroundColor = '#557DFE'
             customstyle.color = 'white'
