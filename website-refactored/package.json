@@ -2,6 +2,7 @@
   "name": "website-refactored",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
@@ -28,6 +29,7 @@
     "react-router-dom": "^7.3.0",
     "react-scripts": "5.0.1",
     "react-tooltip": "^5.28.0",
+    "serve": "^14.2.4",
     "url": "^0.11.4",
     "util": "^0.12.5",
     "web-vitals": "^2.1.4"
