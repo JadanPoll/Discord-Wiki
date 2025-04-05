@@ -19,7 +19,7 @@ Every great search engine boasts a host of cool unique features, and so do we! W
 
 
 
-Check out our most recent update here: [D-Wikis Website](https://d-wiki.glitch.me/) 
+Check out our most recent update here: [D-Wikis Website](http://dwiki.mooo.com/) 
 
 | ![](https://github.com/JadanPoll/Discord-Wiki/blob/dcbe1da6528fba314d5b738a173ea0846490ac03/Books_For_Research/DLandingPage.png?raw=true) | ![](https://github.com/JadanPoll/Discord-Wiki/blob/dcbe1da6528fba314d5b738a173ea0846490ac03/Books_For_Research/DServers.png?raw=true) |
 |-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|

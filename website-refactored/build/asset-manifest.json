@@ -1,21 +1,21 @@
 {
   "files": {
-    "main.css": "/static/css/main.305c9143.css",
-    "main.js": "/static/js/main.53ca7adc.js",
-    "static/js/453.f9cec680.chunk.js": "/static/js/453.f9cec680.chunk.js",
-    "static/media/phone-discord.png": "/static/media/phone-discord.a61a22486ee402628e52.png",
-    "static/media/white-logo.png": "/static/media/white-logo.671bd6cc0beb33ea818c.png",
-    "static/media/discord-token-tut-img1.webp": "/static/media/discord-token-tut-img1.ff3a819cd96fa8434a0e.webp",
-    "static/media/discord-token-tut-img3.webp": "/static/media/discord-token-tut-img3.d7bec66728ff1fb97333.webp",
-    "static/media/discord-token-tut-img2.webp": "/static/media/discord-token-tut-img2.d7eb7632b53059e15a8e.webp",
-    "static/media/discord-token-tut-img4.webp": "/static/media/discord-token-tut-img4.4cba6828ff2e6fa39ef0.webp",
-    "index.html": "/index.html",
-    "main.305c9143.css.map": "/static/css/main.305c9143.css.map",
-    "main.53ca7adc.js.map": "/static/js/main.53ca7adc.js.map",
-    "453.f9cec680.chunk.js.map": "/static/js/453.f9cec680.chunk.js.map"
+    "main.css": "./static/css/main.39ab2ea8.css",
+    "main.js": "./static/js/main.751983c4.js",
+    "static/js/453.f9cec680.chunk.js": "./static/js/453.f9cec680.chunk.js",
+    "static/media/phone-discord.png": "./static/media/phone-discord.a61a22486ee402628e52.png",
+    "static/media/white-logo.png": "./static/media/white-logo.671bd6cc0beb33ea818c.png",
+    "static/media/discord-token-tut-img1.webp": "./static/media/discord-token-tut-img1.ff3a819cd96fa8434a0e.webp",
+    "static/media/discord-token-tut-img3.webp": "./static/media/discord-token-tut-img3.d7bec66728ff1fb97333.webp",
+    "static/media/discord-token-tut-img2.webp": "./static/media/discord-token-tut-img2.d7eb7632b53059e15a8e.webp",
+    "static/media/discord-token-tut-img4.webp": "./static/media/discord-token-tut-img4.4cba6828ff2e6fa39ef0.webp",
+    "index.html": "./index.html",
+    "main.39ab2ea8.css.map": "./static/css/main.39ab2ea8.css.map",
+    "main.751983c4.js.map": "./static/js/main.751983c4.js.map",
+    "453.f9cec680.chunk.js.map": "./static/js/453.f9cec680.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.305c9143.css",
-    "static/js/main.53ca7adc.js"
+    "static/css/main.39ab2ea8.css",
+    "static/js/main.751983c4.js"
   ]
 }
