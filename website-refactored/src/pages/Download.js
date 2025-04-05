@@ -52,7 +52,7 @@ const Download = () => {
 
     const [selectedChannelId, setSelectedChannelid] = useState(null)
 
-    const [numMsg, setNumMsg] = useState(5000)
+    const [numMsg, setNumMsg] = useState(1000)
 
     const [message, setMessage] = useState("Waiting for token submission...")
 
@@ -110,8 +110,9 @@ const Download = () => {
                     let serverID = server.properties.id
                     let channels = server.channels
                     let permission_id = server.id
+                    let properties_icon = server.properties.icon
 
-                    serverList[serverID] = { serverName: serverName, channels: channels, permission_id: permission_id }
+                    serverList[serverID] = { serverName: serverName, channels: channels, permission_id: permission_id,properties_icon: properties_icon }
                 }
 
                 setServers(serverList)
@@ -173,7 +174,10 @@ const Download = () => {
     const selectChannel = (channelid, channelname, servername) => {
         setMessage(`Selected ${servername} > ${channelname} (${channelid})`)
         setChannelSelected(true)
-        setSelectedChannelid(channelid)
+        setSelectedChannelid({
+            channelid: channelid,
+            channelname: (servername + '_' + channelname).replace(/[^\w]/g, '_')
+        });
         setpopupVisible(false)
     }
 
@@ -197,7 +201,8 @@ const Download = () => {
             return
         }
 
-        const channelId = selectedChannelId
+        const channelId = selectedChannelId.channelid
+        const channelName = selectedChannelId.channelname
         prg.show()
 
         console.log(`Initiating download from ${channelId}: numMsg = ${numMsgProcessed}`)
@@ -230,7 +235,8 @@ const Download = () => {
 
         let nickname = ""
         for (;;) {
-            nickname = prompt("What name would you like to give to this file? You may only use alphanumerics and underbars(_).")
+            const defaultName = channelName || "my_channel";
+            nickname = prompt("What name would you like to give to this file? You may only use alphanumerics and underbars(_).",defaultName)
 
             let dbs = await dataManager.getDBList()
             if (/^\w*$/.test(nickname)) break;
@@ -260,17 +266,37 @@ const Download = () => {
             return
         }
 
-        let dblist = await dataManager.getDBList()
+        let gameDiscImageUrl = null;
 
-        dblist.push(filename)
-        await dataManager.setDBList(dblist)
-
-        await dataManager.setChannelNickname(filename, nickname)
-
-        await dataManager.setActiveDB(filename)
-
-        await dataManager.setMessages(filename, messages)
-
+        // Check if `servers[selectedServer].properties_icon` is not null
+        if (servers[selectedServer] && servers[selectedServer].properties_icon) {
+            gameDiscImageUrl = `https://cdn.discordapp.com/icons/${selectedServer}/${servers[selectedServer].properties_icon}.webp?size=80&quality=lossless`;
+        }
+        
+        // Alert the constructed URL or null if the icon is missing
+        alert(`Server title URL: ${gameDiscImageUrl || 'No icon available'}`);
+        
+        let dblist = await dataManager.getDBList();
+        
+        // Add the new filename to the list of DBs
+        dblist.push(filename);
+        
+        // Update the DB list with the new filename
+        await dataManager.setDBList(dblist);
+        
+        // Set the channel nickname
+        await dataManager.setChannelNickname(filename, nickname);
+        
+        // Set the server game disc URL or null if no icon
+        await dataManager.setServerGameDisc(filename, gameDiscImageUrl || null);
+        
+        // Set the active DB to the new filename
+        await dataManager.setActiveDB(filename);
+        
+        // Set the messages for the new DB
+        await dataManager.setMessages(filename, messages);
+        
+        
         console.log("DONE!")
         window.location.href = '/'
 
@@ -299,10 +325,12 @@ const Download = () => {
                         
                         <div className={styles.popupcontent}>
                             <ul className={styles.channelList}>
-                                {servers[selectedServer].channels.map((channel) => {
+                                {
+                                
+                                servers[selectedServer].channels.map((channel) => {
                                 // only text channels
                                 if (channel.type !== 0) return null;
-
+                                console.log("User Permission ID:",servers[selectedServer].permission_id)
                                 // find @everyone overwrite (its ID === guild ID)
                                 const everyoneOW = channel.permission_overwrites.find(
                                     (ow) => ow.id === servers[selectedServer].permission_id

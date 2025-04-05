@@ -101,6 +101,15 @@ export class DiscordDataManager {
         let entry = `messages_${channel}`
         await set(entry, data)
     }
+    
+    async getServerGameDisc(channel) {
+        let entry = `gametitleimage_${channel}`
+        return await get(entry)
+    }
+    async setServerGameDisc(channel, data) {
+        let entry = `gametitleimage_${channel}`
+        await set(entry,data)
+    }
 
     async getRelationships(channel) {
         let entry = `relationships_${channel}`

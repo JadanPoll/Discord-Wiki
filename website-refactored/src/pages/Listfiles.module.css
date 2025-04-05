@@ -1,6 +1,34 @@
 .card {
     display: inline-block;
     margin: 10px 5px;
-    width: 22rem;
+    width: 22rem;  /* fixed width for consistency */
+    height: 200px; /* set a fixed height for the card */
     max-width: 100%;
+    position: relative;
+    overflow: visible;  /* allow the CD to show outside */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    box-sizing: border-box; /* includes padding and border in width/height calculation */
+}
+
+/* The “CD” behind the card */
+.card::before {
+    content: "";
+    position: absolute;
+    top: -40px; /* adjust vertical offset */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px; /* CD diameter */
+    height: 120px;
+    border-radius: 50%;
+    background-image: var(--cd-img);
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: -1;  /* behind the card */
+}
+
+/* Hover pop effect */
+.card:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
 }
