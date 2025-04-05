@@ -4,7 +4,7 @@
 ### Project Description:
 What's Discords AI Solution for 2025? My team and I are working on code to turn Discord into a powerful search engine for games, RSO information, and much more. Simply type in a topic, and our engine instantly generates a live, dynamic website based on the conversations happening in your Discord servers and channels. No more endless searching – get instant, relevant results from the places where you and your community are already talking.
 
-<img src="https://github.com/JadanPoll/Discord-Wiki/blob/dcbe1da6528fba314d5b738a173ea0846490ac03/Books_For_Research/DWikis.png?raw=true" alt="Landing Page" width="600" height="300"> 
+<img src="https://github.com/JadanPoll/Discord-Wiki/blob/bc45ddddde5a9c6e62a481c703bba41a67c5adeb/Books_For_Research/DWikis2.png?raw=true" alt="Landing Page" width="600" height="300"> 
 
 
 
