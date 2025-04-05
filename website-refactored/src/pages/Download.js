@@ -109,8 +109,9 @@ const Download = () => {
                     let serverName = server.properties.name
                     let serverID = server.properties.id
                     let channels = server.channels
+                    let permission_id = server.id
 
-                    serverList[serverID] = { serverName: serverName, channels: channels }
+                    serverList[serverID] = { serverName: serverName, channels: channels, permission_id: permission_id }
                 }
 
                 setServers(serverList)
@@ -161,7 +162,8 @@ const Download = () => {
         setPopupTop(top)
         setPopuptransform(transform)
 
-        console.log(servers[id].channels)
+
+        console.log('Yemen',servers[id].channels)
     }
 
     const closePopup = () => {
@@ -294,14 +296,42 @@ const Download = () => {
                             <h4 className={styles.popuptitle}>{servers[selectedServer].serverName}</h4>
                             <button className="btn btn-danger" onClick={closePopup}>Close</button>
                         </div>
+                        
                         <div className={styles.popupcontent}>
                             <ul className={styles.channelList}>
                                 {servers[selectedServer].channels.map((channel) => {
-                                    if (channel.type !== 0) return
-                                    return <li><a onClick={() => selectChannel(channel.id, channel.name, servers[selectedServer].serverName)}>{channel.name}</a></li>
+                                // only text channels
+                                if (channel.type !== 0) return null;
+
+                                // find @everyone overwrite (its ID === guild ID)
+                                const everyoneOW = channel.permission_overwrites.find(
+                                    (ow) => ow.id === servers[selectedServer].permission_id
+                                );
+                                // if deny mask explicitly has VIEW_CHANNEL (0x0400), skip
+                                if (everyoneOW && (everyoneOW.deny & 0x0400) !== 0) return null;
+
+                                // otherwise render
+                                return (
+                                    <li key={channel.id}>
+                                    <a
+                                        onClick={() =>
+                                        selectChannel(
+                                            channel.id,
+                                            channel.name,
+                                            servers[selectedServer].serverName
+                                        )
+                                        }
+                                    >
+                                        {channel.name}
+                                    </a>
+                                    </li>
+                                );
                                 })}
                             </ul>
-                        </div>
+                            </div>
+
+
+
                     </div>)}
 
                 {/* DL progressbar */}
