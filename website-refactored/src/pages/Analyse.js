@@ -97,7 +97,7 @@ const widgetStyles = {
       fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
       color: "#dcddde",
       pointerEvents: "auto",
-      overflowX: "hidden",           // hide any horizontal overflow
+      overflowX: "hidden",
     },
     header: {
       backgroundColor: "#2f3136",
@@ -110,11 +110,11 @@ const widgetStyles = {
     messages: {
       flex: 1,
       overflowY: "auto",
-      overflowX: "hidden",           // hide horizontal scrollbar
+      overflowX: "hidden",
       backgroundColor: "#2f3136",
       padding: "16px",
-      wordWrap: "break-word",        // break long words
-      whiteSpace: "pre-wrap",        // preserve newlines, wrap text
+      wordWrap: "break-word",
+      whiteSpace: "pre-wrap",
     },
     inputContainer: {
       backgroundColor: "#2f3136",
@@ -132,26 +132,48 @@ const widgetStyles = {
     },
   };
   
-// ---------------------------
-// Main widget component using your provided definition
-const DiscordChatWidget = ({ messages, channelName }) => (
-  <div style={widgetStyles.container}>
-    <div style={widgetStyles.header}>{channelName}</div>
-    <div style={widgetStyles.messages}>
-      {messages.map((msg, index) => (
-        <Message key={index} message={msg} />
-      ))}
+  // Inject custom scrollbar styles for the widget's messages container
+  const scrollbarStyles = `
+  .discord-chat-messages::-webkit-scrollbar {
+    width: 12px;
+  }
+  .discord-chat-messages::-webkit-scrollbar-track {
+    background: #2e3338;
+    border-radius: 4px;
+  }
+  .discord-chat-messages::-webkit-scrollbar-thumb {
+    background-color: #B0B0B0;
+    border-radius: 8px;
+    border: 2px solid #2e3338;
+  }
+  .discord-chat-messages::-webkit-scrollbar-thumb:hover {
+    background-color: #A0A0A0;
+  }
+  `;
+  const styleTag = document.createElement("style");
+  styleTag.innerHTML = scrollbarStyles;
+  document.head.appendChild(styleTag);
+  
+  // ---------------------------
+  // Main widget component using your provided definition
+  const DiscordChatWidget = ({ messages, channelName }) => (
+    <div style={widgetStyles.container}>
+      <div style={widgetStyles.header}>{channelName}</div>
+      <div className="discord-chat-messages" style={widgetStyles.messages}>
+        {messages.map((msg, index) => (
+          <Message key={index} message={msg} />
+        ))}
+      </div>
+      <div style={widgetStyles.inputContainer}>
+        <input
+          type="text"
+          style={widgetStyles.input}
+          placeholder={`Message ${channelName}`}
+        />
+      </div>
     </div>
-    <div style={widgetStyles.inputContainer}>
-      <input
-        type="text"
-        style={widgetStyles.input}
-        placeholder={`Message ${channelName}`}
-      />
-    </div>
-  </div>
-);
-
+  );
+  
 // ---------------------------
 // Main Analyse component
 const Analyse = () => {
@@ -184,7 +206,7 @@ const Analyse = () => {
 
       for (let i = start; i <= end; i++) {
         if (conversationBlocks[i]) {
-          const text = conversationBlocks[i].replace(/'/g, "&quot;");
+          const text = conversationBlocks[i];
           msgs.push({
             user: `User${i}`,
             time: `10:${i < 10 ? "0" + i : i}`,
@@ -215,7 +237,7 @@ const Analyse = () => {
         tooltipContainerRef.current
       );
       tooltipContainerRef.current._reactRoot.render(
-        <DiscordChatWidget messages={msgs} channelName={`Reference ${refIdx}`} />
+        <DiscordChatWidget messages={msgs} channelName={`DMessage ${refIdx}`} />
       );
     };
 
@@ -327,8 +349,22 @@ const Analyse = () => {
       selectedItemText.length > maxLength
         ? selectedItemText.slice(0, maxLength) + "..."
         : selectedItemText;
-    const prompt = `Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10). If possible break it into subheadings: ${truncated}`;
-
+    //const prompt = `Don't include in summary information that doesn't relate to the topic specified in: Topic <Topic_Name>. Summarize this combining abstractive and high-quality extractive. Don't miss any details in it. Reference specific messages in your response Eg:(DMessage 10). If possible break it into subheadings: ${truncated}`;
+    let topic_name = selectedItem
+    const prompt = `
+    “You are an expert summarizer. Given the following chat transcript excerpt about ${topic_name}, produce a concise summary that:
+    1. Only includes content directly relevant to ${topic_name}.
+    2. Combines high‑quality extractive quotes (with message IDs) and an abstractive overview.
+    3. Organizes into clear subheadings if multiple themes appear.
+    4. References messages as (DMessage 10) style.
+    5. Use the <code> tag to highlight important words, phrases, or central ideas.
+    
+    Transcript:
+    ${truncated}
+    
+    Summary:”
+    `
+    
     setShubhanGPTDisplay("Please wait...");
     setLoading(true);
     try {
