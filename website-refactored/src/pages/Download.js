@@ -128,45 +128,68 @@ const Download = () => {
 
     // Handle popup open
     const showPopup = (id) => {
-        setSelectedServer(id)
-        setpopupVisible(true)
-
-        const button = gridButtonRef.current[id]
-        if (!button) return
-
-        let left = 0
-        let top = 0
-        let transform = ""
-
+        setSelectedServer(id);
+        setpopupVisible(true);
+    
+        // Retrieve the button using the gridButtonRef
+        const button = gridButtonRef.current[id];
+        if (!button) return;
+    
+        // Initialize variables for popup positioning
+        let left = '';
+        let top = '';
+        let transform = '';
+    
+        // Get button's bounding rectangle relative to the viewport
         const serverItemRect = button.getBoundingClientRect();
-        const popupWidth = 300; // Popup width defined in CSS
+        console.log(serverItemRect);
+    
+        // Define popup dimensions
+        const popupWidth = 300; // Match the CSS defined width
+        const popupHeight = 200; // Define or compute the popup's height if applicable
+    
+        // Calculate available space on the right, left, and below the button.
+        // Note: getBoundingClientRect() values are relative to the viewport so we add scroll offsets.
         const spaceOnRight = window.innerWidth - serverItemRect.right;
         const spaceOnLeft = serverItemRect.left;
-
+        const spaceBelow = window.innerHeight - serverItemRect.bottom;
+    
+        // Use scroll offsets to position the popup in relation to the full page
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+    
         // Position the popup based on available space
         if (spaceOnRight >= popupWidth) {
-            left = `${serverItemRect.right + 10}px`;
-            top = `${serverItemRect.top}px`;
+            // Enough space on the right
+            left = `${serverItemRect.right + 10 + scrollX}px`;
+            top = `${serverItemRect.top + scrollY}px`;
             transform = 'translateX(0)';
         } else if (spaceOnLeft >= popupWidth) {
-            left = `${serverItemRect.left - popupWidth - 10}px`;
-            top = `${serverItemRect.top}px`;
+            // Enough space on the left
+            left = `${serverItemRect.left - popupWidth - 10 + scrollX}px`;
+            top = `${serverItemRect.top + scrollY}px`;
             transform = 'translateX(0)';
+        } else if (spaceBelow >= popupHeight) {
+            // If not enough horizontal space, place the popup below the button
+            left = `${serverItemRect.left + scrollX}px`;
+            top = `${serverItemRect.bottom + 10 + scrollY}px`;
+            transform = 'translateY(0)';
         } else {
-            // Default to expanding downwards if not enough space
-            left = `${serverItemRect.left}px`;
-            top = `${serverItemRect.bottom + 10}px`;
+            // If space below is insufficient, try positioning the popup above the button
+            left = `${serverItemRect.left + scrollX}px`;
+            top = `${serverItemRect.top - popupHeight - 10 + scrollY}px`;
             transform = 'translateY(0)';
         }
-
-        setPopupleft(left)
-        setPopupTop(top)
-        setPopuptransform(transform)
-
-
-        console.log('Yemen',servers[id].channels)
-    }
-
+    
+        // Update popup state with the calculated values
+        setPopupleft(left);
+        setPopupTop(top);
+        setPopuptransform(transform);
+    
+        // Log additional data if needed
+        console.log('Yemen', servers[id].channels);
+    };
+    
     const closePopup = () => {
         setpopupVisible(false)
     }
