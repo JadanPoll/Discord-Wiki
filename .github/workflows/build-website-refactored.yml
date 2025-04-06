@@ -61,6 +61,6 @@ jobs:
             pkill -f 'serve -s build' || true
             pkill -f 'gunicorn' || true
 
-            # Start frontend + API in production
-            yarn --ignore-engines start-both-prod
+            # Start frontend + API in production in the background
+            nohup yarn --ignore-engines start-both-prod &
           EOF
