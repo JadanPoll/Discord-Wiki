@@ -6,6 +6,4 @@ aiohttp
 bs4
 halo
 spacy
-glossary_compression
-nltk.stem
 textblob
