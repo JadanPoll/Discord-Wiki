@@ -1,0 +1,62 @@
+# .github/workflows/build-and-deploy-website-refactored.yml
+name: Build & Deploy website-refactored on push
+
+on:
+  push:
+    paths:
+      - 'website-refactored/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: website-refactored
+
+    steps:
+      # 1. Checkout your code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: yarn install
+
+      # 4. Build the project
+      - name: Build the project
+        run: yarn build
+
+      # 5. Load your SSH key
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.DWIKIS_REMOTE_SERVER_KYUBIN_ACCESS }}
+
+      # 6. Sync built files to your server
+      - name: Sync built files to server
+        run: |
+          rsync -avz --delete \
+            ./build/ \
+            azureuser@172.191.104.156:~/Discord-Wiki/website-refactored/build/
+
+      # 7. SSH in, kill old processes, and start production
+      - name: Restart server process
+        run: |
+          ssh -o StrictHostKeyChecking=no azureuser@172.191.104.156 << 'EOF'
+            cd ~/Discord-Wiki/website-refactored
+
+            # Stop any existing production processes
+            pkill -f 'concurrently' || true
+            pkill -f 'serve -s build' || true
+            pkill -f 'gunicorn' || true
+
+            # Start frontend + API in production
+            yarn --ignore-engines start-both-prod
+          EOF
