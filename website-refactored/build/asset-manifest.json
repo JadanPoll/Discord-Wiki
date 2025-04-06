@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "./static/css/main.39ab2ea8.css",
-    "main.js": "./static/js/main.751983c4.js",
+    "main.css": "./static/css/main.b5bf3ecd.css",
+    "main.js": "./static/js/main.36f9cf93.js",
     "static/js/453.f9cec680.chunk.js": "./static/js/453.f9cec680.chunk.js",
     "static/media/phone-discord.png": "./static/media/phone-discord.a61a22486ee402628e52.png",
     "static/media/white-logo.png": "./static/media/white-logo.671bd6cc0beb33ea818c.png",
@@ -10,12 +10,12 @@
     "static/media/discord-token-tut-img2.webp": "./static/media/discord-token-tut-img2.d7eb7632b53059e15a8e.webp",
     "static/media/discord-token-tut-img4.webp": "./static/media/discord-token-tut-img4.4cba6828ff2e6fa39ef0.webp",
     "index.html": "./index.html",
-    "main.39ab2ea8.css.map": "./static/css/main.39ab2ea8.css.map",
-    "main.751983c4.js.map": "./static/js/main.751983c4.js.map",
+    "main.b5bf3ecd.css.map": "./static/css/main.b5bf3ecd.css.map",
+    "main.36f9cf93.js.map": "./static/js/main.36f9cf93.js.map",
     "453.f9cec680.chunk.js.map": "./static/js/453.f9cec680.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.39ab2ea8.css",
-    "static/js/main.751983c4.js"
+    "static/css/main.b5bf3ecd.css",
+    "static/js/main.36f9cf93.js"
   ]
 }
