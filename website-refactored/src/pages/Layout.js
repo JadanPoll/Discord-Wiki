@@ -45,7 +45,7 @@ const Layout = () => {
                                 <Link className="nav-link" to="/listfiles">Manage titles</Link>
                             </li>
                             <li className="nav-item">
-                                <Link className="nav-link" to="/download">Add server</Link>
+                                <Link className="nav-link" to="/download">Add title</Link>
                             </li>
                         </ul>
                     </div>
