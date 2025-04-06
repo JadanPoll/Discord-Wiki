@@ -14,6 +14,7 @@
     "pako": "1.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-helmet": "^6.1.0",
     "react-router-dom": "^7.3.0",
     "react-scripts": "^5.0.1",
     "serve": "^14.2.4",
@@ -23,15 +24,12 @@
     "concurrently": "^9.1.2"
   },
   "scripts": {
-    "dev":    "react-scripts start --max_old_space_size=2048 --no-source-map",
-    "build":  "react-scripts build",
-    "serve":  "serve -s build -l 3000",
-
-
-    "start-api-dev":  "cd api && python3 -m flask run",
+    "dev": "react-scripts start --max_old_space_size=2048 --no-source-map",
+    "build": "react-scripts build",
+    "serve": "serve -s build -l 3000",
+    "start-api-dev": "cd api && python3 -m flask run",
     "start-api-prod": "cd api && gunicorn -w 2 -b 0.0.0.0:5000 api:app",
-
-    "start-both-dev":  "concurrently \"npm run dev\" \"npm run start-api-dev\"",
+    "start-both-dev": "concurrently \"npm run dev\" \"npm run start-api-dev\"",
     "start-both-prod": "concurrently \"npm run serve\" \"npm run start-api-prod\""
   },
   "browserslist": {
