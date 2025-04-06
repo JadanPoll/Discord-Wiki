@@ -20,8 +20,7 @@
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
-    "gunicorn": "^20.1.0"
+    "concurrently": "^9.1.2"
   },
   "scripts": {
     "dev":    "react-scripts start --max_old_space_size=2048 --no-source-map",
