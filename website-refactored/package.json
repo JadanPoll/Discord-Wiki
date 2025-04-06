@@ -1,55 +1,39 @@
 {
   "name": "website-refactored",
   "version": "0.1.0",
-  "private": false,
+  "private": true,
   "homepage": "./",
   "dependencies": {
-    "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
-    "@testing-library/user-event": "^13.5.0",
     "bootstrap": "^5.3.3",
-    "devextreme": "24.2",
-    "http": "^0.0.1-security",
     "http-proxy-middleware": "^3.0.3",
     "idb": "^8.0.2",
     "idb-keyval": "^6.2.1",
     "jieba": "^1.0.0",
-    "jquery": "^3.7.1",
-    "jslib": "^1.1.0",
     "marked": "^15.0.7",
-    "marked-react": "^3.0.0",
     "moment": "^2.30.1",
     "pako": "1.0.0",
-    "popper.js": "^1.16.1",
     "react": "^19.0.0",
-    "react-arborist": "^3.4.3",
     "react-dom": "^19.0.0",
-    "react-helmet": "^6.1.0",
     "react-router-dom": "^7.3.0",
     "react-scripts": "^5.0.1",
-    "react-tooltip": "^5.28.0",
     "serve": "^14.2.4",
-    "url": "^0.11.4",
-    "util": "^0.12.5",
     "web-vitals": "^2.1.4"
   },
-  "scripts": {
-    "start": "react-scripts start",
-    "start-api": "cd api && python3 -m flask run",
-    "start-both": "concurrently \"npm run start\" \"npm run start-api\"",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "gunicorn": "^20.1.0"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ],
-    "rules": {
-      "no-unused-vars": "off"
-    }
+  "scripts": {
+    "dev":    "react-scripts start --max_old_space_size=2048 --no-source-map",
+    "build":  "react-scripts build",
+    "serve":  "serve -s build -l 3000",
+
+
+    "start-api-dev":  "cd api && python3 -m flask run",
+    "start-api-prod": "cd api && gunicorn -w 2 -b 0.0.0.0:5000 api:app",
+
+    "start-both-dev":  "concurrently \"npm run dev\" \"npm run start-api-dev\"",
+    "start-both-prod": "concurrently \"npm run serve\" \"npm run start-api-prod\""
   },
   "browserslist": {
     "production": [
@@ -62,16 +46,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "options": {
-    "allowedHosts": [
-      "localhost",
-      ".localhost",
-      "127.0.0.1"
-    ],
-    "proxy": "http://localhost:5000/"
-  },
-  "devDependencies": {
-    "concurrently": "^9.1.2"
   }
 }
