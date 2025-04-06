@@ -25,32 +25,43 @@ jobs:
         with:
           node-version: '20'
 
-      # 3. Install dependencies
+      # 3. Cache Yarn dependencies
+      - name: Cache node modules and Yarn cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.cache/yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      # 4. Install dependencies
       - name: Install dependencies
         run: yarn install
 
-      # 4. Build the project
+      # 5. Build the project
       - name: Build the project
         run: yarn build
 
-      # 5. Load your SSH key into the agent
+      # 6. Load your SSH key into the agent
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.DWIKIS_REMOTE_SERVER }}
 
-      # 6. Trust the remote server’s host key
+      # 7. Trust the remote server’s host key
       - name: Add server to known_hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H 172.191.104.156 >> ~/.ssh/known_hosts
 
-      # 7. Sync built files to your server using SCP
+      # 8. Sync built files to your server using SCP
       - name: Sync built files to server
         run: |
           scp -o StrictHostKeyChecking=no -r ./build/* azureuser@172.191.104.156:~/Discord-Wiki/website-refactored/build/
 
-      # 8. SSH in, kill old processes, and start production
+      # 9. SSH in, kill old processes, and start production
       - name: Restart server process
         run: |
           ssh -o StrictHostKeyChecking=no azureuser@172.191.104.156 << 'EOF'
@@ -61,6 +72,7 @@ jobs:
             pkill -f 'serve -s build' || true
             pkill -f 'gunicorn' || true
 
-            # Start frontend + API in production in the background
-            nohup yarn --ignore-engines start-both-prod &
+            # Start frontend + API in production in the background,
+            # detaching the process so it doesn't block the SSH session.
+            nohup yarn --ignore-engines start-both-prod > output.log 2>&1 & disown
           EOF
