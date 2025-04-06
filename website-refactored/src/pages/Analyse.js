@@ -222,17 +222,63 @@ const Analyse = () => {
     window.showWidgetTooltip = (event, msgs, refIdx) => {
       clearTimeout(hideTimeout.current);
       if (!tooltipContainerRef.current) return;
-
+    
+      // Get the target element's bounding rectangle
       const rect = event.target.getBoundingClientRect();
-      tooltipContainerRef.current.style.top = rect.top + window.scrollY + "px";
-      tooltipContainerRef.current.style.left = rect.right + 10 + window.scrollX + "px";
+    
+      // Define tooltip dimensions
+      const tooltipWidth = 300;  // Set or calculate the width of your tooltip
+      const tooltipHeight = 200; // Set or calculate the height of your tooltip
+    
+      // Calculate available space around the target element
+      const spaceOnRight = window.innerWidth - rect.right;
+      const spaceOnLeft = rect.left;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+    
+      // Use scroll offsets for accurate positioning relative to the whole page
+      const scrollX = window.scrollX;
+      const scrollY = window.scrollY;
+    
+      // Initialize variables for tooltip positioning
+      let left = '';
+      let top = '';
+      let transform = '';
+    
+      // Position the tooltip based on available space
+      if (spaceOnRight >= tooltipWidth) {
+        // Enough space on the right side of the target
+        left = `${rect.right + 10 + scrollX}px`;
+        top = `${rect.top + scrollY}px`;
+        transform = 'translateX(0)';
+      } else if (spaceOnLeft >= tooltipWidth) {
+        // Enough space on the left side of the target
+        left = `${rect.left - tooltipWidth - 10 + scrollX}px`;
+        top = `${rect.top + scrollY}px`;
+        transform = 'translateX(0)';
+      } else if (spaceBelow >= tooltipHeight) {
+        // Enough space below the target
+        left = `${rect.left + scrollX}px`;
+        top = `${rect.bottom + 10 + scrollY}px`;
+        transform = 'translateY(0)';
+      } else if (spaceAbove >= tooltipHeight) {
+        // Enough space above the target
+        left = `${rect.left + scrollX}px`;
+        top = `${rect.top - tooltipHeight - 10 + scrollY}px`;
+        transform = 'translateY(0)';
+      }
+    
+      // Apply the calculated position to the tooltip container
+      tooltipContainerRef.current.style.left = left;
+      tooltipContainerRef.current.style.top = top;
       tooltipContainerRef.current.style.opacity = 1;
-
+    
+      // Render the tooltip component (ensure React root is properly managed)
       if (tooltipContainerRef.current._reactRoot) {
         tooltipContainerRef.current._reactRoot.unmount();
         delete tooltipContainerRef.current._reactRoot;
       }
-
+    
       tooltipContainerRef.current._reactRoot = ReactDOM.createRoot(
         tooltipContainerRef.current
       );
@@ -240,6 +286,7 @@ const Analyse = () => {
         <DiscordChatWidget messages={msgs} channelName={`DMessage ${refIdx}`} />
       );
     };
+    
 
     window.hideWidgetTooltip = () => {
       clearTimeout(hideTimeout.current);
