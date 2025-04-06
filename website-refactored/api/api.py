@@ -8,7 +8,6 @@ import requests
 import datetime
 import random
 
-
 print(f"Run website on http://127.0.0.1:3000")
 # Init'ise API server
 app = Flask(__name__)
