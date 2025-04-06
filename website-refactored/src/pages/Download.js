@@ -24,6 +24,8 @@ const Download = () => {
     // states
     const [token, setToken] = useState("")
 
+    const [isLoadingServers, setIsLoadingServers] = useState(false);
+
     /* For POPUP ONLY, not necessarily the final server selected */
 
     // is a server selected?
@@ -52,7 +54,7 @@ const Download = () => {
 
     const [selectedChannelId, setSelectedChannelid] = useState(null)
 
-    const [numMsg, setNumMsg] = useState(1000)
+    const [numMsg, setNumMsg] = useState(2000)
 
     const [message, setMessage] = useState("Waiting for token submission...")
 
@@ -92,40 +94,43 @@ const Download = () => {
 
     // Handle Token submissions (getting servers)
     const onTokenSubmit = async (e) => {
-        e.preventDefault()
-
-        const discordToken = token.trim()
+        e.preventDefault();
+   
+        setIsLoadingServers(true); // Set loading to true when the process starts.
+   
+        const discordToken = token.trim();
         if (discordToken) {
             console.log('Connecting with provided token...');
             const client = new DiscordClient(WS_URL, discordToken, (json) => {
                 // callback for when all data is read
-
-                console.log("Data received: ", json)
-
+   
+                console.log("Data received: ", json);
+   
                 // build list of objects, as described before channels
-
-                let serverList = Object.create(null)
+                let serverList = Object.create(null);
                 for (const server of json.d.guilds) {
-                    let serverName = server.properties.name
-                    let serverID = server.properties.id
-                    let channels = server.channels
-                    let permission_id = server.id
-                    let properties_icon = server.properties.icon
-
-                    serverList[serverID] = { serverName: serverName, channels: channels, permission_id: permission_id,properties_icon: properties_icon }
+                    let serverName = server.properties.name;
+                    let serverID = server.properties.id;
+                    let channels = server.channels;
+                    let permission_id = server.id;
+                    let properties_icon = server.properties.icon;
+   
+                    serverList[serverID] = { serverName: serverName, channels: channels, permission_id: permission_id, properties_icon: properties_icon };
                 }
-
-                setServers(serverList)
-                setServerSelected(true)
-                setMessage("Please select a channel.")
+   
+                setServers(serverList);
+                setServerSelected(true);
+                setMessage("Please select a channel.");
+                setIsLoadingServers(false); // Set loading to false when the process is done.
             });
             client.connect();
         }
         else {
-            alert('Invalid token. Please enter a valid Discord token.')
+            alert('Invalid token. Please enter a valid Discord token.');
+            setIsLoadingServers(false); // Set loading to false if the token is invalid.
         }
-    }
-
+    };
+   
     // Handle popup open
     const showPopup = (id) => {
         setSelectedServer(id);
@@ -296,9 +301,7 @@ const Download = () => {
             gameDiscImageUrl = `https://cdn.discordapp.com/icons/${selectedServer}/${servers[selectedServer].properties_icon}.webp?size=80&quality=lossless`;
         }
         
-        // Alert the constructed URL or null if the icon is missing
-        alert(`Server title URL: ${gameDiscImageUrl || 'No icon available'}`);
-        
+
         let dblist = await dataManager.getDBList();
         
         // Add the new filename to the list of DBs
@@ -457,8 +460,16 @@ const Download = () => {
                     </div>
 
                     <div className="mb-3">
-                        <button type="submit" className="btn btn-primary">Load Servers</button>
+                        <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={isLoadingServers} // Disable the button when loading
+                        >
+                            {isLoadingServers ? 'Loading Servers...' : 'Load Servers'} {/* Change the button text */}
+                        </button>
+
                     </div>
+    
                 </form>
 
                 {isChannelSelected && (<>
