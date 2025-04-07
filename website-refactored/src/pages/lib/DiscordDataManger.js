@@ -130,7 +130,17 @@ export class DiscordDataManager {
         let entry = `convblocks_${channel}`
         await set(entry, data)
     }
-
+    async setSummary(channel,topic,summary_data)
+    {
+        let entry = `Summary_${channel}_${topic}`
+        await set(entry,summary_data)
+    }
+    async getSummary(channel,topic)
+    {
+        let entry = `Summary_${channel}_${topic}`
+        return await get(entry)
+    }
+    
     async removeChannel(channel) {
         let dblist = await this.getDBList()
 

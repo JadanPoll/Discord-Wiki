@@ -371,6 +371,9 @@ const Analyse = () => {
     window.summaryAPI = initializeAPI(keys);
 
     window.summaryAPI.registerMessageHandler((message) => {
+
+      //activedb.setSummary(activedb, selectedItem, message);
+
       message = message.replace(/DMessage ([0-9]+)/g, (_m, p1) => {
         const idx = parseInt(p1, 10);
         return `<span
