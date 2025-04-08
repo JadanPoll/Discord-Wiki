@@ -32,3 +32,41 @@
 .card:hover {
     box-shadow: 0 8px 16px rgba(0,0,0,0.3);
 }
+
+
+
+.previewIconContainer {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translate(20px, -50%);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+  }
+  
+  .card:hover .previewIconContainer {
+    opacity: 1;
+    transform: translate(0, -50%);
+    pointer-events: auto;
+  }
+  
+  .previewIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #35c97f; /* Bootstrap blue */
+    color: white;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+  }
+  
+  .previewIcon:hover {
+    transform: scale(1.1);
+  }
+  

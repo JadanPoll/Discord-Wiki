@@ -12,6 +12,7 @@ import FrontPageWithData from './pages/FrontpageWithData';
 import Download from './pages/Download'
 import Listfiles from './pages/Listfiles'
 import Analyse from './pages/Analyse';
+import Preview from './pages/Preview';
 import NotFound from './pages/NotFound'
 import reportWebVitals from './reportWebVitals'
 import { Helmet } from 'react-helmet';
@@ -31,6 +32,7 @@ root.render(
           <Route path="download" element={<Download />} />
           <Route path="listfiles" element={<Listfiles />} />
           <Route path="analyse" element={<Analyse />} />
+          <Route path="preview/:id" element={<Preview />} />
           <Route path="*" element={<NotFound />}/>
         </Route>
       </Routes>

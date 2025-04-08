@@ -112,6 +112,24 @@ const Listfiles = () => {
                             >
                             <div className={"card-body " + (data.isActive ? "shadow" : "")}>
                                 <h5 className="card-title">{data.nickname}</h5>
+
+                            {/* This container holds the circular arrow which appears on hover;
+                                Its visibility is controlled via CSS (Download.module.css) */}
+                            <div className={styles.previewIconContainer}>
+                            <a
+                                href="#"
+                                onClick={(e) => {
+                                e.preventDefault();
+                                navigate(`/preview/${data.id}`);
+                                }}
+                                title="Preview messages"
+                                className={styles.previewIcon}
+                            >
+                                &gt;
+                            </a>
+                            </div>
+
+
                                 <h6 className="card-subtitle mb-2 text-body-secondary">ID: {data.id}</h6>
                                 <p className="card-text">Created at {data.datetime}</p>
                                 {data.isActive && <span className="card-link"><i>Active File</i></span>}
