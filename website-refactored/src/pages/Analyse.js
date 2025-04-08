@@ -283,8 +283,8 @@ const Analyse = () => {
     };
 
     return () => clearTimeout(hideTimeout.current);
-  }, []);
-
+  }, [conversationBlocks]);
+//Run when conversationBlocks becomes available
   /* ==========================================================
      Data Fetching & Initialization
   ========================================================== */
