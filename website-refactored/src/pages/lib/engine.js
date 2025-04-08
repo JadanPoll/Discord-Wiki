@@ -42,7 +42,7 @@ function findKnee(scores) {
   
     // 2. Define a threshold for a “significant” drop
     const maxDelta = Math.max(...deltas);
-    const dropThreshold = maxDelta * 0.05; // heuristic: 5% of max drop
+    const dropThreshold = maxDelta * 0.2; // heuristic: 20% of max drop
   
     // 3. Find the first index where the drop becomes small (plateau begins)
     for (let i = 1; i < deltas.length; i++) {
