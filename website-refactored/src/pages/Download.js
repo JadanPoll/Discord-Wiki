@@ -266,7 +266,7 @@ const Download = () => {
             const defaultName = channelName || "my_channel";
             nickname = prompt("What name would you like to give to this file? You may only use alphanumerics and underbars(_).",defaultName)
 
-            let dbs = await dataManager.getDBList()
+            let dbs = await dataManager.getDBServersObjList()
             if (/^\w*$/.test(nickname)) break;
             alert("You may only use alphanumerics and underbars(_).");
         }
@@ -302,13 +302,13 @@ const Download = () => {
         }
         
 
-        let dblist = await dataManager.getDBList();
+        let dblist = await dataManager.getDBServersObjList();
         
         // Add the new filename to the list of DBs
         dblist.push(filename);
         
         // Update the DB list with the new filename
-        await dataManager.setDBList(dblist);
+        await dataManager.setDBServersObjList(dblist);
         
         // Set the channel nickname
         await dataManager.setChannelNickname(filename, nickname);
@@ -317,7 +317,7 @@ const Download = () => {
         await dataManager.setServerGameDisc(filename, gameDiscImageUrl || null);
         
         // Set the active DB to the new filename
-        await dataManager.setActiveDB(filename);
+        await dataManager.setActiveServerDisc(filename);
         
         // Set the messages for the new DB
         await dataManager.setMessages(filename, messages);

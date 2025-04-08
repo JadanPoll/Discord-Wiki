@@ -19,7 +19,7 @@ import { Helmet } from 'react-helmet';
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 let dmanager = new DiscordDataManager()
-let activeChannel = dmanager.getActiveDBSync()
+let activeChannel = dmanager.getActiveServerDiscSync()
 
 root.render(
   <NavbarStyle>

@@ -10,7 +10,7 @@ import styles from './FrontpageWithData.module.css'
 const FrontPageWithData = () => {
 
     let dmanager = new DiscordDataManager()
-    let activeChannel = dmanager.getActiveDBSync()
+    let activeChannel = dmanager.getActiveServerDiscSync()
     let channelname = dmanager.getChannelNicknameSync(activeChannel)
 
     // Navbar

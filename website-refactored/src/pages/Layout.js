@@ -11,7 +11,7 @@ const Layout = () => {
     let { NavbarColor } = useNavbar() // this context is 'transparent' only when we are in the 'true' front page.
 
     let dmanager = new DiscordDataManager()
-    let activeChannel = dmanager.getActiveDBSync()
+    let activeChannel = dmanager.getActiveServerDiscSync()
     let channelname = dmanager.getChannelNicknameSync(activeChannel)
     return (
         <>

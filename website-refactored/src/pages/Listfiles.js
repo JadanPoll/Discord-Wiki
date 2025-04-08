@@ -15,8 +15,8 @@ const Listfiles = () => {
             let ans = []
         
             let discorddata = new DiscordDataManager()
-            let dblist = await discorddata.getDBList()
-            let activefile = await discorddata.getActiveDB()
+            let dblist = await discorddata.getDBServersObjList()
+            let activefile = await discorddata.getActiveServerDisc()
         
             // Loop over the DB list
             for (let element of dblist) {
@@ -52,7 +52,7 @@ const Listfiles = () => {
 
     let deleteFile = async (id) => {
         let discorddata = new DiscordDataManager()
-        if (id === await discorddata.getActiveDB()) {
+        if (id === await discorddata.getActiveServerDisc()) {
             alert("You are about to delete the active file. The newest file will become the next active file.")
         }
 
@@ -117,7 +117,7 @@ const Listfiles = () => {
                                         className="card-link"
                                         onClick={() => {
                                             let dm = new DiscordDataManager();
-                                            dm.setActiveDB(data.id);
+                                            dm.setActiveServerDisc(data.id);
                                             window.location.reload();
                                         }}
                                     >

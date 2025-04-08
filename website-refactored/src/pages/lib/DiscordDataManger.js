@@ -11,7 +11,7 @@
  * This class also provides a number of auxillary functions.
  * 
  * Keys used (note that datatypes shown are original data types, all data are converted by JSON.stringify):
- * activedb = [String] => localStorage.
+ * activeServerDisc = [String] => localStorage.
  * dblist = [Array] => localStorage.
  * channelNickname = [Array] => localStorage.
  * glossary_<id> = [Object] => IndexedDB.
@@ -27,11 +27,11 @@ import { get, set, clear, del } from 'idb-keyval'
 export class DiscordDataManager {
     constructor() {
         // Init'ise data storage
-        if (localStorage.getItem("activedb") === null)
-            localStorage.setItem("activedb", "")
+        if (localStorage.getItem("activeServerDisc") === null)
+            localStorage.setItem("activeServerDisc", "")
 
-        if (localStorage.getItem("dblist") === null)
-            localStorage.setItem("dblist", JSON.stringify([]))
+        if (localStorage.getItem("dbserverlist") === null)
+            localStorage.setItem("dbserverlist", JSON.stringify([]))
 
         if (localStorage.getItem("channel_nicknames") === null)
             localStorage.setItem("channel_nicknames", JSON.stringify(Object.create(null)))
@@ -42,25 +42,25 @@ export class DiscordDataManager {
         this.relationshipstablename = 'relationships'
     }
 
-    async getDBList() {
-        return JSON.parse(localStorage.getItem("dblist"))
+    async getDBServersObjList() {
+        return JSON.parse(localStorage.getItem("dbserverlist"))
     }
 
-    async setDBList(arr) {
-        localStorage.setItem("dblist", JSON.stringify(arr))
+    async setDBServersObjList(arr) {
+        localStorage.setItem("dbserverlist", JSON.stringify(arr))
     }
 
-    async getActiveDB() {
-        return localStorage.getItem("activedb")
+    async getActiveServerDisc() {
+        return localStorage.getItem("activeServerDisc")
     }
 
-    getActiveDBSync()
+    getActiveServerDiscSync()
     {
-        return localStorage.getItem("activedb")
+        return localStorage.getItem("activeServerDisc")
     }
 
-    async setActiveDB(name) {
-        localStorage.setItem("activedb", name)
+    async setActiveServerDisc(name) {
+        localStorage.setItem("activeServerDisc", name)
     }
 
     async getChannelNickname(channel) {
@@ -132,17 +132,17 @@ export class DiscordDataManager {
     }
     async setSummary(channel,topic,summary_data)
     {
-        let entry = `Summary_${channel}_${topic}`
+        let entry = `summary_${channel}_${topic}`
         await set(entry,summary_data)
     }
     async getSummary(channel,topic)
     {
-        let entry = `Summary_${channel}_${topic}`
+        let entry = `summary_${channel}_${topic}`
         return await get(entry)
     }
     
     async removeChannel(channel) {
-        let dblist = await this.getDBList()
+        let dblist = await this.getDBServersObjList()
 
         if (!dblist.includes(channel)) {
             return { "status": false, "message": "No such file found." }
@@ -165,10 +165,10 @@ export class DiscordDataManager {
         await del(`convblocks_${channel}`)
 
         dblist.splice(dblist.indexOf(channel), 1)
-        this.setDBList(dblist)
+        this.setDBServersObjList(dblist)
 
-        if (await this.getActiveDB() === channel) {
-            this.setActiveDB(dblist[dblist.length - 1])
+        if (await this.getActiveServerDisc() === channel) {
+            this.setActiveServerDisc(dblist[dblist.length - 1])
         }
 
         return { "status": true, "message": "OK." }

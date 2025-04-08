@@ -153,9 +153,9 @@ def listfiles():
     res = []
 
     # traverse dblist in REVERSE order; this in effect sorts in recent
-    if "dblist" in session and len(session["dblist"]) != 0:
+    if "dbserverlist" in session and len(session["dbserverlist"]) != 0:
         id: str # does nothing tbh, just easy linting
-        for id in session["dblist"][::-1]:
+        for id in session["dbserverlist"][::-1]:
             # calc dl'd datetime using epoch
             # https://stackoverflow.com/questions/26276906/python-convert-seconds-from-epoch-time-into-human-readable-time
             createdAt = ""
@@ -196,12 +196,12 @@ def deletefile():
     except Exception as e:
         return jsonify({"error": str(e)}), 404 # means no argument
     
-    if id not in session["dblist"]:
+    if id not in session["dbserverlist"]:
         # invalid request
         return jsonify({"error": str(e)}), 404
     
     # special case: this is the only file. This is effectly purging.
-    if len(session["dblist"]) == 1:
+    if len(session["dbserverlist"]) == 1:
         session.clear()
         return redirect("/")
 
@@ -224,11 +224,11 @@ def deletefile():
         session['GlobalGlossary'].pop(id)
 
     # delete from dblist
-    session["dblist"].remove(id);
+    session["dbserverlist"].remove(id);
 
     # IF active file, replace active file to the most recent one
     if session["db"] == id:
-        session["db"] = session["dblist"][-1]
+        session["db"] = session["dbserverlist"][-1]
 
     return redirect('/listfiles')
 
@@ -385,10 +385,10 @@ def live_update_save():
 
         session["db"] = request.json["filename"]
 
-        if "dblist" in session:
-            session["dblist"].append(str(request.json['filename']))
+        if "dbserverlist" in session:
+            session["dbserverlist"].append(str(request.json['filename']))
         else:
-            session["dblist"] = [str(request.json['filename'])]
+            session["dbserverlist"] = [str(request.json['filename'])]
 
         if "messages_nicknames" not in session: session["messages_nicknames"] = {} #init'ise dict
         if request.json['nickname'] == "":
