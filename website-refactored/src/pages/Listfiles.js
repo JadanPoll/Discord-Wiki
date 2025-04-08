@@ -122,7 +122,7 @@ const Listfiles = () => {
                                         onClick={() => {
                                             let dm = new DiscordDataManager();
                                             dm.setActiveServerDisc(data.id);
-                                            navigate(0); //Reload on this current path
+                                            navigate(0); //Reload on this current path (:) Actually reloading the page feels more powerful
                                         }}
                                     >
                                         Set as active file
