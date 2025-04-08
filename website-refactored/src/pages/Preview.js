@@ -135,7 +135,7 @@ const Preview = () => {
 
   const handlePlusClick = () => {
     if (messages.length > 0) {
-      alert(`Earliest message ID: ${messages[0].id}`);
+      alert(`Earliest prepend message ID: ${messages[0].id}`);
     }
   };
 
