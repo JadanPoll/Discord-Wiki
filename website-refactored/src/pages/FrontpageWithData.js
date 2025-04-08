@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react"
 
+
 import { Link } from "react-router-dom"
 import { Helmet } from "react-helmet"
 
@@ -7,12 +8,16 @@ import { DiscordDataManager } from "./lib/DiscordDataManger"
 
 import styles from './FrontpageWithData.module.css'
 
+import { useNavigate } from 'react-router-dom';
+
+
 const FrontPageWithData = () => {
 
     let dmanager = new DiscordDataManager()
     let activeChannel = dmanager.getActiveServerDiscSync()
     let channelname = dmanager.getChannelNicknameSync(activeChannel)
 
+    const navigate = useNavigate();
     // Navbar
     useEffect(() => {
         let root = document.getElementById("root")
@@ -74,7 +79,7 @@ const FrontPageWithData = () => {
                             {suggestions.map((keyword) => {
                                 return <>
                                     <li className={"list-group-item " + styles.suggestable} onClick={() => {
-                                        window.location.href = `/analyse?keyword=${keyword}`
+                                        navigate(`/analyse?keyword=${keyword}`);
                                     }}>
                                         {keyword}
                                     </li>

@@ -1,7 +1,11 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from "react"
+
 import styles from './Download.module.css'
 
 import { Helmet } from "react-helmet"
+
+import { useNavigate } from 'react-router-dom';
+
 
 import { DiscordClient } from "./lib/DiscordClient"
 import { DiscordAPI } from "./lib/DiscordAPI"
@@ -21,6 +25,7 @@ const Download = () => {
 
     const WS_URL = 'wss://gateway.discord.gg/?encoding=json&v=9&compress=zlib-stream' // Discord WS URL
 
+    const navigate = useNavigate();
     // states
     const [token, setToken] = useState("")
 
@@ -291,6 +296,7 @@ const Download = () => {
             console.error(`CANNOT ANALYSE DATA: ${result.message}`)
             alert(`CANNOT ANALYSE DATA: ${result.message}`)
             window.location.reload()
+            navigate(0);
             return
         }
 
@@ -324,8 +330,8 @@ const Download = () => {
         
         
         console.log("DONE!")
-        window.location.href = '/'
 
+        navigate('/')
 
     }
 

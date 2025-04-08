@@ -4,19 +4,23 @@ import { Helmet } from "react-helmet"
 import { DiscordDataManager } from "./lib/DiscordDataManger"
 import styles from './Listfiles.module.css'
 
+import { useNavigate } from 'react-router-dom';
+
 const moment = require('moment')
 
 const Listfiles = () => {
 
+    const navigate = useNavigate();
+    
     let [dbdata, setDbdata] = useState(null)
-
+    let [activefile, setActiveFile] = useState(null);
     useEffect(() => {
         const fetchFiles = async () => {
             let ans = []
         
             let discorddata = new DiscordDataManager()
             let dblist = await discorddata.getDBServersObjList()
-            let activefile = await discorddata.getActiveServerDisc()
+            setActiveFile( await discorddata.getActiveServerDisc())
         
             // Loop over the DB list
             for (let element of dblist) {
@@ -48,7 +52,7 @@ const Listfiles = () => {
 
         fetchFiles()
 
-    }, [])
+    }, [activefile])
 
     let deleteFile = async (id) => {
         let discorddata = new DiscordDataManager()
@@ -64,7 +68,7 @@ const Listfiles = () => {
 
         let res = await discorddata.removeChannel(id)
         console.log(res)
-        window.location.reload()
+        setActiveFile(null);
     }
 
     const purge = async () => {
@@ -83,7 +87,7 @@ const Listfiles = () => {
         let discorddata = new DiscordDataManager()
         await discorddata.purge()
 
-        window.location.href = '/'
+        navigate('/')
     }
 
     if (dbdata === null) return <div>Loading...</div>
@@ -118,7 +122,7 @@ const Listfiles = () => {
                                         onClick={() => {
                                             let dm = new DiscordDataManager();
                                             dm.setActiveServerDisc(data.id);
-                                            window.location.reload();
+                                            navigate(0); //Reload on this current path
                                         }}
                                     >
                                         Set as active file
