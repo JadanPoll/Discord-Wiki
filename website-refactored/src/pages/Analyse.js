@@ -157,6 +157,7 @@ const Analyse = () => {
   const [activeServerDisc, setActiveServerDisc] = useState(null);
   const [dManager, setDmanager] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [generatedSummaryMsg, setGeneratedSummaryMsg] = useState(null);
   const [glossary, setGlossary] = useState([]);
   const [relationships, setRelationships] = useState([]);
   const [treeviewData, setTreeviewData] = useState(null);
@@ -350,11 +351,25 @@ const Analyse = () => {
     window.summaryAPI = initializeAPI(keys);
     window.summaryAPI.registerMessageHandler((message) => {
       console.log("Summary API received message:", message);
+      setGeneratedSummaryMsg(message);
       setDisplay(message);
     });
   }, []);
 
-
+useEffect(()=>
+{
+  if (dManager && activeServerDisc && selectedItem) {
+     dManager.setSummary(
+      activeServerDisc,
+      selectedItem,
+      generatedSummaryMsg
+    );
+  }
+},[generatedSummaryMsg])
+useEffect(()=>
+{
+  console.log("This is activating:",selectedItem)
+},[selectedItem])
   /* ==========================================================
      Auto-fetch Summary When Selected Item Changes
   ========================================================== */
@@ -380,13 +395,6 @@ const Analyse = () => {
   const setDisplay = async (message) => {
     console.log("Setting display message:", message);
 
-    if (dManager && activeServerDisc && selectedItem) {
-      await dManager.setSummary(
-        activeServerDisc,
-        selectedItem,
-        message
-      );
-    }
 
     const formattedMessage = message.replace(/DMessage ([0-9]+)/g, (_match, p1) => {
       const idx = parseInt(p1, 10);
@@ -472,6 +480,7 @@ Summary:”`;
       node.toggle();
   
       // Set the selected item name
+      console.log("Setting clicked it")
       setSelectedItem(node.data.name);
   
       // Fetch and format the conversation text for this node's name
