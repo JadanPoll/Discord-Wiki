@@ -14,9 +14,11 @@
     padding: 20px;
     border-right: 2px solid #ddd;
     background-color: #fff;
-    height: calc(100vh - 120px);
+    height: 100%;
     overflow-y: auto;
-}
+  }
+  
+  
 .contentContainer {
     width: 100%;
     padding: 20px;

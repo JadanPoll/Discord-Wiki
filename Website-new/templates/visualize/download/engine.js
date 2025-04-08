@@ -106,7 +106,7 @@ function removeStopwordsFromMessageText(messageText) {
     return result;
 }
 
-function groupAndPreprocessMessagesByAuthor(messageData) {
+function groupAndPreprocessMessages(messageData) {
     const LIMIT = 3;
     const conversationBlocks = [];
     const processedConversationBlocks = [];
@@ -184,7 +184,7 @@ function loadConversationEngine(discord_data) {
     }
 
     // Process the messages based on the parsed data
-    const [conversationBlocks, processedConversationBlocks] = groupAndPreprocessMessagesByAuthor(discordMessageData);
+    const [conversationBlocks, processedConversationBlocks] = groupAndPreprocessMessages(discordMessageData);
     
     window.conversationBlocks = conversationBlocks
     window.processedConversationBlocks = processedConversationBlocks
@@ -233,7 +233,7 @@ window.dictionarySeedConversationAndGeneratedChain = Object.create(null);
 let setIdsOfFoundConversations = new Set();
 let i = 0;
 
-function generateAndDisplayAllRandomContextChain() {
+function processAllContextChains() {
     /**
      * Autonomously finds and generates context chains for all conversations.
      * Ensures no duplicate processing for conversations already found.
@@ -566,4 +566,4 @@ function calculateDisplayGlossary()
 
 
 
-export { loadConversationEngine, generateAndDisplayAllRandomContextChain,calculateGlossary,calculateDisplayGlossary };
+export { loadConversationEngine, processAllContextChains,calculateGlossary,calculateDisplayGlossary };

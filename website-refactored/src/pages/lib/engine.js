@@ -7,6 +7,7 @@ import { TextRank4Keyword } from './TextRank/textrank'
 // For knee detection (if necessary)
 import { KneeLocator } from './TextRank/KneeLocator/knee_locator';  
 
+import { ENStopwords } from './discord-stopword-en';
 // Importing custom local modules for group theory and glossary compression
 import { generateSubtopicTreeAndDisplayTree } from './GroupTheory';  // Import your group theory module
 import { compressGlossaryEntries } from './glossary_compression';  // Import glossary compression module
@@ -33,12 +34,56 @@ function filterWordsByPartOfSpeechTag(words, posTags) {
     return filteredWords;
 }
 
-function extractTopics(text, visualize = false) {
+function findKnee(scores) {
+    if (!scores.length) return 0;
+  
+    // 1. Compute the differences between consecutive scores
+    const deltas = scores.slice(1).map((s, i) => scores[i] - s);
+  
+    // 2. Define a threshold for a “significant” drop
+    const maxDelta = Math.max(...deltas);
+    const dropThreshold = maxDelta * 0.05; // heuristic: 5% of max drop
+  
+    // 3. Find the first index where the drop becomes small (plateau begins)
+    for (let i = 1; i < deltas.length; i++) {
+      if (deltas[i] < dropThreshold) {
+        return i + 1;
+      }
+    }
+  
+    return scores.length;
+  }
+  function extractTopics(text) {
     /**
-     * Extract keywords from the text and visualize the elbow/knee for keyword selection.
+     * Extract keywords from the text,.
      * 
      * @param text {String} The input text to analyze.
-     * @param visualize {Boolean} Whether or not to visualize the keyword selection.
+     * @return {Array} List of optimal keywords based on TextRank.
+     */
+    
+    const textRank = new TextRank4Keyword(null, ['NN']);
+    textRank.analyze(text, 5, true );
+    const keywords = textRank.getKeywords(100, 5);//I'm not supposed to be sorting this, there's something wrong with the algorithm
+
+
+
+    const scores = keywords.map(kw => kw.weight);
+    if (!scores.length) {
+      return [];
+    }
+  
+    const cutoff = findKnee(scores);
+    const optimalKeywords = keywords.slice(0, cutoff).map(kw => kw.word);
+  
+    return optimalKeywords;
+}
+
+  
+function extractTopicsOrig(text) {
+    /**
+     * Extract keywords from the text,.
+     * 
+     * @param text {String} The input text to analyze.
      * @return {Array} List of optimal keywords based on TextRank.
      */
     
@@ -57,11 +102,14 @@ function extractTopics(text, visualize = false) {
     const cutoff = kneeLocator.knee || scores.length;
     //console.log(cutoff)
 
-    const optimalKeywords = keywords.slice(0, 6).map(kw => kw.word);  //Too much and we see too much information to cluster
+    const optimalKeywords = keywords.slice(0, cutoff).map(kw => kw.word);  //Too much and we see too much information to cluster
 
     //console.log("Filtered",filteredWords);
     return optimalKeywords;
 }
+
+
+
 
 
 
@@ -74,7 +122,7 @@ let SUMMARIES_FILEPATH = null;
 const MESSAGE_SEPARATOR = '--------------------------------------------------';
 
 // Load stopwords from JSON file
-let loadedStopwords = new Set(window.ENStopword);
+let loadedStopwords = new Set(ENStopwords);
 
 
 const punctuations = `",!?.)(:”’''*🙏🤔💀😈😭😩😖🤔🥰🥴😩🙂😄'“\``;
@@ -85,28 +133,36 @@ console.log(punctuations);
 
 
 function removeStopwordsFromMessageText(messageText) {
-    const result = [];
-    const words = messageText.replace(new RegExp(`[${punctuations}]`, 'g'), '').split(' ');
-
-    words.forEach(word => {
-        if (word.toLowerCase().startsWith('http')) {
-            const translatedText = word.replace(/[:/. -]/g, ' ');
-            translatedText.split(' ').forEach(part => {
-                if (!part.toLowerCase().startsWith('http') &&
-                    !['com', 'www', 'ai'].includes(part.toLowerCase()) &&
-                    !loadedStopwords.has(part.toLowerCase())) {
-                    result.push(part);
-                }
-            });
-        } else if (!loadedStopwords.has(word.toLowerCase()) || (word === word.toUpperCase() && word.length > 1)) {
-            result.push(word);
-        }
+    const filteredTokens = [];
+    // Remove punctuation (defined in "punctuations") and split by whitespace.
+    const tokens = messageText.replace(new RegExp(`[${punctuations}]`, 'g'), '').split(/\s+/);
+  
+    tokens.forEach(token => {
+      const lowerToken = token.toLowerCase();
+      if (lowerToken.startsWith('http')) {
+        // Normalize the URL token by replacing certain punctuation with a space.
+        // Then split into sub-tokens and filter out undesired parts.
+        const normalized = token.replace(/[:\/.\-]/g, ' ');
+        normalized.split(/\s+/).forEach(subToken => {
+          const lowerSubToken = subToken.toLowerCase();
+          if (
+            !lowerSubToken.startsWith('http') &&
+            !['com', 'www', 'ai'].includes(lowerSubToken) &&
+            !loadedStopwords.has(lowerSubToken)
+          ) {
+            filteredTokens.push(subToken);
+          }
+        });
+      } 
+      else if (!loadedStopwords.has(lowerToken) || (token === token.toUpperCase() && token.length > 1)) {
+        filteredTokens.push(token);
+      }
     });
-
-    return result;
-}
-
-function groupAndPreprocessMessagesByAuthor(messageData) {
+  
+    return filteredTokens;
+  }
+  
+function groupAndPreprocessMessages(messageData) {
     const LIMIT = 3;
     const conversationBlocks = [];
     const processedConversationBlocks = [];
@@ -184,7 +240,7 @@ function loadConversationEngine(discord_data) {
     }
 
     // Process the messages based on the parsed data
-    const [conversationBlocks, processedConversationBlocks] = groupAndPreprocessMessagesByAuthor(discordMessageData);
+    const [conversationBlocks, processedConversationBlocks] = groupAndPreprocessMessages(discordMessageData);
     
     window.conversationBlocks = conversationBlocks
     window.processedConversationBlocks = processedConversationBlocks
@@ -195,218 +251,231 @@ function loadConversationEngine(discord_data) {
     };
 }
 
-
-// Optimized function to search for a query within a message block using set operations
-function findQueryInMessageBlock(querySet, messageBlock) {
-    const messageBlockWords = new Set(messageBlock.split(' '));
-    return [...querySet].some(word => messageBlockWords.has(word));
+/**
+ * Checks if the provided message contains any word from the query words set.
+ *
+ * @param {Set<string>} queryWordsSet - A set of words to search for.
+ * @param {string} message - The message text in which to search for query words.
+ * @return {boolean} - Returns true if any query word is found in the message.
+ */
+function messageContainsAnyQueryWord(queryWordsSet, message) {
+    const messageWordsSet = new Set(message.split(' '));
+    return [...queryWordsSet].some(word => messageWordsSet.has(word));
 }
 
-// Optimized recursive function to construct context chain with probability updates
-function constructContextChain(inheritedWordsSet, searchRadius, currentMessageIndex, visitedIndices, contextChain, recursionDepth = 1) {
-    const startIndex = Math.max(0, currentMessageIndex - searchRadius);
-    const endIndex = Math.min(window.processedConversationBlocks.length, currentMessageIndex + searchRadius + 1);
+/**
+ * Recursively builds a context chain from adjacent message blocks.
+ *
+ * @param {Set<string>} inheritedWords - A set of words carried over from previous blocks.
+ * @param {number} radius - The current search radius.
+ * @param {number} currentIndex - The index of the current message block.
+ * @param {Set<number>} visitedIndices - A set of message indices that have already been processed.
+ * @param {Array<Object>} contextChain - An array accumulating the chain of context blocks.
+ * @param {number} recursionDepth - The current depth of recursion (default is 1).
+ */
+function buildContextChainRecursively(inheritedWords, radius, currentIndex, visitedIndices, contextChain, recursionDepth = 1) {
+    const startIndex = Math.max(0, currentIndex - radius);
+    const endIndex = Math.min(window.processedConversationBlocks.length, currentIndex + radius + 1);
 
-    for (let blockIndex = startIndex; blockIndex < endIndex; blockIndex++) {
-        if (!visitedIndices.has(blockIndex)) {
-            if (findQueryInMessageBlock(inheritedWordsSet, window.processedConversationBlocks[blockIndex])) {
-                visitedIndices.add(blockIndex);
+    for (let neighborIndex = startIndex; neighborIndex < endIndex; neighborIndex++) {
+        if (!visitedIndices.has(neighborIndex)) {
+            const neighborMessage = window.processedConversationBlocks[neighborIndex];
+            if (messageContainsAnyQueryWord(inheritedWords, neighborMessage)) {
+                visitedIndices.add(neighborIndex);
                 contextChain.push({
-                    blockIndex,
-                    message: window.conversationBlocks[blockIndex],
+                    blockIndex: neighborIndex,
+                    message: window.conversationBlocks[neighborIndex],
                     depth: recursionDepth
                 });
 
-                const expandedWordSet = new Set([
-                    ...inheritedWordsSet,
-                    ...window.processedConversationBlocks[blockIndex].split(' ')
-                ]);
-
-                constructContextChain(expandedWordSet, Math.max(Math.floor(searchRadius / 2), 1), blockIndex, visitedIndices, contextChain, recursionDepth + 1);
+                // Expand the set of inherited words with the current message's words.
+                const expandedWords = new Set([...inheritedWords, ...neighborMessage.split(' ')]);
+                // Reduce the search radius for the next recursion level, ensuring it never falls below 1.
+                const newRadius = Math.max(Math.floor(radius / 2), 1);
+                buildContextChainRecursively(expandedWords, newRadius, neighborIndex, visitedIndices, contextChain, recursionDepth + 1);
             }
         }
     }
 }
 
+/**
+ * Global object to store generated context chains keyed by topic IDs.
+ */
+window.contextChainsCircaSeedIndexIds = Object.create(null);
 
-window.dictionarySeedConversationAndGeneratedChain = Object.create(null);
-let setIdsOfFoundConversations = new Set();
-let i = 0;
+/**
+ * A set to track message block indices that have already been processed.
+ */
+let processedBlockIndices = new Set();
 
-function generateAndDisplayAllRandomContextChain() {
-    /**
-     * Autonomously finds and generates context chains for all conversations.
-     * Ensures no duplicate processing for conversations already found.
-     */
+/**
+ * A counter for the number of generated chains.
+ */
+let generatedChainCount = 0;
 
-    setIdsOfFoundConversations = new Set();
-    window.dictionarySeedConversationAndGeneratedChain = Object.create(null);
-
+/**
+ * Processes all conversation blocks to autonomously generate context chains.
+ * Ensures that each block is only processed once.
+ *
+ * @returns The result of the calculateGlossary() function.
+ */
+function processAllContextChains() {
+    processedBlockIndices = new Set();
+    window.contextChainsCircaSeedIndexIds = Object.create(null);
 
     for (let index = 0; index < window.processedConversationBlocks.length; index++) {
-        if (!setIdsOfFoundConversations.has(index)) {
-
-            generateAndDisplayRandomContextChain2(index);
+        if (!processedBlockIndices.has(index)) {
+            processContextChainAtIndex(index);
         }
     }
 
-    return calculateGlossary()
-
+    return calculateGlossary();
 }
 
-function generateAndDisplayRandomContextChain2(index = null) {
-    /**
-     * Generates and displays a context chain for a specific conversation block.
-     * If `index` is provided, it processes that specific conversation block; otherwise, 
-     * it picks a random block to process.
-     */
-    let searchRadius = null;
+/**
+ * Generates and displays a context chain for a given conversation block.
+ * If a specific index is provided, it will process that block; otherwise,
+ * it can default to a random block if desired.
+ *
+ * @param {number|null} index - The index of the conversation block to process.
+ */
+function processContextChainAtIndex(index = null) {
+    let searchRadius = 50;
     try {
-        searchRadius = 50
-        if (isNaN(searchRadius)) throw new Error("Invalid input");
+        if (isNaN(searchRadius)) {
+            throw new Error("Invalid search radius input.");
+        }
     } catch (error) {
-
+        console.error(error);
         return;
     }
 
     if (window.processedConversationBlocks && window.processedConversationBlocks.length > 0) {
-        const blockIndex = index;
-        const blockWords = new Set(window.processedConversationBlocks[blockIndex].split(' '));
-        const visitedBlockIndices = new Set([blockIndex]);
-        const contextChain = [{ blockIndex, message: window.conversationBlocks[blockIndex], depth: 1 }];
+        // Use the provided index or pick a random one if null.
+        const blockIndex = (index !== null) ? index : Math.floor(Math.random() * window.processedConversationBlocks.length);
+        const initialMessage = window.processedConversationBlocks[blockIndex];
+        const initialWordSet = new Set(initialMessage.split(' '));
+        const visitedIndices = new Set([blockIndex]);
+        const contextChain = [{
+            blockIndex: blockIndex,
+            message: window.conversationBlocks[blockIndex],
+            depth: 1
+        }];
 
-        // Construct the context chain using the helper function
-        constructContextChain(blockWords, searchRadius, blockIndex, visitedBlockIndices, contextChain);
+        // Build the context chain starting from the selected block.
+        buildContextChainRecursively(initialWordSet, searchRadius, blockIndex, visitedIndices, contextChain);
 
-        // If the chain is too short and `index` was specified, stop processing this block
+        // If the context chain is too short and a specific index was provided, mark it as processed and exit.
         if (contextChain.length < Math.floor(searchRadius / 4) && index !== null) {
-            setIdsOfFoundConversations.add(index);
+            processedBlockIndices.add(index);
             return;
         }
 
+        // Sort the context chain by block index for consistent ordering.
         contextChain.sort((a, b) => a.blockIndex - b.blockIndex);
-        const topicId = blockIndex.toString();
-        window.dictionarySeedConversationAndGeneratedChain[topicId] = contextChain.map(({ blockIndex, message }) => ({
-            message,
-            messageId: blockIndex
+        const seedId = blockIndex.toString();
+        window.contextChainsCircaSeedIndexIds[seedId] = contextChain.map(entry => ({
+            message: entry.message,
+            messageId: entry.blockIndex
         }));
-        setIdsOfFoundConversations = new Set([...setIdsOfFoundConversations, ...contextChain.map(({ blockIndex }) => blockIndex)]);
-        i += 1;
+
+        // Mark all indices in the chain as processed.
+        processedBlockIndices = new Set([...processedBlockIndices, ...contextChain.map(entry => entry.blockIndex)]);
+        generatedChainCount++;
     }
 }
 
+
+
+/**
+ * For each context chain, aggregates the associated messages,
+ * extracts topic descriptions from the aggregated text, and updates
+ * a global topical matrix with weighted co-occurrence scores between topics.
+ */
 function calculateTopicsForEachMessage() {
-    /**
-     * Processes topics in the conversation glossary tree and extracts descriptions.
-     */
-
-    window.topicalMatrix = Object.create(null)
-    if (Object.keys(window.dictionarySeedConversationAndGeneratedChain).length === 0) {
-
-        return;
+    // Initialize the topical matrix.
+    window.topicalMatrix = Object.create(null);
+  
+    const contextChains = window.contextChainsCircaSeedIndexIds;
+    if (!Object.keys(contextChains).length) {
+      return;
     }
-
-    let i = 0;
-    for (const [topicId, convo] of Object.entries(window.dictionarySeedConversationAndGeneratedChain)) {
-        const total = convo.map(entry => window.processedConversationBlocks[entry.messageId]).join("\n");
-        const description = extractTopics(total);
-        convo.push({ description });
-
-
-        // Ensure the topic matrix is initialized for each topic
-        for (const topic of description) {
-            if (!window.topicalMatrix[topic]) {
-                window.topicalMatrix[topic] = Object.create(null);
-            }
+  
+    const IMPORTANCE_WEIGHT = 3;  // Higher weight means topics need to appear more often at the top to be considered important.
+    const PROXIMITY_WEIGHT = 1;     // Adjusts how strongly the distance between topics affects their weighting.
+  
+    // Process each context chain.
+    for (const [seedId, messagesDescribingThisContext] of Object.entries(contextChains)) {
+      // Aggregate messages from the processed conversation blocks.
+      const aggregatedText = messagesDescribingThisContext
+        .map(entry => window.processedConversationBlocks[entry.messageId])
+        .join("\n");
+      
+      // Extract topics from the aggregated text.
+      const topics = extractTopics(aggregatedText);
+      
+      // Append the topic description to the chain entries.
+      messagesDescribingThisContext.push({ description: topics });
+      
+      // Ensure each topic has an initialized entry in the topical matrix.
+      topics.forEach(topic => {
+        if (!window.topicalMatrix[topic]) {
+          window.topicalMatrix[topic] = Object.create(null);
         }
-
-        const importance_weight = 3; // How many times it has to appear on top to be taken seriously as the main topic 1 point
-        const proximity_weight = 1; // How close it has to be to be taken seriously as strongly related (normalized by length due to potential noise)
-
-        // For each topic in the description, update the matrix with counts of other topics
-        description.forEach((topic, i) => {
-            for (let j = 0; j < i; j++) {
-                const previous_topic = description[j];
-                if (!window.topicalMatrix[topic][previous_topic]) {
-                    window.topicalMatrix[topic][previous_topic] = 0; // Initialize the count
-                }
-
-                
-                const importance_factor = 1 / (j + 1);
-                const normalized_proximity_factor = (1 / (i - j)) / i; // Divide by i because we only take it as seriously as the distance from the top
-                window.topicalMatrix[topic][previous_topic] += 
-                    (1 / importance_weight) * importance_factor + 
-                    (1 / proximity_weight) * normalized_proximity_factor;
-            }
-        });
-
-
-
-        i++;
+      });
+      
+      // For each topic, update the co-occurrence weights with all higher-ranked topics.
+      topics.forEach((currentTopic, currentIdx) => {
+        for (let prevIdx = 0; prevIdx < currentIdx; prevIdx++) {
+          const previousTopic = topics[prevIdx];
+          if (!window.topicalMatrix[currentTopic][previousTopic]) {
+            window.topicalMatrix[currentTopic][previousTopic] = 0;
+          }
+          const importanceFactor = 1 / (prevIdx + 1);
+          const normalizedProximityFactor = (1 / (currentIdx - prevIdx)) / currentIdx;
+          window.topicalMatrix[currentTopic][previousTopic] += 
+            (1 / IMPORTANCE_WEIGHT) * importanceFactor +
+            (1 / PROXIMITY_WEIGHT) * normalizedProximityFactor;
+        }
+      });
     }
-}
-
-
-
-function assignEachTopicRelevantMessageGroups() {
-    /**
-     * Updates the dictionaryGlossaryTopicAndLinkedConversationGroups with keywords mapped to message IDs.
-     */
-    const dictionary = window.dictionarySeedConversationAndGeneratedChain;
+  }
+  
+  
+  /**
+   * Iterates through each context chain (identified by topic)
+   * and assigns each extracted topic (keyword) a corresponding group
+   * of message IDs in the global glossary.
+   */
+  function assignEachTopicRelevantMessageGroups() {
+    const contextChains = window.contextChainsCircaSeedIndexIds;
     const glossary = window.dictionaryGlossaryTopicAndLinkedConversationGroups;
-
-    if (!dictionary) {
-        return;
-    }
-
-    // Iterate over all topics in the dictionary
-    for (let [topicId, topicData] of Object.entries(dictionary)) {
-        const lastEntry = topicData[topicData.length - 1];
-        const description = lastEntry?.description || '';
-        
-        if (!description) {
-            continue;
+    if (!contextChains) return;
+  
+    // For each context chain.
+    Object.entries(contextChains).forEach(([seedId, messagesDescribingThisContext]) => {
+      // Retrieve the topics from the last entry (the one containing the description).
+      const lastEntry = messagesDescribingThisContext[messagesDescribingThisContext.length - 1];
+      const topics = (lastEntry && lastEntry.description) || [];
+      if (!topics.length) return;
+  
+      // Collect message IDs from the entire chain.
+      const messageIds = messagesDescribingThisContext.map(entry => entry.messageId);
+  
+      // For each topic keyword, add the group of message IDs to the glossary.
+      topics.forEach(topic => {
+        if (!glossary[topic]) {
+          glossary[topic] = [];
         }
-
-        // Collect all message IDs upfront
-        const messageIds = [];
-        for (let entry of topicData) {
-            messageIds.push(entry.messageId);
-        }
-
-        // Use a Set to avoid duplicating messageIds for the same keyword
-        const keywords = description; // Split once and remove duplicates
-        for (let keyword of keywords) {
-            if (!glossary[keyword]) {
-                glossary[keyword] = []; // Initialize if undefined
-            }
-            glossary[keyword].push(messageIds); // Append the message IDs to the list
-        }
-    }
-}
-
-function displayConversationsLinkedToSelectedTopic(item, conversationNumber) {
-    /**
-     * Displays the selected dictionaryGlossaryTopicAndLinkedConversationGroups item and its associated conversation blocks.
-     *
-     * @param {string} item - The selected dictionaryGlossaryTopicAndLinkedConversationGroups item (topic or ID) to be displayed.
-     * @param {number} conversationNumber - The conversation number to display.
-     */
-
-    let topicName = item; // If the item is an ID, you might need to map it to the dictionaryGlossaryTopicAndLinkedConversationGroups data
+        glossary[topic].push(messageIds);
+      });
+    });
+  }
+  
 
 
-    // Display associated conversation blocks for this topic
-    if (window.dictionaryGlossaryTopicAndLinkedConversationGroups[topicName]) {
-        let convoBlock = window.dictionaryGlossaryTopicAndLinkedConversationGroups[topicName][conversationNumber];
-        for (let messageId of convoBlock) {
-            // Fetch the message from the conversation block using messageId
-            let message = window.conversationBlocks[messageId];
 
 
-        }
-    }
-}
 
 function intersectCompressor(data) {
     console.log("Compressing...");
@@ -432,7 +501,7 @@ function calculateGlossary() {
 
     var completeStart = Date.now()
     
-    //console.log(window.dictionarySeedConversationAndGeneratedChain)
+    //console.log(window.contextChainsCircaSeedIndexIds)
     assignEachTopicRelevantMessageGroups();
 
     console.log(`End of 2: ${Date.now() - completeStart} ms`);
@@ -566,4 +635,4 @@ function calculateDisplayGlossary()
 
 
 
-export { loadConversationEngine, generateAndDisplayAllRandomContextChain,calculateGlossary,calculateDisplayGlossary };
+export { loadConversationEngine, processAllContextChains,calculateGlossary,calculateDisplayGlossary };

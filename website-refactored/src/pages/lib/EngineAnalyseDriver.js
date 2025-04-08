@@ -1,5 +1,5 @@
 // Driver for calling Engine to Analyse Data.
-import { loadConversationEngine, generateAndDisplayAllRandomContextChain, calculateGlossary, calculateDisplayGlossary } from  './engine';
+import { loadConversationEngine, processAllContextChains, calculateGlossary, calculateDisplayGlossary } from  './engine';
 
 // TODO make variables more readable
 
@@ -10,7 +10,7 @@ export async function engineAnalyseDriver(fileContent, filename)
     try {
         // Load the conversation blocks and generate context chains
         const { conversationBlocks } = loadConversationEngine(fileContent);
-        const { dictionaryGlossaryTopicAndLinkedConversationGroups } = generateAndDisplayAllRandomContextChain();
+        const { dictionaryGlossaryTopicAndLinkedConversationGroups } = processAllContextChains();
 
 
         // Store glossary and conversation blocks in global variables

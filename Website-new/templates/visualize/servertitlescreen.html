@@ -80,7 +80,7 @@
 
 
 <script type="module">
-    import { loadConversationEngine, generateAndDisplayAllRandomContextChain,calculateGlossary, calculateDisplayGlossary } from '/engine.js';
+    import { loadConversationEngine, processAllContextChains,calculateGlossary, calculateDisplayGlossary } from '/engine.js';
     import {  initializeAPI } from '/ShubhanGPT.js'
     class GroupHierarchyWithTreeview {
         constructor(hierarchicalRelationships, independentGroups=[]) {
@@ -160,7 +160,7 @@
         try {
             // Load the conversation blocks and generate context chains
             const { conversationBlocks } = loadConversationEngine(fileContent);
-            const { dictionaryGlossaryTopicAndLinkedConversationGroups } = generateAndDisplayAllRandomContextChain();
+            const { dictionaryGlossaryTopicAndLinkedConversationGroups } = processAllContextChains();
 
     
             // Store glossary and conversation blocks in global variables

@@ -10,7 +10,7 @@ import { DiscordDataManager } from "./lib/DiscordDataManger"
 import { engineAnalyseDriver } from "./lib/EngineAnalyseDriver"
 
 // we should honestly make these shorter
-import { loadConversationEngine, generateAndDisplayAllRandomContextChain, calculateGlossary, calculateDisplayGlossary } from './lib/engine.js'
+import { loadConversationEngine, processAllContextChains, calculateGlossary, calculateDisplayGlossary } from './lib/engine.js'
 
 import tokenimg1 from "./static/discord-tut-images/discord-token-tut-img1.webp"
 import tokenimg2 from "./static/discord-tut-images/discord-token-tut-img2.webp"

@@ -168,7 +168,6 @@ const Analyse = () => {
   const [shubhanGPTDisplay, setShubhanGPTDisplay] = useState(
     "Summary will appear here."
   );
-  const [preShubhanGPTDisplay, setPreShubhanGPTDisplay] = useState(null);
   const [loading, setLoading] = useState(false);
 
   /* ------ Refs ------ */
@@ -284,7 +283,7 @@ const Analyse = () => {
     };
 
     return () => clearTimeout(hideTimeout.current);
-  }, [conversationBlocks]);
+  }, []);
 
   /* ==========================================================
      Data Fetching & Initialization
@@ -355,21 +354,6 @@ const Analyse = () => {
     });
   }, []);
 
-  /* ==========================================================
-     Update Summary in Data Manager When preShubhanGPTDisplay Changes
-  ========================================================== */
-  useEffect(() => {
-    const updateSummary = async () => {
-      if (dManager && activeServerDisc && selectedItem) {
-        await dManager.setSummary(
-          activeServerDisc,
-          selectedItem,
-          preShubhanGPTDisplay
-        );
-      }
-    };
-    updateSummary();
-  }, [preShubhanGPTDisplay]);
 
   /* ==========================================================
      Auto-fetch Summary When Selected Item Changes
@@ -393,9 +377,17 @@ const Analyse = () => {
   /* ==========================================================
      Helper: Format and Set Displayed Summary
   ========================================================== */
-  const setDisplay = (message) => {
+  const setDisplay = async (message) => {
     console.log("Setting display message:", message);
-    setPreShubhanGPTDisplay(message);
+
+    if (dManager && activeServerDisc && selectedItem) {
+      await dManager.setSummary(
+        activeServerDisc,
+        selectedItem,
+        message
+      );
+    }
+
     const formattedMessage = message.replace(/DMessage ([0-9]+)/g, (_match, p1) => {
       const idx = parseInt(p1, 10);
       return `<span
@@ -457,52 +449,47 @@ Summary:”`;
         </p>
       ));
     }
-    if (relationships[selectedItem]) {
-      const subs = relationships[selectedItem].subgroups.join(", ");
-      return (
-        <>
-          <strong>{selectedItem}</strong>
-          <br />
-          Subgroups: {subs}
-        </>
-      );
-    }
-    if (independentGroups.includes(selectedItem)) {
-      return (
-        <>
-          <strong>{selectedItem}</strong>
-          <br />
-          This is an independent group.
-        </>
-      );
-    }
     return <>No content available for this item.</>;
   };
 
   /* ==========================================================
      Custom Node Renderer for the Tree
   ========================================================== */
-  function Node({ node, style, dragHandle }) {
-    const isSelected = node.isSelected;
-    useEffect(() => {
-      if (isSelected) {
-        setSelectedItem(node.data.name);
-        const idxArr = glossary[node.data.name]?.[0] || [];
-        const text = idxArr
-          .map((i) => `DMessage ${i}: ${conversationBlocks[i]}`)
-          .join("\n");
-        setSelectedItemText(text);
-      }
-    }, [isSelected, node.data.name, glossary, conversationBlocks]);
-
+  function Node({
+    node,
+    style,
+    dragHandle,
+    setSelectedItem,
+    setSelectedItemText,
+    glossary,
+    conversationBlocks,
+  }) {
     const icon = node.isLeaf ? "💬" : node.isOpen ? "📂" : "📁";
+  
+    // Define a click handler for the node
+    const handleClick = () => {
+      // Toggle the node's open/closed state
+      node.toggle();
+  
+      // Set the selected item name
+      setSelectedItem(node.data.name);
+  
+      // Fetch and format the conversation text for this node's name
+      const idxArr = glossary[node.data.name]?.[0] || [];
+      const text = idxArr
+        .map((i) => `DMessage ${i}: ${conversationBlocks[i]}`)
+        .join("\n");
+  
+      setSelectedItemText(text);
+    };
+  
     return (
-      <div onClick={() => node.toggle()} style={style} ref={dragHandle}>
+      <div onClick={handleClick} style={style} ref={dragHandle}>
         {icon} {node.data.name}
       </div>
     );
   }
-
+  
   /* ==========================================================
      Main Render
   ========================================================== */
@@ -520,21 +507,33 @@ Summary:”`;
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value.trim())}
           />
-          <Tree
-            initialData={treeviewData}
-            disableDrag
-            disableDrop
-            disableEdit
-            disableMultiSelection
-            indent={12}
-            width={treeviewContainerRef.current?.clientWidth - 40 || 100}
-            height={treeviewContainerRef.current?.clientHeight - 78 || 500}
-            openByDefault={false}
-            searchTerm={searchTerm}
-            ref={treeviewRef}
-          >
-            {Node}
-          </Tree>
+
+        <Tree
+          initialData={treeviewData}
+          disableDrag
+          disableDrop
+          disableEdit
+          disableMultiSelection
+          indent={12}
+          width={treeviewContainerRef.current?.clientWidth - 40 || 100}
+          height={treeviewContainerRef.current?.clientHeight - 78 || 500}
+          openByDefault={false}
+          searchTerm={searchTerm}
+          ref={treeviewRef}
+        >
+          {({ node, style, dragHandle }) => (
+            <Node 
+              node={node} 
+              style={style} 
+              dragHandle={dragHandle}
+              setSelectedItem={setSelectedItem}
+              setSelectedItemText={setSelectedItemText}
+              glossary={glossary}
+              conversationBlocks={conversationBlocks}
+            />
+          )}
+        </Tree>
+
         </div>
 
         <main className={styles.main}>

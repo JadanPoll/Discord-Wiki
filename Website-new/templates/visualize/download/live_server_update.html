@@ -273,13 +273,13 @@
 
     // REGION analyse messages & gen glossary
 
-    import { loadConversationEngine, generateAndDisplayAllRandomContextChain,calculateGlossary, calculateDisplayGlossary } from '/engine.js';
+    import { loadConversationEngine, processAllContextChains,calculateGlossary, calculateDisplayGlossary } from '/engine.js';
 
     async function loadConversation(fileContent, filename) {
         try {
             // Load the conversation blocks and generate context chains
             const { conversationBlocks } = loadConversationEngine(fileContent);
-            const { dictionaryGlossaryTopicAndLinkedConversationGroups } = generateAndDisplayAllRandomContextChain();
+            const { dictionaryGlossaryTopicAndLinkedConversationGroups } = processAllContextChains();
 
     
             // Store glossary and conversation blocks in global variables
