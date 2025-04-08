@@ -276,9 +276,9 @@ const Download = () => {
             alert("You may only use alphanumerics and underbars(_).");
         }
 
-        if (nickname === null) nickname = filename
+        if (nickname === null) nickname = defaultName
 
-        console.log(`saving as ${filename}`)
+        console.log(`saving as ${nickname}`)
 
         let messagesStr = JSON.stringify(messages)
 
