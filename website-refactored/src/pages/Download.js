@@ -295,7 +295,7 @@ const Download = () => {
         else {
             console.error(`CANNOT ANALYSE DATA: ${result.message}`)
             alert(`CANNOT ANALYSE DATA: ${result.message}`)
-            window.location.reload()
+
             navigate(0);
             return
         }
