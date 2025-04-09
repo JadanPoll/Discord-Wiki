@@ -38,7 +38,7 @@ root.render(
           <Route path="preview/:id" element={<Preview />} />
           <Route path="/server-experience/:serverId" element={<ServerExperience />} />
           <Route path="/explorer/:serverId" element={<Analyse />} />
-          <Route path="notes/:topicId" element={<SummaryPane />} /> {/* ✅ Add this */}
+          <Route path="notes/:topicId" element={<SummaryPane />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

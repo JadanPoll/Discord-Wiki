@@ -3,30 +3,36 @@ import { useParams } from "react-router-dom";
 import { keys } from "idb-keyval";
 import { DiscordDataManager } from "./lib/DiscordDataManger";
 import styles from "./SummaryPane.module.css";
+import { parse } from "marked";
 
 const SummaryPane = () => {
-  const { channelId } = useParams();
+  const { topicId } = useParams();
   const [summaries, setSummaries] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  console.log("With prejudice")
   useEffect(() => {
     const loadSummaries = async () => {
       setLoading(true);
       // Get all keys stored in IndexedDB via idb-keyval
       const allKeys = await keys();
-      // Filter keys that start with "summary_<channelId>_"
+      console.log(topicId,allKeys);
+      // Filter keys that start with "summary/<topicId>/"
       const summaryKeys = allKeys.filter(
-        (k) => typeof k === "string" && k.startsWith(`summary_${channelId}_`)
+        (k) => typeof k === "string" && k.startsWith(`summary/${topicId}/`)
       );
+      console.log(summaryKeys);
+
       const manager = new DiscordDataManager();
       // Map each key to an object with topic and its summary content.
+
+
       const summariesArr = await Promise.all(
         summaryKeys.map(async (key) => {
-          // Expected key format: "summary_<channelId>_<topic>"
-          const parts = key.split("_");
-          const topic = parts.slice(2).join("_"); // In case topic names have underscores
-          const summaryContent = await manager.getSummary(channelId, topic);
-          return { topic, summary: summaryContent };
+          // Expected key format: "summary_<topicId>_<topic>"
+          const parts = key.split("/");
+          const topic = parts.slice(2).join("/"); // In case topic names have underscores
+          const summaryContent = await manager.getSummary(topicId, topic);
+          return { topic, summary: parse(summaryContent) };
         })
       );
       setSummaries(summariesArr);
@@ -34,7 +40,7 @@ const SummaryPane = () => {
     };
 
     loadSummaries();
-  }, [channelId]);
+  }, [topicId]);
 
   if (loading) {
     return <div className={styles.loading}>Loading summaries...</div>;
@@ -42,7 +48,7 @@ const SummaryPane = () => {
 
   return (
     <div className={styles.summaryPane}>
-      <h1>Summary Topics for Channel {channelId}</h1>
+      <h1>Summary Topics for Channel {topicId}</h1>
       {summaries.length === 0 ? (
         <p>No summaries found for this channel.</p>
       ) : (
