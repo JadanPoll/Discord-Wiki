@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import { Helmet } from "react-helmet";
 import { Tree } from "react-arborist";
 import { parse } from "marked";
+import { FaRegStickyNote } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 import styles from "./Analyse.module.css";
 import { DiscordDataManager } from "./lib/DiscordDataManger";
@@ -12,13 +14,8 @@ import { initializeAPI } from "./lib/ShubhanGPT";
    Helper Functions
 ============================================================ */
 
-/**
- * Lighten a given color by a percentage.
- * Supports rgb(a) and hex formats.
- */
 function lightenColor(color, percent) {
   if (!color || color === "transparent") return "rgba(255,255,255,0.1)";
-
   if (color.startsWith("rgb")) {
     const match = color.match(/\d+(\.\d+)?/g);
     if (!match) return color;
@@ -26,7 +23,6 @@ function lightenColor(color, percent) {
     a = a !== undefined ? Math.min(1, a + percent) : Math.min(1, percent + 1);
     return `rgba(${r},${g},${b},${a})`;
   }
-
   if (color.startsWith("#")) {
     let num = parseInt(color.slice(1), 16);
     let amt = Math.round(255 * percent);
@@ -42,9 +38,6 @@ function lightenColor(color, percent) {
    Message & Chat Widget Components
 ============================================================ */
 
-/**
- * Message component for chat messages.
- */
 const Message = ({ message }) => {
   const { user, time, text, avatar, backgroundColor } = message;
   const [isHovered, setIsHovered] = useState(false);
@@ -81,9 +74,6 @@ const Message = ({ message }) => {
   );
 };
 
-/**
- * DiscordChatWidget component for displaying chat messages in a styled widget.
- */
 const widgetStyles = {
   container: {
     display: "flex",
@@ -152,8 +142,9 @@ const DiscordChatWidget = ({ messages, channelName }) => (
 /* ============================================================
    Main Analyse Component
 ============================================================ */
+
 const Analyse = () => {
-  /* ------ State Variables ------ */
+  const navigate = useNavigate();
   const [activeServerDisc, setActiveServerDisc] = useState(null);
   const [dManager, setDmanager] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -166,20 +157,14 @@ const Analyse = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedItemText, setSelectedItemText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [shubhanGPTDisplay, setShubhanGPTDisplay] = useState(
-    "Summary will appear here."
-  );
+  const [shubhanGPTDisplay, setShubhanGPTDisplay] = useState("Summary will appear here.");
   const [loading, setLoading] = useState(false);
 
-  /* ------ Refs ------ */
   const treeviewContainerRef = useRef(null);
   const treeviewRef = useRef(null);
   const tooltipContainerRef = useRef(null);
   const hideTimeout = useRef(null);
 
-  /* ==========================================================
-     Inject Custom Scrollbar Styles
-  ========================================================== */
   useEffect(() => {
     const scrollbarStyles = `
       .discord-chat-messages::-webkit-scrollbar {
@@ -206,9 +191,6 @@ const Analyse = () => {
     };
   }, []);
 
-  /* ==========================================================
-     Tooltip Logic
-  ========================================================== */
   useEffect(() => {
     window.showTooltipForRange = (event, centerIdx) => {
       const start = Math.max(0, centerIdx - 2);
@@ -222,8 +204,7 @@ const Analyse = () => {
             time: `10:${i < 10 ? "0" + i : i}`,
             text: conversationBlocks[i],
             avatar: `https://i.pravatar.cc/40?u=${i}`,
-            backgroundColor:
-              i === centerIdx ? "rgba(255, 215, 0, 0.2)" : undefined,
+            backgroundColor: i === centerIdx ? "rgba(255, 215, 0, 0.2)" : undefined,
           });
         }
       }
@@ -261,9 +242,7 @@ const Analyse = () => {
         tooltipContainerRef.current._reactRoot.unmount();
         delete tooltipContainerRef.current._reactRoot;
       }
-      tooltipContainerRef.current._reactRoot = ReactDOM.createRoot(
-        tooltipContainerRef.current
-      );
+      tooltipContainerRef.current._reactRoot = ReactDOM.createRoot(tooltipContainerRef.current);
       tooltipContainerRef.current._reactRoot.render(
         <DiscordChatWidget messages={msgs} channelName={`DMessage ${refIdx}`} />
       );
@@ -272,10 +251,7 @@ const Analyse = () => {
     window.hideWidgetTooltip = () => {
       clearTimeout(hideTimeout.current);
       hideTimeout.current = setTimeout(() => {
-        if (
-          tooltipContainerRef.current &&
-          tooltipContainerRef.current._reactRoot
-        ) {
+        if (tooltipContainerRef.current && tooltipContainerRef.current._reactRoot) {
           tooltipContainerRef.current.style.opacity = 0;
           tooltipContainerRef.current._reactRoot.unmount();
           delete tooltipContainerRef.current._reactRoot;
@@ -285,10 +261,7 @@ const Analyse = () => {
 
     return () => clearTimeout(hideTimeout.current);
   }, [conversationBlocks]);
-//Run when conversationBlocks becomes available
-  /* ==========================================================
-     Data Fetching & Initialization
-  ========================================================== */
+
   useEffect(() => {
     const fetchFiles = async () => {
       const dmanager = new DiscordDataManager();
@@ -339,9 +312,6 @@ const Analyse = () => {
     fetchFiles();
   }, []);
 
-  /* ==========================================================
-     Summary API Initialization
-  ========================================================== */
   useEffect(() => {
     const keys = [
       "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",
@@ -356,23 +326,16 @@ const Analyse = () => {
     });
   }, []);
 
-useEffect(()=>
-{
-  if (dManager && activeServerDisc && selectedItem) {
-     dManager.setSummary(
-      activeServerDisc,
-      selectedItem,
-      generatedSummaryMsg
-    );
-  }
-},[generatedSummaryMsg])
-useEffect(()=>
-{
-  console.log("This is activating:",selectedItem)
-},[selectedItem])
-  /* ==========================================================
-     Auto-fetch Summary When Selected Item Changes
-  ========================================================== */
+  useEffect(() => {
+    if (dManager && activeServerDisc && selectedItem) {
+      dManager.setSummary(activeServerDisc, selectedItem, generatedSummaryMsg);
+    }
+  }, [generatedSummaryMsg]);
+
+  useEffect(() => {
+    console.log("This is activating:", selectedItem);
+  }, [selectedItem]);
+
   useEffect(() => {
     const fetchSummary = async () => {
       if (dManager && activeServerDisc && selectedItem) {
@@ -389,13 +352,8 @@ useEffect(()=>
     fetchSummary();
   }, [selectedItem]);
 
-  /* ==========================================================
-     Helper: Format and Set Displayed Summary
-  ========================================================== */
   const setDisplay = async (message) => {
     console.log("Setting display message:", message);
-
-
     const formattedMessage = message.replace(/DMessage ([0-9]+)/g, (_match, p1) => {
       const idx = parseInt(p1, 10);
       return `<span
@@ -408,9 +366,6 @@ useEffect(()=>
     setShubhanGPTDisplay(parse(formattedMessage));
   };
 
-  /* ==========================================================
-     Generate Summary Handler
-  ========================================================== */
   const generateSummary = async () => {
     if (!selectedItem) {
       alert("Please select content from the treeview to generate a summary.");
@@ -443,9 +398,6 @@ Summary:”`;
     }
   };
 
-  /* ==========================================================
-     Render Selected Item Content
-  ========================================================== */
   const renderContentDisplay = () => {
     if (!selectedItem)
       return <>Select an item from the treeview to see the content.</>;
@@ -460,9 +412,6 @@ Summary:”`;
     return <>No content available for this item.</>;
   };
 
-  /* ==========================================================
-     Custom Node Renderer for the Tree
-  ========================================================== */
   function Node({
     node,
     style,
@@ -473,35 +422,25 @@ Summary:”`;
     conversationBlocks,
   }) {
     const icon = node.isLeaf ? "💬" : node.isOpen ? "📂" : "📁";
-  
-    // Define a click handler for the node
+
     const handleClick = () => {
-      // Toggle the node's open/closed state
       node.toggle();
-  
-      // Set the selected item name
-      console.log("Setting clicked it")
+      console.log("Setting clicked it");
       setSelectedItem(node.data.name);
-  
-      // Fetch and format the conversation text for this node's name
       const idxArr = glossary[node.data.name]?.[0] || [];
       const text = idxArr
         .map((i) => `DMessage ${i}: ${conversationBlocks[i]}`)
         .join("\n");
-  
       setSelectedItemText(text);
     };
-  
+
     return (
       <div onClick={handleClick} style={style} ref={dragHandle}>
         {icon} {node.data.name}
       </div>
     );
   }
-  
-  /* ==========================================================
-     Main Render
-  ========================================================== */
+
   return (
     <>
       <Helmet>
@@ -516,35 +455,32 @@ Summary:”`;
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value.trim())}
           />
-
-        <Tree
-          initialData={treeviewData}
-          disableDrag
-          disableDrop
-          disableEdit
-          disableMultiSelection
-          indent={12}
-          width={treeviewContainerRef.current?.clientWidth - 40 || 100}
-          height={treeviewContainerRef.current?.clientHeight - 78 || 500}
-          openByDefault={false}
-          searchTerm={searchTerm}
-          ref={treeviewRef}
-        >
-          {({ node, style, dragHandle }) => (
-            <Node 
-              node={node} 
-              style={style} 
-              dragHandle={dragHandle}
-              setSelectedItem={setSelectedItem}
-              setSelectedItemText={setSelectedItemText}
-              glossary={glossary}
-              conversationBlocks={conversationBlocks}
-            />
-          )}
-        </Tree>
-
+          <Tree
+            initialData={treeviewData}
+            disableDrag
+            disableDrop
+            disableEdit
+            disableMultiSelection
+            indent={12}
+            width={treeviewContainerRef.current?.clientWidth - 40 || 100}
+            height={treeviewContainerRef.current?.clientHeight - 78 || 500}
+            openByDefault={false}
+            searchTerm={searchTerm}
+            ref={treeviewRef}
+          >
+            {({ node, style, dragHandle }) => (
+              <Node
+                node={node}
+                style={style}
+                dragHandle={dragHandle}
+                setSelectedItem={setSelectedItem}
+                setSelectedItemText={setSelectedItemText}
+                glossary={glossary}
+                conversationBlocks={conversationBlocks}
+              />
+            )}
+          </Tree>
         </div>
-
         <main className={styles.main}>
           <div className={styles.contentContainer}>
             <button
@@ -555,22 +491,26 @@ Summary:”`;
             >
               {loading ? "Generating…" : "Generate Summary"}
             </button>
-
             <div id="summary-container" className="mt-2">
-              <h2 className={styles.heading}>AI Summary</h2>
+              <div className={styles.summaryHeader}>
+                <h2 className={styles.heading}>Discord Notes</h2>
+                <FaRegStickyNote
+                  className={styles.notesIcon}
+                  onClick={() =>
+                    navigate(`/notes/${activeServerDisc}`)
+                  }
+                />
+              </div>
               <div
                 className={styles.summaryDisplay}
                 dangerouslySetInnerHTML={{ __html: shubhanGPTDisplay }}
               />
             </div>
-
             <h2 className="mt-2">Selected Item Content</h2>
             <div className={styles.contentDisplay}>{renderContentDisplay()}</div>
           </div>
         </main>
       </div>
-
-      {/* Tooltip Container */}
       <div
         id="tooltip-container"
         ref={tooltipContainerRef}

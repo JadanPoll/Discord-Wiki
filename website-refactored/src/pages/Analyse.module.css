@@ -55,3 +55,67 @@
 .dmessage-tooltip:hover {
     background-color: #e6e0f8;
 }
+
+/* Analyse.module.css */
+
+.summaryHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  
+
+  .notesIcon {
+    position: relative; /* For pseudo-element positioning */
+    display: inline-block; /* Ensure the icon acts like a block */
+    font-size: 1.5em;
+    color: #4a90e2;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  
+  .notesIcon:hover {
+    transform: scale(1.1);
+  }
+  
+  /* The orange badge at the top right */
+  .notesIcon::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background-color: orange;
+    border-radius: 50%;
+    z-index: 2;
+  }
+  
+  /* The blue ripple effect behind the icon */
+  .notesIcon::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150%;
+    height: 150%;
+    background: rgba(74, 144, 226, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    z-index: 1;
+    animation: ripple 1.5s infinite;
+  }
+  
+  @keyframes ripple {
+    0% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.8;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(2.5);
+      opacity: 0;
+    }
+  }
+  

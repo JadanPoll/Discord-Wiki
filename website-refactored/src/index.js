@@ -13,8 +13,14 @@ import Download from './pages/Download'
 import Listfiles from './pages/Listfiles'
 import Analyse from './pages/Analyse';
 import Preview from './pages/Preview';
+<<<<<<< HEAD
 import LoadDemo from './pages/LoadDemo'
+=======
+import ServerExperience from './pages/ServerExperience';
+>>>>>>> f7b5091f3ad388dcc089b5e8b3a3fe2077089d05
 import NotFound from './pages/NotFound'
+import SummaryPane from './pages/SummaryPane'; // ✅ Import SummaryPane here
+
 import reportWebVitals from './reportWebVitals'
 import { Helmet } from 'react-helmet';
 
@@ -35,7 +41,10 @@ root.render(
           <Route path="loaddemo" element={<LoadDemo />} />
           <Route path="analyse" element={<Analyse />} />
           <Route path="preview/:id" element={<Preview />} />
-          <Route path="*" element={<NotFound />}/>
+          <Route path="/server-experience/:serverId" element={<ServerExperience />} />
+          <Route path="/explorer/:serverId" element={<Analyse />} />
+          <Route path="notes/:topicId" element={<SummaryPane />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>
