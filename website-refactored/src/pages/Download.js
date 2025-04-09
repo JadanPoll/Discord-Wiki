@@ -396,7 +396,7 @@ const Download = () => {
 
                 {/* DL progressbar */}
                 <div className="modal fade" id="prgsbarModal" data-bs-backdrop="static"
-                    data-bs-keyboard="false" tabindex="-1" aria-labelledby="prgsbarModalLabel"
+                    data-bs-keyboard="false" tabIndex="-1" aria-labelledby="prgsbarModalLabel"
                     ref={prgsModalRef}>
                     <div className="modal-dialog">
                         <div className={styles.modalcontent}>

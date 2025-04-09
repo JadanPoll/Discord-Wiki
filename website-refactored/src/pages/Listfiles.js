@@ -32,8 +32,6 @@ const Listfiles = () => {
                     gameDiscImageUrl = null;  // Or you can set a default image if preferred
                 }
         
-                console.log('Testing disc', element, gameDiscImageUrl)
-        
                 // Extract and format the datetime for the element
                 let epoch = element.split("_")[1] * 1 / 1000
                 ans.push({
