@@ -21,162 +21,232 @@
  * 
  * NB: globalglossary is removed for performance reasons.
  */
-
-import { get, set, clear, del } from 'idb-keyval'
+import { get, set, clear, del } from "idb-keyval";
 
 export class DiscordDataManager {
-    constructor() {
-        // Init'ise data storage
-        if (localStorage.getItem("activeServerDisc") === null)
-            localStorage.setItem("activeServerDisc", "")
+  // Holds the single instance.
+  static instance = null;
 
-        if (localStorage.getItem("dbserverlist") === null)
-            localStorage.setItem("dbserverlist", JSON.stringify([]))
-
-        if (localStorage.getItem("channel_nicknames") === null)
-            localStorage.setItem("channel_nicknames", JSON.stringify(Object.create(null)))
-
-        this.dbname = 'dwikistore'
-        this.glossarytablename = 'glossaries'
-        this.messagestablename = 'messages'
-        this.relationshipstablename = 'relationships'
+  constructor() {
+    if (DiscordDataManager.instance) {
+      return DiscordDataManager.instance;
     }
+    // Initialize localStorage if not already set.
+    if (!localStorage.getItem("activeServerDisc"))
+      localStorage.setItem("activeServerDisc", "");
 
-    async getDBServersObjList() {
-        return JSON.parse(localStorage.getItem("dbserverlist"))
+    if (!localStorage.getItem("dbserverlist"))
+      localStorage.setItem("dbserverlist", JSON.stringify([]));
+
+    if (!localStorage.getItem("channel_nicknames"))
+      localStorage.setItem("channel_nicknames", JSON.stringify({}));
+
+    // These properties can be used to namespace your IndexedDB keys:
+    this.dbname = "dwikistore";
+    this.glossarytablename = "glossaries";
+    this.messagestablename = "messages";
+    this.relationshipstablename = "relationships";
+
+    DiscordDataManager.instance = this;
+  }
+
+  // Returns the singleton instance.
+  static getInstance() {
+    if (!DiscordDataManager.instance) {
+      DiscordDataManager.instance = new DiscordDataManager();
     }
+    return DiscordDataManager.instance;
+  }
 
-    async setDBServersObjList(arr) {
-        localStorage.setItem("dbserverlist", JSON.stringify(arr))
+  // ----- LocalStorage Methods -----
+  async getDBServersObjList() {
+    try {
+      return JSON.parse(localStorage.getItem("dbserverlist"));
+    } catch (error) {
+      console.error("Error reading dbserverlist:", error);
+      return [];
     }
+  }
 
-    async getActiveServerDisc() {
-        return localStorage.getItem("activeServerDisc")
+  async setDBServersObjList(arr) {
+    localStorage.setItem("dbserverlist", JSON.stringify(arr));
+  }
+
+  async getActiveServerDisc() {
+    return localStorage.getItem("activeServerDisc") || "";
+  }
+
+  getActiveServerDiscSync() {
+    return localStorage.getItem("activeServerDisc") || "";
+  }
+
+  async setActiveServerDisc(name) {
+    localStorage.setItem("activeServerDisc", name);
+  }
+
+  async getChannelNickname(channel) {
+    try {
+      const nicknameStore = JSON.parse(localStorage.getItem("channel_nicknames")) || {};
+      return nicknameStore[channel] || "";
+    } catch (error) {
+      console.error("Error reading channel nicknames:", error);
+      return "";
     }
+  }
 
-    getActiveServerDiscSync()
-    {
-        return localStorage.getItem("activeServerDisc")
+  getChannelNicknameSync(channel) {
+    try {
+      const nicknameStore = JSON.parse(localStorage.getItem("channel_nicknames")) || {};
+      return nicknameStore[channel] || "";
+    } catch (error) {
+      console.error("Error reading channel nicknames:", error);
+      return "";
     }
+  }
 
-    async setActiveServerDisc(name) {
-        localStorage.setItem("activeServerDisc", name)
+  async setChannelNickname(channel, nickname) {
+    try {
+      const nicknameStore = JSON.parse(localStorage.getItem("channel_nicknames")) || {};
+      nicknameStore[channel] = nickname;
+      localStorage.setItem("channel_nicknames", JSON.stringify(nicknameStore));
+    } catch (error) {
+      console.error("Error setting channel nickname:", error);
     }
+  }
 
-    async getChannelNickname(channel) {
-        let nicknameStore = JSON.parse(localStorage.getItem("channel_nicknames"))
-        return nicknameStore[channel]
+  // ----- IndexedDB Methods via idb-keyval -----
+  async getGlossary(channel) {
+    try {
+      const entry = `glossary/${channel}`;
+      return await get(entry);
+    } catch (error) {
+      console.error("Error getting glossary:", error);
+      return null;
     }
+  }
 
-    getChannelNicknameSync(channel) {
-        let nicknameStore = JSON.parse(localStorage.getItem("channel_nicknames"))
-        if (channel in nicknameStore) return nicknameStore[channel]
-        return ""
+  async setGlossary(channel, data) {
+    const entry = `glossary/${channel}`;
+    return await set(entry, data);
+  }
+
+  async getMessages(channel) {
+    try {
+      const entry = `messages/${channel}`;
+      return await get(entry);
+    } catch (error) {
+      console.error("Error getting messages:", error);
+      return null;
     }
+  }
 
-    async setChannelNickname(channel, nickname) {
-        // channel <channel> is known as <nickname>.
-        let nicknameStore = JSON.parse(localStorage.getItem("channel_nicknames"))
-        nicknameStore[channel] = nickname
+  async setMessages(channel, data) {
+    const entry = `messages/${channel}`;
+    return await set(entry, data);
+  }
 
-        localStorage.setItem("channel_nicknames", JSON.stringify(nicknameStore))
+  async getServerGameDisc(channel) {
+    try {
+      const entry = `gametitleimage/${channel}`;
+      return await get(entry);
+    } catch (error) {
+      console.error("Error getting server game disc:", error);
+      return null;
     }
+  }
 
-    async getGlossary(channel) {
-        let entry = `glossary_${channel}`
-        return await get(entry)
+  async setServerGameDisc(channel, data) {
+    const entry = `gametitleimage/${channel}`;
+    return await set(entry, data);
+  }
+
+  async getRelationships(channel) {
+    try {
+      const entry = `relationships/${channel}`;
+      return await get(entry);
+    } catch (error) {
+      console.error("Error getting relationships:", error);
+      return null;
     }
+  }
 
-    async setGlossary(channel, data) {
-        let entry = `glossary_${channel}`
-        await set(entry, data)
+  async setRelationships(channel, data) {
+    const entry = `relationships/${channel}`;
+    return await set(entry, data);
+  }
+
+  async getConversationBlocks(channel) {
+    try {
+      const entry = `convblocks/${channel}`;
+      return await get(entry);
+    } catch (error) {
+      console.error("Error getting conversation blocks:", error);
+      return null;
     }
+  }
 
-    async getMessages(channel) {
-        let entry = `messages_${channel}`
-        return await get(entry)
+  async setConversationBlocks(channel, data) {
+    const entry = `convblocks/${channel}`;
+    return await set(entry, data);
+  }
+
+  async setSummary(channel, topic, summaryData) {
+    const entry = `summary/${channel}/${topic}`;
+    return await set(entry, summaryData);
+  }
+
+  async getSummary(channel, topic) {
+    const entry = `summary/${channel}/${topic}`;
+    return await get(entry);
+  }
+
+  async removeChannel(channel) {
+    try {
+      const dblist = await this.getDBServersObjList();
+      if (!dblist.includes(channel)) {
+        return { status: false, message: "No such file found." };
+      }
+
+      if (dblist.length === 1) {
+        // Special: if it's the only file, purging is simpler
+        await this.purge();
+        return { status: true, message: "OK." };
+      }
+
+      // Delete specific keys using the folder-separation style.
+      await del(`messages/${channel}`);
+
+      const nicknameStore = JSON.parse(localStorage.getItem("channel_nicknames")) || {};
+      delete nicknameStore[channel];
+      localStorage.setItem("channel_nicknames", JSON.stringify(nicknameStore));
+
+      await del(`glossary/${channel}`);
+      await del(`relationships/${channel}`);
+      await del(`convblocks/${channel}`);
+
+      // Remove channel from list and update active channel if needed.
+      const updatedList = dblist.filter((ch) => ch !== channel);
+      await this.setDBServersObjList(updatedList);
+
+      if ((await this.getActiveServerDisc()) === channel) {
+        await this.setActiveServerDisc(updatedList[updatedList.length - 1]);
+      }
+
+      return { status: true, message: "OK." };
+    } catch (error) {
+      console.error("Error removing channel:", error);
+      return { status: false, message: "Error encountered." };
     }
+  }
 
-    async setMessages(channel, data) {
-        let entry = `messages_${channel}`
-        await set(entry, data)
+  async purge() {
+    try {
+      // Remove all localStorage and IndexedDB managed keys.
+      localStorage.clear();
+      await clear();
+    } catch (error) {
+      console.error("Error purging data:", error);
     }
-    
-    async getServerGameDisc(channel) {
-        let entry = `gametitleimage_${channel}`
-        return await get(entry)
-    }
-    async setServerGameDisc(channel, data) {
-        let entry = `gametitleimage_${channel}`
-        await set(entry,data)
-    }
-
-    async getRelationships(channel) {
-        let entry = `relationships_${channel}`
-        return await get(entry)
-    }
-
-    async setRelationships(channel, data) {
-        let entry = `relationships_${channel}`
-        await set(entry, data)
-    }
-
-    async getConversationBlocks(channel) {
-        let entry = `convblocks_${channel}`
-        return await get(entry)
-    }
-
-    async setConversationBlocks(channel, data) {
-        let entry = `convblocks_${channel}`
-        await set(entry, data)
-    }
-    async setSummary(channel,topic,summary_data)
-    {
-        let entry = `summary_${channel}_${topic}`
-        await set(entry,summary_data)
-    }
-    async getSummary(channel,topic)
-    {
-        let entry = `summary_${channel}_${topic}`
-        return await get(entry)
-    }
-    
-    async removeChannel(channel) {
-        let dblist = await this.getDBServersObjList()
-
-        if (!dblist.includes(channel)) {
-            return { "status": false, "message": "No such file found." }
-        }
-
-        if (dblist.length === 1) {
-            // special case: this is the only file. This is effectly purging.
-            this.purge()
-            return { "status": true, "message": "OK." }
-        }
-
-        await del(`messages_${channel}`)
-
-        let nicknameStore = JSON.parse(localStorage.getItem("channel_nicknames"))
-        delete nicknameStore[channel]
-        localStorage.setItem("channel_nicknames", JSON.stringify(nicknameStore))
-
-        await del(`glossary_${channel}`)
-        await del(`relationships_${channel}`)
-        await del(`convblocks_${channel}`)
-
-        dblist.splice(dblist.indexOf(channel), 1)
-        this.setDBServersObjList(dblist)
-
-        if (await this.getActiveServerDisc() === channel) {
-            this.setActiveServerDisc(dblist[dblist.length - 1])
-        }
-
-        return { "status": true, "message": "OK." }
-    }
-
-    async purge() {
-        // REMOVE ALL DATA
-        localStorage.clear()
-        await clear()
-    }
+  }
 }
+
