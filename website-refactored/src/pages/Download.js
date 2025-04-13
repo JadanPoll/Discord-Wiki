@@ -331,7 +331,7 @@ const Download = () => {
         
         console.log("DONE!")
 
-        navigate('/')
+        navigate('./')
 
     }
 
