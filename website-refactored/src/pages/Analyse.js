@@ -262,46 +262,65 @@ const Analyse = () => {
     return () => clearTimeout(hideTimeout.current);
   }, [conversationBlocks]);
 
+
   useEffect(() => {
     const fetchFiles = async () => {
       const dmanager = new DiscordDataManager();
       setDmanager(dmanager);
       const tactiveServerDisc = dmanager.getActiveServerDiscSync();
       if (!tactiveServerDisc) return;
+      
       setActiveServerDisc(tactiveServerDisc);
       setMessages(await dmanager.getMessages(tactiveServerDisc));
       setGlossary(await dmanager.getGlossary(tactiveServerDisc));
-      setRelationships(await dmanager.getRelationships(tactiveServerDisc));
+      console.log("Glossary")
+      
+      // Receive hierarchical relationships directly from dmanager.getRelationships.
+      // Assumed format:
+      // {
+      //   independentGroups: [...],
+      //   hierarchicalRelationships: {
+      //       topicA: { parent: null, children: ['topicB', 'topicC'] },
+      //       topicB: { parent: 'topicA', children: [...] },
+      //       ...
+      //   }
+      // }
+      const relationshipsData = await dmanager.getRelationships(tactiveServerDisc);
+      setRelationships(relationshipsData);
+  
+      // Conversation blocks remain unchanged.
       setConversationBlocks(await dmanager.getConversationBlocks(tactiveServerDisc));
+      
+      // For independent groups (if needed)
+      console.log(relationshipsData)
+      const groups = Object.keys(relationshipsData);
 
-      const groups = Object.keys(await dmanager.getRelationships(tactiveServerDisc));
-      setIndependentGroups(groups);
-
-      // Build treeview data structure
+      // Build treeview data structure from hierarchicalRelationships
+      const hierarchicalRelationships  = relationshipsData;
+      
+      // Recursive helper to build nested tree nodes.
+      const buildNode = (topicName) => {
+        const rel = hierarchicalRelationships[topicName];
+        // Create the basic node.
+        const node = { id: topicName, name: topicName };
+        // Recursively add children if they exist.
+        if (rel.children && rel.children.length > 0) {
+          node.children = rel.children.map(childName => buildNode(childName));
+        }
+        return node;
+      };
+  
+      // Build treeData: All topics with no parent become tree roots.
       const treeData = [];
-      const groupMap = new Map();
-      groups.forEach((grp) => {
-        const node = { id: grp, name: grp, children: [] };
-        treeData.push(node);
-        groupMap.set(grp, node);
+      Object.entries(hierarchicalRelationships).forEach(([topicName, rel]) => {
+        if (rel.parent === null) {
+          treeData.push(buildNode(topicName));
+        }
       });
-      const allRels = await dmanager.getRelationships(tactiveServerDisc);
-      Object.entries(allRels).forEach(([grp, rel]) => {
-        rel.subgroups.forEach((sub) => {
-          if (!groupMap.has(sub))
-            groupMap.set(sub, { id: sub, name: sub, children: [] });
-          groupMap.get(grp).children.push(groupMap.get(sub));
-        });
-      });
-      const queue = [...treeData];
-      while (queue.length) {
-        const el = queue.pop();
-        if (el.children?.length) queue.push(...el.children);
-        else delete el.children;
-      }
+      
       setTreeviewData(treeData);
-
-      // Auto-select tree node if URL has a "keyword" parameter
+  
+      // Auto-select tree node if URL has a "keyword" parameter.
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.has("keyword")) {
         setTimeout(() => {
@@ -311,7 +330,7 @@ const Analyse = () => {
     };
     fetchFiles();
   }, []);
-
+  
   useEffect(() => {
     const keys = [
       "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",

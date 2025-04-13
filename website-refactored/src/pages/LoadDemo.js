@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { Helmet } from "react-helmet"
 import { DiscordDataManager } from "./lib/DiscordDataManger"
 import { engineAnalyseDriver } from "./lib/EngineAnalyseDriver"
-import { loadConversationEngine, processAllContextChains, calculateGlossary, calculateDisplayGlossary } from './lib/engine.js'
+import { loadConversationEngine, processAllContextChains, calculateGlossary, calculateDisplayGlossary } from './lib/engine2.js'
 import styles from './LoadDemo.module.css'
 
 import { useNavigate } from 'react-router-dom';

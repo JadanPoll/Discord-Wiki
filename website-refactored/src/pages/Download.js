@@ -14,7 +14,7 @@ import { DiscordDataManager } from "./lib/DiscordDataManger"
 import { engineAnalyseDriver } from "./lib/EngineAnalyseDriver"
 
 // we should honestly make these shorter
-import { loadConversationEngine, processAllContextChains, calculateGlossary, calculateDisplayGlossary } from './lib/engine.js'
+import { loadConversationEngine, processAllContextChains, calculateGlossary, calculateDisplayGlossary } from './lib/engine2.js'
 
 import tokenimg1 from "./static/discord-tut-images/discord-token-tut-img1.webp"
 import tokenimg2 from "./static/discord-tut-images/discord-token-tut-img2.webp"
@@ -267,8 +267,10 @@ const Download = () => {
         let dataManager = new DiscordDataManager()
 
         let nickname = ""
+        
+        const defaultName = channelName || "my_channel";
         for (;;) {
-            const defaultName = channelName || "my_channel";
+
             nickname = prompt("What name would you like to give to this file? You may only use alphanumerics and underbars(_).",defaultName)
 
             let dbs = await dataManager.getDBServersObjList()
@@ -289,7 +291,7 @@ const Download = () => {
         if (result.status === true) {
             await dataManager.setGlossary(filename, result.glossary)
             await dataManager.setRelationships(filename, result.tree)
-            console.log(result.blocks)
+
             await dataManager.setConversationBlocks(filename, result.blocks)
         }
         else {
@@ -331,7 +333,7 @@ const Download = () => {
         
         console.log("DONE!")
 
-        navigate('./')
+        navigate('/')
 
     }
 
