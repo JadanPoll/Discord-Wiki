@@ -13,6 +13,7 @@ import Download from './pages/Download'
 import Listfiles from './pages/Listfiles'
 import Analyse from './pages/Analyse';
 import Preview from './pages/Preview';
+import LoadDemo from './pages/LoadDemo'
 import ServerExperience from './pages/ServerExperience';
 import NotFound from './pages/NotFound'
 import SummaryPane from './pages/SummaryPane'; // ✅ Import SummaryPane here
@@ -34,6 +35,7 @@ root.render(
           {activeChannel !== "" && <Route index element={<FrontPageWithData />} />}
           <Route path="download" element={<Download />} />
           <Route path="listfiles" element={<Listfiles />} />
+          <Route path="loaddemo" element={<LoadDemo />} />
           <Route path="analyse" element={<Analyse />} />
           <Route path="preview/:id" element={<Preview />} />
           <Route path="/server-experience/:serverId" element={<ServerExperience />} />

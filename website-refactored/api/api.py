@@ -12,7 +12,7 @@ import random
 
 print(f"Run website on http://127.0.0.1:3000")
 # Init'ise API server
-app = Flask(__name__)
+app = Flask(__name__, static_folder="demo")
 app.secret_key = "DSearchPokémon"
 CORS(app)
 

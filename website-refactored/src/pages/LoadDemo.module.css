@@ -1,0 +1,17 @@
+.card {
+    display: inline-block;
+    margin: 10px 5px;
+    width: 22rem;  /* fixed width for consistency */
+    height: 150px; /* set a fixed height for the card */
+    max-width: 100%;
+    position: relative;
+    overflow: visible;  /* allow the CD to show outside */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    box-sizing: border-box; /* includes padding and border in width/height calculation */
+}
+
+/* Hover pop effect */
+.card:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}

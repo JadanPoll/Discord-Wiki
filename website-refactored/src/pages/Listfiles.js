@@ -8,36 +8,42 @@ import styles from "./Listfiles.module.css";
 const Listfiles = () => {
   const navigate = useNavigate();
 
-  const [dbdata, setDbdata] = useState(null);
-  const [activeFile, setActiveFile] = useState(null);
-
+  let [dbdata, setDbdata] = useState(null)
+  let [activefile, setActiveFile] = useState(null);
   useEffect(() => {
     const fetchFiles = async () => {
-      const discordData = new DiscordDataManager();
-      const fileList = await discordData.getDBServersObjList();
-      const currentActive = await discordData.getActiveServerDisc();
-      setActiveFile(currentActive);
+      let ans = []
 
-      const formattedList = await Promise.all(
-        fileList.map(async (id) => {
-          const nickname = await discordData.getChannelNickname(id);
-          const imageUrl = (await discordData.getServerGameDisc(id)) || null;
-          const epoch = parseInt(id.split("_")[1], 10) / 1000;
-          return {
-            id,
-            nickname,
-            isActive: id === currentActive,
-            datetime: moment.unix(epoch).format("LLL"),
-            imageUrl,
-          };
+      let discorddata = new DiscordDataManager()
+      let dblist = await discorddata.getDBServersObjList()
+      setActiveFile(await discorddata.getActiveServerDisc())
+
+      // Loop over the DB list
+      for (let element of dblist) {
+        let nickname = await discorddata.getChannelNickname(element)
+        let gameDiscImageUrl = await discorddata.getServerGameDisc(element)
+
+        // Check if the gameDiscImageUrl is valid, otherwise set it to null
+        if (!gameDiscImageUrl) {
+          gameDiscImageUrl = null;  // Or you can set a default image if preferred
+        }
+
+        // Extract and format the datetime for the element
+        let epoch = element.split("_")[1] * 1 / 1000
+        ans.push({
+          id: element,
+          nickname: nickname,
+          isActive: (element === activefile),
+          datetime: moment.unix(epoch).format("LLL"),
+          imageUrl: gameDiscImageUrl
         })
-      );
+      }
 
-      setDbdata(formattedList);
-    };
-
+      // Update the state with the fetched data
+      setDbdata(ans)
+    }
     fetchFiles();
-  }, [activeFile]);
+  });
 
   const deleteFile = async (id, e) => {
     // Prevent card click event from triggering navigation
@@ -98,8 +104,8 @@ const Listfiles = () => {
               style={{
                 "--cd-img": `url(${data.imageUrl || "path/to/default-image.webp"})`,
               }}
-              // Navigate to the ServerExperience page when the card is clicked.
-              //onClick={() => navigate(`/server-experience/${data.id}`)}
+            // Navigate to the ServerExperience page when the card is clicked.
+            //onClick={() => navigate(`/server-experience/${data.id}`)}
             >
               <div className={`card-body ${data.isActive ? "shadow" : ""}`}>
                 <h5 className="card-title">{data.nickname}</h5>
