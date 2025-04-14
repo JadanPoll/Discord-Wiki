@@ -7,6 +7,7 @@ import { parse } from "marked";
 
 const SummaryPane = () => {
   const { topicId } = useParams();
+  const [summary_name, setSummaryName] = useState("");
   const [summaries, setSummaries] = useState([]);
   const [loading, setLoading] = useState(true);
   console.log("With prejudice")
@@ -24,14 +25,15 @@ const SummaryPane = () => {
 
       const manager = new DiscordDataManager();
       // Map each key to an object with topic and its summary content.
-
-
+      setSummaryName(manager.getChannelNicknameSync(manager.getActiveServerDiscSync()))
+      
       const summariesArr = await Promise.all(
         summaryKeys.map(async (key) => {
           // Expected key format: "summary_<topicId>_<topic>"
           const parts = key.split("/");
           const topic = parts.slice(2).join("/"); // In case topic names have underscores
           const summaryContent = await manager.getSummary(topicId, topic);
+
           return { topic, summary: parse(summaryContent) };
         })
       );
@@ -48,7 +50,7 @@ const SummaryPane = () => {
 
   return (
     <div className={styles.summaryPane}>
-      <h1>Summary Topics for Channel {topicId}</h1>
+      <h1>Summary Topics for Channel {summary_name}</h1>
       {summaries.length === 0 ? (
         <p>No summaries found for this channel.</p>
       ) : (
