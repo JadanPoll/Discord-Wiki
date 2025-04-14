@@ -1,137 +1,156 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { DiscordDataManager } from "./lib/DiscordDataManger";
 import { engineAnalyseDriver } from "./lib/EngineAnalyseDriver";
-import { loadConversationEngine, processAllContextChains, calculateGlossary, calculateDisplayGlossary } from "./lib/engine2.js";
+import {
+  loadConversationEngine,
+  processAllContextChains,
+  calculateGlossary,
+  calculateDisplayGlossary,
+} from "./lib/engine2.js";
 import styles from "./LoadDemo.module.css";
 import FloatingBackground from "./FloatingBackground.js";
-
-const moment = require("moment");
+import moment from "moment";
 
 const LoadDemo = () => {
   const navigate = useNavigate();
 
-  const [democatalogue, setDemoCatalogue] = useState(null);
-  const [prgsbarValue, setPrgsbarValue] = useState(0);
-  const [prgsModal, setPrgsModal] = useState(null);
-  const prgsModalRef = useRef(null);
+  // State variables
+  const [demoCatalogue, setDemoCatalogue] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const progressModalRef = useRef(null);
+  const [showNfcModal, setShowNfcModal] = useState(false);
+  const [nfcCode, setNfcCode] = useState("");
+  const nfcModalRef = useRef(null);
 
-  // Fetch the list of demo files on mount
+  // Fetch demo catalogue on component mount
   useEffect(() => {
-    const fetchFiles = async () => {
-      const url = "/demo/files.json";
+    const fetchCatalogue = async () => {
       try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(res.statusText);
-        setDemoCatalogue(await res.json());
-      } catch (err) {
-        alert(`Cannot fetch demo file list: ${err}`);
+        const response = await fetch("/demo/files.json");
+        if (!response.ok) throw new Error(response.statusText);
+        const data = await response.json();
+        setDemoCatalogue(data);
+      } catch (error) {
+        alert(`Error fetching demo catalogue: ${error.message}`);
       }
     };
-    fetchFiles();
+    fetchCatalogue();
   }, []);
 
-  // Download and process the file
-  const download = async (filename) => {
-    // Initialize Bootstrap modal (from the CDN script)
-    let prg = new window.bootstrap.Modal(prgsModalRef.current, { keyboard: false });
-    setPrgsModal(prg);
-    prg.show();
+  // Function to download and process a demo file
+  const handleDownload = async (filename) => {
+    // Show progress modal
+    const progressModal = new window.bootstrap.Modal(progressModalRef.current, { keyboard: false });
+    progressModal.show();
+    setProgress(0);
 
-    // Download JSON file
-    const url = `/demo/files/${filename}`;
-    let res;
     try {
-      res = await fetch(url);
-      if (!res.ok) throw new Error(res.statusText);
-    } catch (err) {
-      alert(`Cannot download the file: ${err}`);
-      prg.hide();
-      return;
+      // Download JSON file from the server
+      const response = await fetch(`/demo/files/${filename}`);
+      if (!response.ok) throw new Error(response.statusText);
+      setProgress(60);
+
+      // Extract messages from the JSON file
+      const { messages } = await response.json();
+
+      // Create a unique database filename and nickname for the demo
+      const dbFilename = `DEMO-${filename.replaceAll("_", "-")}_${Date.now()}`;
+      const nickname = `DEMO: ${filename}`;
+
+      const dataManager = new DiscordDataManager();
+      const messagesStr = JSON.stringify(messages);
+
+      // Run the engine analysis to process messages
+      const analysisResult = await engineAnalyseDriver(messagesStr, dbFilename);
+      if (analysisResult.status) {
+        await dataManager.setGlossary(dbFilename, analysisResult.glossary);
+        await dataManager.setRelationships(dbFilename, analysisResult.tree);
+        await dataManager.setConversationBlocks(dbFilename, analysisResult.blocks);
+      } else {
+        console.error(`Data analysis failed: ${analysisResult.message}`);
+        alert(`Data analysis failed: ${analysisResult.message}`);
+        progressModal.hide();
+        navigate(0);
+        return;
+      }
+
+      setProgress(100);
+
+      // Update the list of demo databases
+      const dbList = await dataManager.getDBServersObjList();
+      dbList.push(dbFilename);
+      await dataManager.setDBServersObjList(dbList);
+
+      // Set additional database details
+      await dataManager.setChannelNickname(dbFilename, nickname);
+      await dataManager.setServerGameDisc(dbFilename, null);
+      await dataManager.setActiveServerDisc(dbFilename);
+      await dataManager.setMessages(dbFilename, messages);
+
+      // Pause briefly to allow changes to propagate
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      progressModal.hide();
+      window.location.href = "/";
+    } catch (error) {
+      alert(`Download error: ${error.message}`);
+      const progressModalInstance = window.bootstrap.Modal.getInstance(progressModalRef.current);
+      if (progressModalInstance) progressModalInstance.hide();
     }
-    setPrgsbarValue(60);
-
-    // Remove unnecessary info from the JSON file and extract messages
-    let messages = (await res.json()).messages;
-
-    // Prepare unique filename for database
-    let db_filename = `DEMO-${filename.replaceAll("_", "-")}_${Date.now()}`;
-    let nickname = `DEMO: ${filename}`;
-    console.log(`Saving as ${db_filename}`);
-
-    let dataManager = new DiscordDataManager();
-    let messagesStr = JSON.stringify(messages);
-    console.log(messages);
-    console.log(messagesStr);
-
-    // Analyse messages
-    let result = await engineAnalyseDriver(messagesStr, db_filename);
-
-    if (result.status === true) {
-      await dataManager.setGlossary(db_filename, result.glossary);
-      await dataManager.setRelationships(db_filename, result.tree);
-      console.log(result.blocks);
-      await dataManager.setConversationBlocks(db_filename, result.blocks);
-    } else {
-      console.error(`CANNOT ANALYSE DATA: ${result.message}`);
-      alert(`CANNOT ANALYSE DATA: ${result.message}`);
-      prg.hide();
-      navigate(0);
-      return;
-    }
-
-    setPrgsbarValue(100);
-
-    let dblist = await dataManager.getDBServersObjList();
-
-    // Add the new filename to the list of DBs
-    dblist.push(db_filename);
-
-    // Update the DB list with the new filename
-    await dataManager.setDBServersObjList(dblist);
-
-    // Set the channel nickname
-    await dataManager.setChannelNickname(db_filename, nickname);
-
-    // We won't put any icon to demo ATP.
-    await dataManager.setServerGameDisc(db_filename, null);
-
-    // Set the active DB to the new filename
-    await dataManager.setActiveServerDisc(db_filename);
-
-    // Store the messages for the new DB
-    await dataManager.setMessages(db_filename, messages);
-
-    // Wait a moment for changes to be pushed
-    await new Promise((r) => setTimeout(r, 2000));
-
-    console.log("DONE!");
-    prg.hide();
-    window.location.href = "/";
   };
 
-  // While the demo catalogue is loading, show a temporary message.
-  if (democatalogue === null)
+  // NFC Modal functions
+  const openNfcModal = () => {
+    setShowNfcModal(true);
+    const nfcModal = new window.bootstrap.Modal(nfcModalRef.current, { keyboard: false });
+    nfcModal.show();
+  };
+
+  const handleNfcSubmit = async (event) => {
+    event.preventDefault();
+    // Example: check if the entered NFC code is "1234"
+    if (nfcCode === "1234") {
+      try {
+        const response = await fetch("/nfc-communication-request");
+        if (!response.ok) throw new Error("Failed to install NFC information");
+        alert("NFC communication installed successfully!");
+      } catch (error) {
+        alert(error.message);
+      }
+    } else {
+      alert("Invalid 4-digit code.");
+    }
+    // Close the NFC modal and reset the input
+    setShowNfcModal(false);
+    setNfcCode("");
+    const nfcModalInstance = window.bootstrap.Modal.getInstance(nfcModalRef.current);
+    if (nfcModalInstance) nfcModalInstance.hide();
+  };
+
+  // Render a loading state if the catalogue is not yet fetched
+  if (demoCatalogue === null) {
     return (
       <div id="content-body" className="container container-fluid">
         <h1>Load Demo Files</h1>
-        <p><i>Do not know where to start? Test out our selection of demo files!</i></p>
+        <p>
+          <i>Not sure where to begin? Try one of our demo files!</i>
+        </p>
         <i>Loading...</i>
       </div>
     );
+  }
 
   return (
     <>
       <Helmet>
         <title>Load Demo Files</title>
-        {/* Bootstrap JS bundle */}
         <script
           src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
           integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
           crossOrigin="anonymous"
         ></script>
-        {/* Ensure proper scaling on mobile devices */}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Helmet>
 
@@ -141,27 +160,18 @@ const LoadDemo = () => {
       <div id="content-body" className="container container-fluid">
         <h1>Load Demo Files</h1>
         <p>
-          <i>Do not know where to start? Test out our selection of demo files!</i>
+          <i>Not sure where to begin? Try one of our demo files!</i>
         </p>
 
-        {/* Use Bootstrap row and column classes for responsive grid */}
+        {/* Grid of demo file cards */}
         <div className="row">
-          {democatalogue.map((data, index) => (
-            <div className="col-sm-12 col-md-4 mb-4" key={data.filename}>
-              <div
-                className={`${styles.card} card h-100`}
-                style={{ animationDelay: `${index * 0.3}s` }}
-              >
+          {demoCatalogue.map((file, index) => (
+            <div key={file.filename} className="col-sm-12 col-md-4 mb-4">
+              <div className={`${styles.card} card h-100`} style={{ animationDelay: `${index * 0.3}s` }}>
                 <div className="card-body">
-                  <h5 className="card-title">{data.name}</h5>
-                  <p className="card-text">{data.description}</p>
-                  <a
-                    href="#"
-                    className="card-link"
-                    onClick={() => {
-                      download(data.filename);
-                    }}
-                  >
+                  <h5 className="card-title">{file.name}</h5>
+                  <p className="card-text">{file.description}</p>
+                  <a href="#" className="card-link" onClick={() => handleDownload(file.filename)}>
                     Download
                   </a>
                 </div>
@@ -169,44 +179,54 @@ const LoadDemo = () => {
             </div>
           ))}
 
-
-        {(() => {
-        const itemsPerRow = 3;
-        const totalRows = 2;
-        const totalSlots = itemsPerRow * totalRows;
-
-        const extraSlots = totalSlots - democatalogue.length;
-
-        return Array.from({ length: extraSlots }).map((_, idx) => (
-            <div key={`placeholder-${idx}`} className="col-sm-12 col-md-4 mb-4">
-            <Link to="/download">
-                <div
-                className={`${styles.card} card ${styles.placeholderCard} h-100`}
-                style={{ cursor: "pointer", textDecoration: "none" }}
-                >
-                <div
-                    className="card-body d-flex align-items-center justify-content-center"
-                    style={{ fontSize: "2rem", color: "#aaa" }}
-                >
-                    +
+          {/* Render extra grid slots */}
+          {(() => {
+            const itemsPerRow = 3;
+            const totalRows = 2;
+            const totalSlots = itemsPerRow * totalRows;
+            const extraSlots = totalSlots - demoCatalogue.length;
+            return Array.from({ length: extraSlots }).map((_, idx) => {
+              // First extra slot: NFC icon for entering a code
+              if (idx === 0) {
+                return (
+                  <div key={`placeholder-${idx}`} className="col-sm-12 col-md-4 mb-4">
+                    <div
+                      className={`${styles.card} card ${styles.placeholderCard} h-100`}
+                      style={{ cursor: "pointer", textDecoration: "none" }}
+                      onClick={openNfcModal}
+                    >
+                      <div className="card-body d-flex align-items-center justify-content-center" style={{ fontSize: "2rem", color: "#aaa" }}>
+                        NFC
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              // Remaining extra slots: placeholder card linking to download page
+              return (
+                <div key={`placeholder-${idx}`} className="col-sm-12 col-md-4 mb-4">
+                  <Link to="/download">
+                    <div className={`${styles.card} card ${styles.placeholderCard} h-100`} style={{ cursor: "pointer", textDecoration: "none" }}>
+                      <div className="card-body d-flex align-items-center justify-content-center" style={{ fontSize: "2rem", color: "#aaa" }}>
+                        +
+                      </div>
+                    </div>
+                  </Link>
                 </div>
-                </div>
-            </Link>
-            </div>
-        ));
-        })()}
-
+              );
+            });
+          })()}
         </div>
 
         {/* Progress Modal */}
         <div
           className="modal fade"
-          id="prgsbarModal"
+          id="progressModal"
           data-bs-backdrop="static"
           data-bs-keyboard="false"
           tabIndex="-1"
-          aria-labelledby="prgsbarModalLabel"
-          ref={prgsModalRef}
+          aria-labelledby="progressModalLabel"
+          ref={progressModalRef}
         >
           <div className="modal-dialog">
             <div className="modal-content">
@@ -222,9 +242,62 @@ const LoadDemo = () => {
                   aria-valuemin="0"
                   aria-valuemax="100"
                 >
-                  <div className="progress-bar" style={{ width: `${prgsbarValue}%` }}></div>
+                  <div className="progress-bar" style={{ width: `${progress}%` }}></div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* NFC Code Modal */}
+        <div
+          className="modal fade"
+          id="nfcModal"
+          data-bs-backdrop="static"
+          data-bs-keyboard="false"
+          tabIndex="-1"
+          aria-labelledby="nfcModalLabel"
+          ref={nfcModalRef}
+        >
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <form onSubmit={handleNfcSubmit}>
+                <div className="modal-header">
+                  <h1 className="modal-title fs-5" id="nfcModalLabel">
+                    Enter 4-Digit Code
+                  </h1>
+                </div>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Enter code"
+                      value={nfcCode}
+                      maxLength="4"
+                      onChange={(e) => setNfcCode(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setShowNfcModal(false);
+                      setNfcCode("");
+                      const modalInstance = window.bootstrap.Modal.getInstance(nfcModalRef.current);
+                      if (modalInstance) modalInstance.hide();
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Submit
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
