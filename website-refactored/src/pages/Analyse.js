@@ -336,6 +336,7 @@ const Analyse = () => {
       "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",
       "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",
       "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",
+      "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"
     ];
     window.summaryAPI = initializeAPI(keys);
     window.summaryAPI.registerMessageHandler((message) => {
@@ -513,12 +514,12 @@ Summary:”`;
             <div id="summary-container" className="mt-2">
               <div className={styles.summaryHeader}>
                 <h2 className={styles.heading}>Discord Notes</h2>
-                <FaRegStickyNote
-                  className={styles.notesIcon}
-                  onClick={() =>
-                    navigate(`/notes/${activeServerDisc}`)
-                  }
-                />
+                <div className={styles.iconWrapper}>
+                  <FaRegStickyNote
+                    className={styles.notesIcon}
+                    onClick={() => navigate(`/notes/${activeServerDisc}`)}
+                  />
+                </div>
               </div>
               <div
                 className={styles.summaryDisplay}

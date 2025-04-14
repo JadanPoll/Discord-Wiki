@@ -119,3 +119,19 @@
     }
   }
   
+  .iconWrapper {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .orangeDot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    background-color: orange;
+    border-radius: 50%;
+    pointer-events: none; /* don't block clicks */
+  }
+  
