@@ -1,17 +1,92 @@
-.card {
-    display: inline-block;
-    margin: 10px 5px;
-    width: 22rem;  /* fixed width for consistency */
-    height: 150px; /* set a fixed height for the card */
-    max-width: 100%;
-    position: relative;
-    overflow: visible;  /* allow the CD to show outside */
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+/* LoadDemo.module.css */
 
-    box-sizing: border-box; /* includes padding and border in width/height calculation */
-}
-
-/* Hover pop effect */
-.card:hover {
-    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-}
+/* Overall container styling inspired by the Wii U soft pastel background */
+.container {
+    background: linear-gradient(135deg, #f7f9fc, #e2efff); /* subtle blue/white gradient */
+    min-height: 100vh;
+    padding: 20px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+  }
+  
+  /* Card styling to mimic the floating, rounded UI of the Wii U launch grid */
+  .card {
+    background: rgba(255, 255, 255, 0.92); /* nearly opaque white for a clean look */
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    /* A subtle border to echo the panel outlines in the Wii U UI */
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  .card:hover {
+    transform: scale(1.04);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Card header and text styles for clarity */
+  .card-title {
+    font-size: 1.25rem;
+    color: #2b2b2b;
+    margin-bottom: 0.4rem;
+  }
+  
+  .card-subtitle {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 0.7rem;
+  }
+  
+  .card-text {
+    font-size: 0.87rem;
+    color: #444;
+    margin-bottom: 1rem;
+  }
+  
+  /* Card link styling to reflect a modern flat blue hue */
+  .card-link {
+    color: #007aff;
+    font-weight: bold;
+    text-decoration: none;
+  }
+  .card-link:hover {
+    text-decoration: underline;
+  }
+  
+  /* For the extraSlots (placeholders), we want a similar look but with an inviting plus icon */
+  .placeholderCard {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px dashed rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+  }
+  
+  /* Styling for the plus icon in the placeholder cards */
+  .placeholderCard .card-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: #aaa;
+  }
+  
+  /* Modal progress bar adjustments for a clean, modern look */
+  .modal-content {
+    border-radius: 12px;
+    border: none;
+    background: #ffffff;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
+  .modal-header, .modal-body {
+    padding: 1rem 1.5rem;
+    color: #333;
+  }
+  .progress {
+    height: 8px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 4px;
+  }
+  .progress-bar {
+    background: #007aff;
+  }
+  

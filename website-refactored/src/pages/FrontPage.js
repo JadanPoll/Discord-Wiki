@@ -46,7 +46,7 @@ const FrontPage = () => {
 
                     <p className={styles.subtitle}>Create your own personalized Wikipedia page for any Discord channel, for any topic.</p>
 
-                    <Link to="/download" className={styles.btn}>Start here</Link>
+                    <Link to="/listfiles" className={styles.btn}>Start here</Link>
                 </div>
             </div>
         </>

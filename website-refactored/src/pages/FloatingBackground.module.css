@@ -1,0 +1,43 @@
+/* FloatingBackground.module.css */
+
+/* Nintendo-inspired container with a classic blue reminiscent of Nintendo’s palette */
+.floatingContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* behind page content */
+    overflow: hidden;
+    background: #0055aa; /* a bold blue echoing retro gaming aesthetics */
+  }
+  
+  /* Adjusted animation for a more rhythmic, playful motion similar to classic game movements */
+  @keyframes float {
+    0% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(10px, -10px);
+    }
+    100% {
+      transform: translate(0, 0);
+    }
+  }
+  
+  /* Floating blobs reminiscent of classic power-ups or coins */
+  .floatingBlob {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(
+      circle at center,
+      rgba(220, 20, 60, 0.7) 0%, /* a vivid red reminiscent of Mario’s signature hue */
+      transparent 70%
+    );
+    border-radius: 50%;
+    animation: float 15s ease-in-out infinite;
+    opacity: 0.8;
+    image-rendering: pixelated; /* introduces a pixel art feel for extra retro charm */
+  }
+  

@@ -4,51 +4,49 @@ import { Helmet } from "react-helmet";
 import moment from "moment";
 import { DiscordDataManager } from "./lib/DiscordDataManger";
 import styles from "./Listfiles.module.css";
+import whitelogo from './static/logos/white-logo.png';
 
 const Listfiles = () => {
   const navigate = useNavigate();
-
-  let [dbdata, setDbdata] = useState(null)
+  let [dbdata, setDbdata] = useState(null);
   let [activefile, setActiveFile] = useState(null);
+
   useEffect(() => {
     const fetchFiles = async () => {
-      let ans = []
-
-      let discorddata = new DiscordDataManager()
-      let dblist = await discorddata.getDBServersObjList()
-      setActiveFile(await discorddata.getActiveServerDisc())
+      let ans = [];
+      let discorddata = new DiscordDataManager();
+      let dblist = await discorddata.getDBServersObjList();
+      setActiveFile(await discorddata.getActiveServerDisc());
 
       // Loop over the DB list
       for (let element of dblist) {
-        let nickname = await discorddata.getChannelNickname(element)
-        let gameDiscImageUrl = await discorddata.getServerGameDisc(element)
+        let nickname = await discorddata.getChannelNickname(element);
+        let gameDiscImageUrl = await discorddata.getServerGameDisc(element);
 
-        // Check if the gameDiscImageUrl is valid, otherwise set it to null
+        // If no gameDiscImageUrl, set to null (or a default value if preferred)
         if (!gameDiscImageUrl) {
-          gameDiscImageUrl = null;  // Or you can set a default image if preferred
+          gameDiscImageUrl = null;
         }
 
-        // Extract and format the datetime for the element
-        let epoch = element.split("_")[1] * 1 / 1000
+        // Format the datetime for the element
+        let epoch = (element.split("_")[1] * 1) / 1000;
         ans.push({
           id: element,
           nickname: nickname,
-          isActive: (element === activefile),
+          isActive: element === activefile,
           datetime: moment.unix(epoch).format("LLL"),
           imageUrl: gameDiscImageUrl
-        })
+        });
       }
 
-      // Update the state with the fetched data
-      setDbdata(ans)
-    }
+      // Update the state with fetched data
+      setDbdata(ans);
+    };
     fetchFiles();
-  });
+  }, []);
 
   const deleteFile = async (id, e) => {
-    // Prevent card click event from triggering navigation
     e.stopPropagation();
-
     const discordData = new DiscordDataManager();
 
     if (id === await discordData.getActiveServerDisc()) {
@@ -70,9 +68,7 @@ const Listfiles = () => {
       return;
     }
 
-    if (
-      !window.confirm("Again, this will remove ALL DATA. Are you really sure? THIS IS YOUR LAST CHANCE!")
-    ) {
+    if (!window.confirm("Again, this will remove ALL DATA. Are you really sure? THIS IS YOUR LAST CHANCE!")) {
       alert("Aborted.");
       return;
     }
@@ -92,36 +88,45 @@ const Listfiles = () => {
       <div id="content-body" className="container container-fluid">
         <h1>Files Available</h1>
         {dbdata.length === 0 ? (
-          <p>
-            No file is loaded. Get started by{" "}
-            <Link to="/download">loading a file first</Link>!
-          </p>
+          // Display a unique card with default image and install title text if no files exist.
+          <div
+            className={`${styles.card} card`}
+            style={{
+              "--cd-img": `url(./blue-logo.png)`
+            }}
+          >
+            <div className="card-body">
+              <h5 className="card-title">Load Demo Titles</h5>
+              <p className="card-text">
+                Let's get started!\n Check out some demo titles!
+              </p>
+              <Link to="/loaddemo" className="card-link">
+                Load a file
+              </Link>
+            </div>
+          </div>
         ) : (
           dbdata.map((data) => (
             <div
               key={data.id}
               className={`${styles.card} card`}
               style={{
-                "--cd-img": `url(${data.imageUrl || "path/to/default-image.webp"})`,
+                "--cd-img": `url(${data.imageUrl || "path/to/default-image.webp"})`
               }}
-            // Navigate to the ServerExperience page when the card is clicked.
-            //onClick={() => navigate(`/server-experience/${data.id}`)}
+              // Uncomment the next line if you want the card to navigate on click.
+              // onClick={() => navigate(`/server-experience/${data.id}`)}
             >
               <div className={`card-body ${data.isActive ? "shadow" : ""}`}>
                 <h5 className="card-title">{data.nickname}</h5>
-
-
-
                 <h6 className="card-subtitle mb-2 text-body-secondary">
                   ID: {data.id}
                 </h6>
                 <p className="card-text">Created at {data.datetime}</p>
-                {data.isActive && (
+                {data.isActive ? (
                   <span className="card-link">
                     <i>Active File</i>
                   </span>
-                )}
-                {!data.isActive && (
+                ) : (
                   <a
                     href="#"
                     className="card-link"
@@ -129,7 +134,7 @@ const Listfiles = () => {
                       e.stopPropagation();
                       let dm = new DiscordDataManager();
                       dm.setActiveServerDisc(data.id);
-                      navigate(0); // Reloads the page to update active file status
+                      navigate(0); // Reload page to update active file status
                     }}
                   >
                     Set as active file

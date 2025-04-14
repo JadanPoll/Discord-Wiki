@@ -2,11 +2,11 @@
     {
         "filename": "vrhardwaredev.json",
         "name": "VR Hardware-dev",
-        "description": "(Add description)"
+        "description": "Cool OpenVR Projects!"
     },
     {
         "filename": "rpishowcase.json",
         "name": "RPI Project Showcase",
-        "description": "(Add description)"
+        "description": "Everything RaspberryPi"
     }
 ]
