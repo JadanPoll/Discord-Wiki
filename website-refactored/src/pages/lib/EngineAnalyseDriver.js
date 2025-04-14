@@ -17,7 +17,7 @@ export async function engineAnalyseDriver(fileContent, filename)
         // Make a deep clone of the global glossary data.
         // Deep clone (in case you plan to manipulate it)
         let glossary = JSON.parse(JSON.stringify(dictionaryGlossaryTopicAnd__itsArrayConversationGroups));
-        console.log("Glossary Map:", glossary);
+
 
         // Converts a Uint32Array bit vector into an array of message IDs
         function bitVectorToMessageIDs(bitVec) {
@@ -52,7 +52,7 @@ export async function engineAnalyseDriver(fileContent, filename)
         }
 
         //let conversation_block = conversationBlocks;
-        console.log("Check this one",glossaryMessageIDs)
+
         const { independentGroups, hierarchicalRelationships } = await calculateDisplayGlossary()
 
         // DONE.

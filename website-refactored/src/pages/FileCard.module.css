@@ -1,0 +1,72 @@
+/* FileCard.module.css */
+
+/* Card layout for each file card */
+.card {
+    display: inline-block;
+    margin: 10px 5px;
+    width: 22rem;  /* fixed width for consistency */
+    height: 200px; /* fixed height for the card */
+    max-width: 100%;
+    position: relative;
+    overflow: visible;  /* allow the “CD” (before element) to be visible */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box; /* include padding and border in width/height */
+  }
+  
+  /* The “CD” behind the card */
+  .card::before {
+    content: "";
+    position: absolute;
+    top: -40px; /* adjust vertical offset */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px; /* CD diameter */
+    height: 120px;
+    border-radius: 50%;
+    background-image: var(--cd-img);
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: -1; /* behind the card */
+  }
+  
+  /* Hover pop effect */
+  .card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Styles specific to NFC interactions on the card */
+  .nfc-card {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* NFC label: initially hidden */
+  .nfc-label {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    font-size: 0.85rem;
+    background-color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out, color 0.2s ease;
+  }
+  
+  /* On hovering the card, show the NFC label in low opacity when inactive */
+  .card:hover .nfc-label:not(.active) {
+    opacity: 0.4;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  
+  /* When the NFC label is active, show it fully with green text */
+  .nfc-label.active {
+    opacity: 1;
+    color: green;
+    font-weight: bold;
+    pointer-events: auto;
+  }
+  

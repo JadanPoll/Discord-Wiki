@@ -1,72 +1,101 @@
 .card {
-    display: inline-block;
-    margin: 10px 5px;
-    width: 22rem;  /* fixed width for consistency */
-    height: 200px; /* set a fixed height for the card */
-    max-width: 100%;
-    position: relative;
-    overflow: visible;  /* allow the CD to show outside */
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-    box-sizing: border-box; /* includes padding and border in width/height calculation */
+  display: inline-block;
+  margin: 10px 5px;
+  width: 22rem;  /* fixed width for consistency */
+  height: 200px; /* set a fixed height for the card */
+  max-width: 100%;
+  position: relative;
+  overflow: visible;  /* allow the CD to show outside */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box; /* includes padding and border in width/height calculation */
 }
 
 /* The “CD” behind the card */
 .card::before {
-    content: "";
-    position: absolute;
-    top: -40px; /* adjust vertical offset */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 120px; /* CD diameter */
-    height: 120px;
-    border-radius: 50%;
-    background-image: var(--cd-img);
-    background-size: cover;
-    background-position: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    z-index: -1;  /* behind the card */
+  content: "";
+  position: absolute;
+  top: -40px; /* adjust vertical offset */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px; /* CD diameter */
+  height: 120px;
+  border-radius: 50%;
+  background-image: var(--cd-img);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: -1;  /* behind the card */
 }
 
 /* Hover pop effect */
 .card:hover {
-    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}
+
+.previewIconContainer {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translate(20px, -50%);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.card:hover .previewIconContainer {
+  opacity: 1;
+  transform: translate(0, -50%);
+  pointer-events: auto;
+}
+
+.previewIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #35c97f;
+  color: white;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
+  text-decoration: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.previewIcon:hover {
+  transform: scale(1.1);
+}
+
+.nfc-card {
+  position: relative;
+  overflow: hidden;
 }
 
 
+.nfc-label {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  pointer-events: none;
+  
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
 
-.previewIconContainer {
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    transform: translate(20px, -50%);
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    pointer-events: none;
-  }
-  
-  .card:hover .previewIconContainer {
-    opacity: 1;
-    transform: translate(0, -50%);
-    pointer-events: auto;
-  }
-  
-  .previewIcon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #35c97f; /* Bootstrap blue */
-    color: white;
-    border-radius: 50%;
-    width: 48px;
-    height: 48px;
-    font-size: 1.2rem;
-    text-decoration: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease;
-  }
-  
-  .previewIcon:hover {
-    transform: scale(1.1);
-  }
-  
+.card:hover .nfc-label {
+  opacity: 0.4;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.nfc-label.active {
+  opacity: 1;
+  color: green;
+  font-weight: bold;
+  pointer-events: auto;
+}

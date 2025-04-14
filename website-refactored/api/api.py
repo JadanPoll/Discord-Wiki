@@ -111,85 +111,40 @@ def cors_bypass(target_url):
 # ----------------------------
 # NFC Communication Endpoints
 # ----------------------------
-
-@app.route('/nfc-communication-add', methods=['POST'])
-def nfc_add():
-    """
-    Add NFC communication data.
-    Expected JSON body:
-    {
-        "title": "LocalStorageTitleOrIdentifier"
-    }
-    The server creates a unique 5-digit code and associates it with the requesting device.
-    """
-    req_data = request.get_json()
-    if not req_data or "title" not in req_data:
-        return jsonify({"error": "Missing 'title' in request data"}), 400
-
-    title = req_data["title"]
+@socketio.on('add_nfc_code')
+def handle_add_nfc_code(data):
+    title = data.get("title")
+    device_id = request.sid  # Use session/socket ID
     code = generate_nfc_code()
-    device_id = get_device_id()
     nfc_data[code] = {
         "title": title,
         "device_id": device_id,
         "added_at": datetime.datetime.utcnow().isoformat(),
         "notified": False
     }
-    print(f"Device {device_id}: NFC code added: {code} for title '{title}'")
-    return jsonify({"code": code}), 200
+    emit('nfc_code_created', {"code": code}, room=device_id)
 
-@app.route('/nfc-communication-request', methods=['POST'])
-def nfc_request():
-    """
-    Request NFC communication.
-    Expected JSON body:
-    {
-        "code": "12345"
-    }
-    This endpoint is global. If the provided code exists, the associated data is returned and
-    a SocketIO notification is sent to the device that originally added the NFC code.
-    """
-    req_data = request.get_json()
-    if not req_data or "code" not in req_data:
-        return jsonify({"error": "Missing 'code' in request data"}), 400
-
-    code = req_data["code"]
+@socketio.on('request_nfc_code')
+def handle_request_nfc_code(data):
+    code = data.get("code")
     if code in nfc_data:
-        data = nfc_data[code]
-        # Mark as notified and notify the original device via SocketIO
+        target_id = nfc_data[code]["device_id"]
+        emit('nfc_code_matched', {
+            "title": nfc_data[code]["title"],
+            "code": code
+        }, room=target_id)
         nfc_data[code]["notified"] = True
-        original_device = data["device_id"]
-        notification_payload = {
-            "code": code,
-            "title": data["title"],
-            "added_at": data["added_at"]
-        }
-        print(f"NFC request: Notifying device {original_device} for code: {code}")
-        socketio.emit("nfc_notification", notification_payload, room=original_device)
-        return jsonify({
-            "notification": "nfc-communication-notify",
-            "title": data["title"],
-            "added_at": data["added_at"]
-        }), 200
+        emit('nfc_response', {
+            "title": nfc_data[code]["title"],
+            "added_at": nfc_data[code]["added_at"]
+        })
     else:
-        print(f"NFC request: Code not found: {code}")
-        return jsonify({"error": "Code not found"}), 404
+        emit('nfc_error', {"error": "Code not found"})
 
-@app.route('/nfc-communication-clear', methods=['POST'])
-def nfc_clear():
-    """
-    Clear all NFC communication codes for the current device.
-    Only codes created by this device (as determined by session device_id) will be cleared.
-    """
-    device_id = get_device_id()
-    cleared_codes = [code for code, data in nfc_data.items() if data.get("device_id") == device_id]
-    for code in cleared_codes:
+@socketio.on('clear_nfc_codes')
+def handle_clear_nfc_codes():
+    device_id = request.sid
+    codes_to_clear = [code for code, data in nfc_data.items() if data['device_id'] == device_id]
+    for code in codes_to_clear:
         del nfc_data[code]
-    print(f"Device {device_id}: Cleared codes: {cleared_codes}")
-    return jsonify({"status": "cleared", "cleared_codes": cleared_codes}), 200
-
-# ----------------------------
-# Run the Flask app with SocketIO
-# ----------------------------
-if __name__ == '__main__':
-    socketio.run(app, port=PORT)
+    emit('nfc_cleared', {"cleared_codes": codes_to_clear})
