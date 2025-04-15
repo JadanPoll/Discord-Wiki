@@ -92,22 +92,27 @@
     max-height: calc(100vh - (100vw / 1.5));
   }
 }
-@media (max-width: 768px)
+@media (min-width: 501px) and (max-width: 768px)
 {
-  /* Adjust the treeview container */
   .treeviewContainer {
-    width: 100%;       /* As per your working code */
-    min-width: unset; /* Remove the minimum width restriction */
-    padding: 10px;    /* Reduce padding to save space */
-    border-bottom: 2px solid #ddd; /* Optional: switch right border to bottom */
+    min-width:  calc(100vw - (100vh / 1));
+    padding: 20px;
+    border-right: 2px solid #ddd;
+    background-color: #fff;
+    height: 100%;
     overflow-y: auto;
-    width: calc(100vw - (100vh / 0.90));
+    overflow-x: auto;     /* Allow horizontal scrolling */
+    white-space: nowrap;  /* Prevent text from wrapping */
+    box-sizing: border-box; /* Ensure padding is included in width calculation */
   }
+  
+  
+  
   /* Ensure the content display areas expand to full width */
   .contentContainer {
-    max-width: 100%; /* Prevent them from overflowing the container */
+
     overflow-y: auto; /* Let content flow naturally */
-    max-width: calc(100vw - (100vh / 2.0));
+    max-width: calc(100vw - (100vh / 3));
   }
 }
 .dmessage-tooltip {
