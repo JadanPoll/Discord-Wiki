@@ -142,7 +142,7 @@ const LoadDemo = () => {
       const nickname = `NFC: ${response.nickname}`;
       await dataManager.setChannelNickname(dbFilename, nickname);
       await dataManager.setGlossary(dbFilename, response.glossary);
-      await dataManager.setRelationships(dbFilename, response.summary);
+      await dataManager.setRelationships(dbFilename, response.relationships);
       await dataManager.setConversationBlocks(dbFilename, response.conversation_blocks);
       await dataManager.setSummary(dbFilename, response.summary);
     
