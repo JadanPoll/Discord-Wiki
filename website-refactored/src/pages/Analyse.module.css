@@ -104,8 +104,7 @@
     width: calc(100vw - (100vh / 0.90));
   }
   /* Ensure the content display areas expand to full width */
-  .contentDisplay,
-  .summaryDisplay {
+  .contentContainer {
     max-width: 100%; /* Prevent them from overflowing the container */
     overflow-y: auto; /* Let content flow naturally */
     max-width: calc(100vw - (100vh / 2.0));
