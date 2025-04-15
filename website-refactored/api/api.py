@@ -10,6 +10,11 @@ import requests
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
+
+# For dev in gunicorn
+import sys
+sys.stdout.flush()
+
 # Print startup info
 print("Run Nwebsite on http://127.0.0.1:3000")
 
