@@ -51,8 +51,7 @@ const FileCard = ({ data, deleteFile, navigate }) => {
 					relationships,
 					summary,
 					conversation_blocks: convBlocks,
-					glossary,
-					imageUrl
+					glossary
 				});
 			} catch (error) {
 				console.error(`Error processing NFC code match for ${id}:`, error);
