@@ -79,7 +79,7 @@ const FrontPageWithData = () => {
                             {suggestions.map((keyword) => {
                                 return <>
                                     <li className={"list-group-item " + styles.suggestable} onClick={() => {
-                                        navigate(`/analyse?keyword=${keyword}`);
+                                        navigate(`/explore?keyword=${keyword}`);
                                     }}>
                                         {keyword}
                                     </li>
@@ -88,7 +88,7 @@ const FrontPageWithData = () => {
                         </ul>
                     </form>
                     <div class="mt-2">
-                        <Link to="/download" className={styles.link}>Add another file</Link> | <Link to="/listfiles" className={styles.link}>Manage files</Link> | <a href="#" className={styles.link}>I'm bored</a>
+                        <Link to="/download" className={styles.link}>Add another file</Link> | <Link to="/titles" className={styles.link}>Manage files</Link> | <a href="#" className={styles.link}>I'm bored</a>
                     </div>
                 </div>
             </div>

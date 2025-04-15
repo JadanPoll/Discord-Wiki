@@ -233,10 +233,10 @@ const Listfiles = () => {
 	return (
 		<>
 		<Helmet>
-		<title>Files Available</title>
+		<title>Titles</title>
 		</Helmet>
 		<div id="content-body" className="container container-fluid">
-		<h1>Files Available</h1>
+		<h1>Titles</h1>
 		{dbdata.length === 0 ? (
 			// When no files exist, display a unique card using the default image.
 			<div
@@ -250,7 +250,7 @@ const Listfiles = () => {
 			<p className="card-text">
 			Let's get started! Check out some demo titles!
 			</p>
-			<Link to="/loaddemo" className="card-link">
+			<Link to="/xmenu" className="card-link">
 			Load a file
 			</Link>
 			</div>
@@ -265,9 +265,9 @@ const Listfiles = () => {
 				navigate={navigate}
 				/>
 			))}
-			{/* Extra card with a unique image that links to /loaddemo */}
+			{/* Extra card with a unique image that links to /xmenu */}
 			<div className={`${styles.card} card`}>
-			<Link to="/loaddemo">
+			<Link to="/xmenu">
 			<div
 			className="card-img-top"
 			style={{

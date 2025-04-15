@@ -39,10 +39,10 @@ const Layout = () => {
                                 <span className="nav-link disabled" aria-disabled="true">{channelname}</span>
                             </li>
                             {channelname !== "" && <li className="nav-item">
-                                <Link className="nav-link" to="/analyse" style={{ color: 'gold' }}>Explore</Link>
+                                <Link className="nav-link" to="/explore" style={{ color: 'gold' }}>Explore</Link>
                             </li>}
                             <li className="nav-item">
-                                <Link className="nav-link" to="/listfiles">Manage titles</Link>
+                                <Link className="nav-link" to="/titles">Manage titles</Link>
                             </li>
                             <li className="nav-item">
                                 <Link className="nav-link" to="/download">Add title</Link>
