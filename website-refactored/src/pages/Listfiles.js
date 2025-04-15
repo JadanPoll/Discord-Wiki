@@ -43,7 +43,7 @@ const FileCard = ({ data, deleteFile, navigate }) => {
 				const convBlocks = await discordDatamgr.getConversationBlocks(id);
 				const glossary = await discordDatamgr.getGlossary(id);
 
-				socket.emit(`nfc_share_dserver_to_requesting_device:${id}`, {
+				socket.emit(`nfc_share_dserver_to_requesting_device`, {
 					requesting_device: response.requesting_device,
 					nfc_code: response.nfc_code,
 					id,
