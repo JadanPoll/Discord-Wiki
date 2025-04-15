@@ -87,7 +87,7 @@
   font-size: 0.85rem;
 }
 
-.card:hover .nfc-label {
+.card:hover .nfc-label:not(.active) {
   opacity: 0.4;
   pointer-events: auto;
   cursor: pointer;
@@ -98,4 +98,5 @@
   color: green;
   font-weight: bold;
   pointer-events: auto;
+  cursor: pointer
 }

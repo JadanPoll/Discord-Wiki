@@ -7,3 +7,4 @@ flask_sqlalchemy
 requests-oauthlib
 python-dotenv
 flask-socketio
+eventlet

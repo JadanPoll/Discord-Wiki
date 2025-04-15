@@ -12,6 +12,9 @@ import {
 import styles from "./LoadDemo.module.css";
 import FloatingBackground from "./FloatingBackground.js";
 import moment from "moment";
+import io from "socket.io-client";
+
+const socket = io(`${location.hostname || 'localhost'}:5000`);
 
 const LoadDemo = () => {
   const navigate = useNavigate();
@@ -108,25 +111,54 @@ const LoadDemo = () => {
     nfcModal.show();
   };
 
-  const handleNfcSubmit = async (event) => {
-    event.preventDefault();
-    // Example: check if the entered NFC code is "1234"
-    if (nfcCode === "1234") {
-      try {
-        const response = await fetch("/nfc-communication-request");
-        if (!response.ok) throw new Error("Failed to install NFC information");
-        alert("NFC communication installed successfully!");
-      } catch (error) {
-        alert(error.message);
-      }
-    } else {
-      alert("Invalid 4-digit code.");
-    }
-    // Close the NFC modal and reset the input
+
+
+  useEffect(() =>
+  {
+  console.log("Run x times")
+  socket.on("nfc_host_is_sharing_requested_data", (response) => {
+    console.log("Run only once")
+    alert("NFC communication installed successfully!");
+    console.log(response)
     setShowNfcModal(false);
     setNfcCode("");
     const nfcModalInstance = window.bootstrap.Modal.getInstance(nfcModalRef.current);
     if (nfcModalInstance) nfcModalInstance.hide();
+
+    const dataManager = new DiscordDataManager();
+    (async () => {
+      
+      const dbFilename = `NFC-${response.id}`;
+
+      const dbList = await dataManager.getDBServersObjList();
+      if (dbList.includes(dbFilename))
+      {
+        alert("NFC Game Already exists")
+        return
+      }
+
+      const nickname = `NFC: ${response.nickname}`;
+      await dataManager.setChannelNickname(dbFilename, nickname);
+      await dataManager.setGlossary(dbFilename, response.glossary);
+      await dataManager.setRelationships(dbFilename, response.summary);
+      await dataManager.setConversationBlocks(dbFilename, response.conversation_blocks);
+      await dataManager.setSummary(dbFilename, response.summary);
+    
+      //So it knows about it for display
+      dbList.push(dbFilename);
+      await dataManager.setDBServersObjList(dbList);
+
+    })();
+  });
+
+  socket.on("nfc_request_dserver_from_host_device.error", (error) => {
+    alert(error.error);
+    setNfcCode("");
+  });
+  },[])
+  const handleNfcSubmit = async (event) => {
+    event.preventDefault();
+    socket.emit("nfc_request_dserver_from_host_device", { nfc_code: nfcCode });
   };
 
   // Render a loading state if the catalogue is not yet fetched
@@ -195,7 +227,10 @@ const LoadDemo = () => {
                       style={{ cursor: "pointer", textDecoration: "none" }}
                       onClick={openNfcModal}
                     >
-                      <div className="card-body d-flex align-items-center justify-content-center" style={{ fontSize: "2rem", color: "#aaa" }}>
+                      <div
+                        className="card-body d-flex align-items-center justify-content-center"
+                        style={{ fontSize: "2rem", color: "#aaa" }}
+                      >
                         NFC
                       </div>
                     </div>
@@ -206,8 +241,14 @@ const LoadDemo = () => {
               return (
                 <div key={`placeholder-${idx}`} className="col-sm-12 col-md-4 mb-4">
                   <Link to="/download">
-                    <div className={`${styles.card} card ${styles.placeholderCard} h-100`} style={{ cursor: "pointer", textDecoration: "none" }}>
-                      <div className="card-body d-flex align-items-center justify-content-center" style={{ fontSize: "2rem", color: "#aaa" }}>
+                    <div
+                      className={`${styles.card} card ${styles.placeholderCard} h-100`}
+                      style={{ cursor: "pointer", textDecoration: "none" }}
+                    >
+                      <div
+                        className="card-body d-flex align-items-center justify-content-center"
+                        style={{ fontSize: "2rem", color: "#aaa" }}
+                      >
                         +
                       </div>
                     </div>
