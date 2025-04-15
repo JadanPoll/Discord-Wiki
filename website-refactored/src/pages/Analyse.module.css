@@ -1,48 +1,97 @@
-.contentbody
-{
-    display: flex;
-    margin: 0 auto;
-}
-.main {
-    display: flex;
-    justify-content: space-between;
-    flex-grow: 1;
-}
-.treeviewContainer {
-    min-width: 250px;
-    width: 320px;
-    padding: 20px;
-    border-right: 2px solid #ddd;
-    background-color: #fff;
-    height: 100%;
-    overflow-y: auto;
-  }
-  
-  
-.contentContainer {
-    width: 100%;
-    padding: 20px;
-    background-color: #fff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    height: calc(100vh - 120px); /* Set the height of content container */
-    overflow-y: auto; /* Enables vertical scrolling */
-}
-.heading {
-    color: #333;
-}
-.contentDisplay, .summaryDisplay {
-    margin-top: 20px;
-    padding: 10px;
-    border: 1px solid #ddd;
-    background-color: #fafafa;
-    max-height: 400px; /* Optional: limit height for scrolling */
-    overflow-y: auto; /* Enables vertical scrolling */
+.contentbody {
+  display: flex;
+  margin: 0 auto;
 }
 
+/* Main container to hold the treeview and content container */
+.main {
+  display: flex;
+  justify-content: space-between;
+  flex-grow: 1;
+}
+
+/* Side panel */
+.treeviewContainer {
+  min-width: 250px;
+  width: 320px;
+  padding: 20px;
+  border-right: 2px solid #ddd;
+  background-color: #fff;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Content area styling */
+.contentContainer {
+  width: 100%;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  height: calc(100vh - 120px); /* Set the height of content container */
+  overflow-y: auto; /* Enables vertical scrolling */
+}
+
+/* Other elements */
+.heading {
+  color: #333;
+}
+
+.contentDisplay, .summaryDisplay {
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  background-color: #fafafa;
+  max-height: 400px; /* Optional: limit height for scrolling */
+  overflow-y: auto; /* Enables vertical scrolling */
+}
+
+/* For extra large screens, center the content area */
 @media (min-width: 1200px) {
-    .contentbody{
-        max-width: 1400px;
-    }
+  .contentbody {
+    max-width: 1400px;
+  }
+}
+
+/* Responsive adjustments for devices smaller than 768px */
+@media (max-width: 768px) {
+  /* Adjust the treeview container */
+  .treeviewContainer {
+    width: 70%;       /* As per your working code */
+    min-width: unset; /* Remove the minimum width restriction */
+    padding: 10px;    /* Reduce padding to save space */
+    border-bottom: 2px solid #ddd; /* Optional: switch right border to bottom */
+    overflow-y: auto;
+    height: calc(100vh - (100vw / 1.5));
+  }
+
+  /* Stack elements vertically instead of horizontally */
+  .contentbody {
+    flex-direction: column;
+    margin: 0 10px;  /* Optional margin adjustments for small screens */
+  }
+  
+  /* Update the main container for vertical stacking */
+  .main {
+    flex-direction: column;
+  }
+  
+  /* Make the content container take full width and adjust padding */
+  .contentContainer {
+    width: 100%;
+    padding: 15px;  /* Adjust this value as needed */
+    height: auto;   /* Let it grow based on content */
+    box-shadow: none; /* Optionally remove the box shadow for simplicity */
+    overflow-y: visible; /* Allow natural scrolling if needed */
+  }
+
+  /* Ensure the content display areas expand to full width */
+  .contentDisplay,
+  .summaryDisplay {
+    max-width: 100%; /* Prevent them from overflowing the container */
+    max-height: none; /* Remove height limits on small screens */
+    overflow-y: auto; /* Let content flow naturally */
+    height: calc(100vh - (100vw / 1.5));
+  }
 }
 
 .dmessage-tooltip {
