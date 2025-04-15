@@ -11,6 +11,7 @@ import io from 'socket.io-client';
 const socket = io(`${location.hostname || 'localhost'}:5000`);
 
 
+
 const FileCard = ({ data, deleteFile, navigate }) => {
 	const [nfcActive, setNfcActive] = useState(false);
 	const [nfcCode, setNfcCode] = useState(null);
