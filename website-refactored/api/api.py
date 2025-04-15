@@ -22,7 +22,7 @@ print("Run Nwebsite on http://127.0.0.1:3000")
 app = Flask(__name__, static_folder="demo")
 app.secret_key = "DSearchPokémon"  # Replace with a secure value in production
 CORS(app)
-socketio = SocketIO(app, async_mode="event_let",cors_allowed_origins="*")  # enable cross-origin for SocketIO
+socketio = SocketIO(app, async_mode="eventlet",cors_allowed_origins="*")  # enable cross-origin for SocketIO
 
 # Configuration variables
 GIT_SCRIPT = "../../git.sh"  # Adjust path as necessary
