@@ -195,11 +195,47 @@ export class DiscordDataManager {
     return await set(entry, summaryData);
   }
 
+  async setAllSummariesForChannel(channel, summaries) {
+    try {
+      const summaryEntries = Object.entries(summaries);
+      for (const [topic, summaryData] of summaryEntries) {
+        const key = `summary/${channel}/${topic}`;
+        await set(key, summaryData);
+      }
+    } catch (error) {
+      console.error("Error setting all summaries for channel:", error);
+    }
+  }
   async getSummary(channel, topic) {
     const entry = `summary/${channel}/${topic}`;
     return await get(entry);
   }
 
+
+  async getAllSummariesForChannel(channel) {
+    try {
+      // Retrieve all keys from IndexedDB using idb-keyval
+      const allKeys = await keys();
+      // Filter to get only keys for summaries for this channel:
+      const summaryPrefix = `summary/${channel}/`;
+      const summaryKeys = allKeys.filter(
+        (key) => typeof key === "string" && key.startsWith(summaryPrefix)
+      );
+  
+      // Retrieve summary data for each key
+      const summaries = {};
+      for (const key of summaryKeys) {
+        // Key structure: "summary/<channel>/<topic>"
+        const parts = key.split("/");
+        const topic = parts[2];
+        summaries[topic] = await get(key);
+      }
+      return summaries;
+    } catch (error) {
+      console.error("Error retrieving summaries for channel:", error);
+      return {};
+    }
+  }
   async removeChannel(channel) {
     try {
       const dblist = await this.getDBServersObjList();

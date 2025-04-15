@@ -39,7 +39,7 @@ const FileCard = ({ data, deleteFile, navigate }) => {
 
 			try {
 				const relationships = await discordDatamgr.getRelationships(id);
-				const summary = await discordDatamgr.getSummary(id, 'someTopic');
+				const summary = await discordDatamgr.getAllSummariesForChannel(id);
 				const convBlocks = await discordDatamgr.getConversationBlocks(id);
 				const glossary = await discordDatamgr.getGlossary(id);
 

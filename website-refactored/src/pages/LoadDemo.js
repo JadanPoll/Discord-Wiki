@@ -144,7 +144,7 @@ const LoadDemo = () => {
       await dataManager.setGlossary(dbFilename, response.glossary);
       await dataManager.setRelationships(dbFilename, response.relationships);
       await dataManager.setConversationBlocks(dbFilename, response.conversation_blocks);
-      await dataManager.setSummary(dbFilename, response.summary);
+      await dataManager.setAllSummariesForChannel(dbFilename, response.summary);
     
       //So it knows about it for display
       dbList.push(dbFilename);
