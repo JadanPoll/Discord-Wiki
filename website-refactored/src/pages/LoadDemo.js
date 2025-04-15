@@ -14,7 +14,9 @@ import FloatingBackground from "./FloatingBackground.js";
 import moment from "moment";
 import io from "socket.io-client";
 
-const socket = io(`${location.hostname || 'localhost:5000'}`);
+const socket = io(location.hostname === 'localhost' || location.hostname === '' 
+  ? 'http://127.0.0.1:5000' 
+  : `http://${location.hostname}`);
 
 const LoadDemo = () => {
   const navigate = useNavigate();

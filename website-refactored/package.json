@@ -32,7 +32,7 @@
     "build": "react-scripts build",
     "serve": "serve -s build -l 3000",
     "start-api-dev": "cd api && python3 -m flask run",
-    "start-api-prod": "cd api && gunicorn -w 2 -b 0.0.0.0:5000 api:app",
+    "start-api-prod": "cd api && gunicorn -k eventlet -w 1 -b 0.0.0.0:5000 api:app",
     "start-both-dev": "concurrently \"npm run start-api-dev\" \"npm run dev\"",
     "start-both-prod": "concurrently \"npm run start-api-prod\" \"npm run serve\" "
   },

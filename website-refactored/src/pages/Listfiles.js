@@ -8,8 +8,12 @@ import io from 'socket.io-client';
 
 
 // Set up the Socket.io connection (adjust the URL if needed)
-const socket = io(`${location.hostname || 'localhost:5000'}`);
+const socket = io(location.hostname === 'localhost' || location.hostname === '' 
+	? 'http://127.0.0.1:5000' 
+	: `http://${location.hostname}`);
+  
 console.log("Should only run once")
+
 
 
 const FileCard = ({ data, deleteFile, navigate }) => {
@@ -18,149 +22,131 @@ const FileCard = ({ data, deleteFile, navigate }) => {
 	const [nfcHovered, setNfcHovered] = useState(false);
 	const discordDatamgr = new DiscordDataManager();
 
-  
 	useEffect(() => {
-	  // Listener for NFC code creation response
-	  socket.on('nfc_success_created_code_for_dserver', (response) => {
-		console.log('NFC code created event received:', response);
-		setNfcCode(response.nfc_code);
-	  });
-	  
-	  // Listener for NFC responses (if any)
-	  socket.on('nfc_all_dservers_cleared', (response) => {
-		console.log('NFC response received:', response);
-	  });
-  
-	  // Listener for NFC code matched event
-	  socket.on('nfc_request_made_for_host_dserver', async (response) => {
-		console.log('NFC data request packet received:', response);
-  
-		try {
-		  // Gather the required data from DiscordDataManager
-		  const relationships = await discordDatamgr.getRelationships(data.id);
+		const id = data.id;
 
-  
-		  // Replace 'someTopic' with the actual topic as needed
-		  const summary = await discordDatamgr.getSummary(data.id, 'someTopic');
+		const handleNfcCodeCreated = (response) => {
+			console.log(`NFC code created for ${id}:`, response);
+			setNfcCode(response.nfc_code);
+		};
 
-  
-		  const convBlocks = await discordDatamgr.getConversationBlocks(data.id);
-  
-		  const glossary = await discordDatamgr.getGlossary(data.id);
-  
-		  // Share the data to the requesting device via a custom event.
-		  // It sends back all the gathered data along with the NFC code.
-		  socket.emit('nfc_share_dserver_to_requesting_device', {
-			requesting_device: response.requesting_device,
-			nfc_code: response.nfc_code,
-			id: data.id,
-			nickname:data.nickname,
-			relationships:relationships,
-			summary:summary,
-			conversation_blocks:convBlocks,
-			glossary:glossary,
-		  });
-		} catch (error) {
-		  console.error('Error processing NFC code matched:', error);
-		}
-	  });
-  
-	  // Listener for NFC errors
-	  socket.on('nfc_error', (error) => {
-		console.error('NFC error:', error.error);
-	  });
-  
-	  return () => {
-		socket.off('nfc_code_created');
-		socket.off('nfc_response');
-		socket.off('nfc_code_matched');
-		socket.off('nfc_error');
-	  };
-	}, [data.id, discordDatamgr]);
-  
-	// Handle NFC label click: Request NFC code generation if needed
+		const handleAllCleared = (response) => {
+			console.log(`All cleared (nfc_all_dservers_cleared) for ${id}:`, response);
+		};
+
+		const handleMatched = async (response) => {
+			console.log(`NFC match for ${id}:`, response);
+
+			try {
+				const relationships = await discordDatamgr.getRelationships(id);
+				const summary = await discordDatamgr.getSummary(id, 'someTopic');
+				const convBlocks = await discordDatamgr.getConversationBlocks(id);
+				const glossary = await discordDatamgr.getGlossary(id);
+
+				socket.emit(`nfc_share_dserver_to_requesting_device:${id}`, {
+					requesting_device: response.requesting_device,
+					nfc_code: response.nfc_code,
+					id,
+					nickname: data.nickname,
+					relationships,
+					summary,
+					conversation_blocks: convBlocks,
+					glossary,
+				});
+			} catch (error) {
+				console.error(`Error processing NFC code match for ${id}:`, error);
+			}
+		};
+
+		const handleError = (error) => {
+			console.error(`NFC error for ${id}:`, error.error);
+		};
+
+		// Register all listeners with namespaced events
+		socket.on(`nfc_success_created_code_for_dserver:${id}`, handleNfcCodeCreated);
+		socket.on(`nfc_all_dservers_cleared:${id}`, handleAllCleared);
+		socket.on(`nfc_request_made_for_host_dserver:${id}`, handleMatched);
+		socket.on(`nfc_error:${id}`, handleError);
+
+		// Cleanup
+		return () => {
+			socket.off(`nfc_success_created_code_for_dserver:${id}`, handleNfcCodeCreated);
+			socket.off(`nfc_all_dservers_cleared:${id}`, handleAllCleared);
+			socket.off(`nfc_request_made_for_host_dserver:${id}`, handleMatched);
+			socket.off(`nfc_error:${id}`, handleError);
+		};
+	}, [data.id]);
+
 	const handleNfcClick = (e) => {
-	  e.stopPropagation();
-	  console.log(`NFC clicked — ID: ${data.id}`);
-  
-	  if (!nfcActive && !nfcCode) {
-		console.log("Emitting signal to generate NFC code");
-		socket.emit('nfc_create_nfc_link_to_this_dserver', { title: data.nickname });
-	  }
-	  setNfcActive((prev) => !prev);
+		e.stopPropagation();
+		console.log(`NFC clicked — ID: ${data.id}`);
+
+		if (!nfcActive && !nfcCode) {
+			console.log("Requesting NFC code for", data.id);
+			socket.emit('nfc_create_nfc_link_to_this_dserver', {
+				id: data.id,
+				title: data.nickname,
+			});
+		}
+		setNfcActive((prev) => !prev);
 	};
-  
+
 	const handleNfcMouseEnter = (e) => {
-	  e.stopPropagation();
-	  setNfcHovered(true);
-	  if (nfcActive && nfcCode) {
-		console.log(`NFC code server: ${nfcCode}`);
-		// You can also emit a verification request here if desired
-	  }
+		e.stopPropagation();
+		setNfcHovered(true);
+		if (nfcActive && nfcCode) {
+			console.log(`NFC code for ${data.id}: ${nfcCode}`);
+		}
 	};
-  
+
 	const handleNfcMouseLeave = (e) => {
-	  e.stopPropagation();
-	  setNfcHovered(false);
+		e.stopPropagation();
+		setNfcHovered(false);
 	};
-  
+
 	return (
-	  <div
-		className={`${styles.card} card nfc-card`}
-		style={{
-		  "--cd-img": `url(${data.imageUrl || "path/to/default-image.webp"})`,
-		}}
-	  >
-		<div className={`card-body ${data.isActive ? "shadow" : ""}`}>
-		  <h5 className="card-title">{data.nickname}</h5>
-		  <h6 className="card-subtitle mb-2 text-body-secondary">
-			ID: {data.id}
-		  </h6>
-		  <p className="card-text">Created at {data.datetime}</p>
-  
-		  {data.isActive ? (
-			<span className="card-link">
-			  <i>Active File</i>
-			</span>
-		  ) : (
-			<a
-			  href="#"
-			  className="card-link"
-			  onClick={(e) => {
-				e.stopPropagation();
-				discordDatamgr.setActiveServerDisc(data.id);
-				navigate(0); // Reload page to update active file status
-			  }}
-			>
-			  Set as active file
-			</a>
-		  )}
-  
-		  <a
-			href="#"
-			className="card-link"
-			onClick={(e) => {
-			  e.stopPropagation();
-			  deleteFile(data.id, e);
-			}}
-		  >
-			Delete
-		  </a>
-  
-		  {/* NFC label */}
-		  <div
-			className={`${styles["nfc-label"]} ${nfcActive ? styles.active : ""}`}
-			onClick={handleNfcClick}
-			onMouseEnter={handleNfcMouseEnter}
-			onMouseLeave={handleNfcMouseLeave}
-		  >
-			{nfcHovered && nfcCode ? `NFC: ${nfcCode}` : "NFC"}
-		  </div>
+		<div
+			className={`${styles.card} card nfc-card`}
+			style={{ "--cd-img": `url(${data.imageUrl || "path/to/default-image.webp"})` }}
+		>
+			<div className={`card-body ${data.isActive ? "shadow" : ""}`}>
+				<h5 className="card-title">{data.nickname}</h5>
+				<h6 className="card-subtitle mb-2 text-body-secondary">ID: {data.id}</h6>
+				<p className="card-text">Created at {data.datetime}</p>
+
+				{data.isActive ? (
+					<span className="card-link">
+						<i>Active File</i>
+					</span>
+				) : (
+					<a href="#" className="card-link" onClick={(e) => {
+						e.stopPropagation();
+						discordDatamgr.setActiveServerDisc(data.id);
+						navigate(0);
+					}}>
+						Set as active file
+					</a>
+				)}
+
+				<a href="#" className="card-link" onClick={(e) => {
+					e.stopPropagation();
+					deleteFile(data.id, e);
+				}}>
+					Delete
+				</a>
+
+				<div
+					className={`${styles["nfc-label"]} ${nfcActive ? styles.active : ""}`}
+					onClick={handleNfcClick}
+					onMouseEnter={handleNfcMouseEnter}
+					onMouseLeave={handleNfcMouseLeave}
+				>
+					{nfcHovered && nfcCode ? `NFC: ${nfcCode}` : "NFC"}
+				</div>
+			</div>
 		</div>
-	  </div>
 	);
-  };
-  
+};
 
 const Listfiles = () => {
 	const navigate = useNavigate();

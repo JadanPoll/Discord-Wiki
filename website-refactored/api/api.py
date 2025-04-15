@@ -22,7 +22,7 @@ print("Run Nwebsite on http://127.0.0.1:3000")
 app = Flask(__name__, static_folder="demo")
 app.secret_key = "DSearchPokémon"  # Replace with a secure value in production
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")  # enable cross-origin for SocketIO
+socketio = SocketIO(app, async_mode="event_let",cors_allowed_origins="*")  # enable cross-origin for SocketIO
 
 # Configuration variables
 GIT_SCRIPT = "../../git.sh"  # Adjust path as necessary
@@ -81,100 +81,98 @@ def handle_client_disconnect():
 # ----------------------------------------------------------------
 # NFC Session Endpoints
 # ----------------------------------------------------------------
+# ... keep imports and globals unchanged
+
 @socketio.on('nfc_create_nfc_link_to_this_dserver')
 def initiate_nfc_session(data):
-    """
-    Expects data containing a "title" (for example, a title or identifier for the NFC session).
-    Generates a new NFC code, saves the session data, and sends the generated code
-    back to the host device.
-    """
     title = data.get("title")
-    host_device = request.sid  # Use the Socket.IO session id as the host identifier.
+    dserver_id = data.get("id")  # client must send this
+    host_device = request.sid
     nfc_code = create_unique_nfc_code()
+
     nfc_sessions[nfc_code] = {
         "title": title,
         "host_device": host_device,
         "created_at": datetime.datetime.utcnow().isoformat(),
-        "notified": False
+        "notified": False,
+        "dserver_id": dserver_id
     }
-    print(f"NFC session initiated: Code {nfc_code} for device {host_device} with title '{title}'.")
-    emit('nfc_success_created_code_for_dserver', {"nfc_code": nfc_code}, room=host_device)
+
+    print(f"NFC session initiated: Code {nfc_code} for device {host_device} with title '{title}' (id: {dserver_id}).")
+    emit(f'nfc_success_created_code_for_dserver:{dserver_id}', {"nfc_code": nfc_code}, room=host_device)
 
 
 @socketio.on('nfc_request_dserver_from_host_device')
 def process_nfc_share_request(data):
-    """
-    Expects data with a "nfc_code" field.
-    When a remote device requests to share NFC data, find the corresponding session and
-    notify the host device by emitting 'nfc_session_matched' with details about the request.
-    """
     nfc_code = data.get("nfc_code")
+    dserver_id = None
+
     if nfc_code in nfc_sessions:
-        host_device = nfc_sessions[nfc_code]["host_device"]
+        session_info = nfc_sessions[nfc_code]
+        host_device = session_info["host_device"]
+        dserver_id = session_info.get("dserver_id", "unknown")
 
         if host_device == request.sid:
-            emit('nfc_request_dserver_from_host_device.error', {"error": "Requesting device is same as host device"}, room=request.sid)
+            emit(f'nfc_error:{dserver_id}', {"error": "Requesting device is same as host device"}, room=request.sid)
             return
-        
-        print(f"NFC share request received for code {nfc_code} from device {request.sid}.")
-        # Notify the host device that a share request has been received.
-        emit('nfc_request_made_for_host_dserver', {
-            "title": nfc_sessions[nfc_code]["title"],
+
+        print(f"NFC share request for code {nfc_code} from device {request.sid}.")
+        emit(f'nfc_request_made_for_host_dserver:{dserver_id}', {
+            "title": session_info["title"],
             "nfc_code": nfc_code,
             "requesting_device": request.sid
         }, room=host_device)
-        nfc_sessions[nfc_code]["notified"] = True
-        # Optionally, also send a basic confirmation response to the requesting device.
+
         emit('nfc_found_nfc_code_in_dserver_listing', {
-            "title": nfc_sessions[nfc_code]["title"],
-            "created_at": nfc_sessions[nfc_code]["created_at"]
+            "title": session_info["title"],
+            "created_at": session_info["created_at"]
         }, room=request.sid)
+
+        session_info["notified"] = True
     else:
-        print(f"Share request for unknown NFC code {nfc_code} received from device {request.sid}.")
+        print(f"Unknown NFC code {nfc_code} from device {request.sid}.")
         emit('nfc_request_dserver_from_host_device.error', {"error": "NFC code not found"}, room=request.sid)
 
 
 @socketio.on('nfc_share_dserver_to_requesting_device')
 def share_nfc_session_data(data):
-    """
-    Expects data with:
-      - "nfc_code": The NFC code identifying the session.
-      - "requesting_device": The Socket.IO ID of the device which originally requested the session.
-      - Additional fields: "relationships", "summary", "conversation_blocks", "glossary".
-      
-    Forwards the shared data from the host to the requesting device.
-    """
     nfc_code = data.get("nfc_code")
+    dserver_id = data.get("id")  # required for namespacing
+
     if nfc_code in nfc_sessions:
         requesting_device = data.get("requesting_device")
         payload = {
-            "id" : data.get("id"),
+            "id": dserver_id,
             "nickname": data.get("nickname"),
             "relationships": data.get("relationships"),
             "summary": data.get("summary"),
             "conversation_blocks": data.get("conversation_blocks"),
             "glossary": data.get("glossary")
         }
-        print(f"Forwarding NFC session data for code {nfc_code} to requesting device {requesting_device}.")
+
+        print(f"Sharing NFC session {nfc_code} with requesting device {requesting_device} for id {dserver_id}.")
         emit('nfc_host_is_sharing_requested_data', payload, room=requesting_device)
         nfc_sessions[nfc_code]["notified"] = True
     else:
-        print(f"Attempted to share data for unknown NFC code {nfc_code} by device {request.sid}.")
-        emit('nfc_error', {"error": f"NFC code not found for sharing data {nfc_code} {nfc_sessions}"}, room=request.sid)
+        print(f"Invalid NFC code {nfc_code} when sharing from host {request.sid}.")
+        emit(f'nfc_error:{dserver_id}', {"error": f"NFC code not found for sharing: {nfc_code}"}, room=request.sid)
 
 
 @socketio.on('nfc_clear_all_dservers_nfcs')
 def clear_nfc_sessions():
-    """
-    Clears all NFC sessions associated with the current device.
-    This can be used when a device disconnects or wants to reset its NFC sessions.
-    """
     current_device = request.sid
-    codes_to_remove = [code for code, session_info in nfc_sessions.items() if session_info["host_device"] == current_device]
+    codes_to_remove = [
+        code for code, session_info in nfc_sessions.items()
+        if session_info["host_device"] == current_device
+    ]
+    ids_cleared = [nfc_sessions[code]["dserver_id"] for code in codes_to_remove if "dserver_id" in nfc_sessions[code]]
+
     for code in codes_to_remove:
         del nfc_sessions[code]
+
     print(f"Cleared NFC sessions for device {current_device}: {codes_to_remove}")
-    emit('nfc_all_dservers_cleared', {"cleared_nfc_codes": codes_to_remove}, room=current_device)
+    for dserver_id in ids_cleared:
+        emit(f'nfc_all_dservers_cleared:{dserver_id}', {"cleared_nfc_codes": codes_to_remove}, room=current_device)
 
 
 
