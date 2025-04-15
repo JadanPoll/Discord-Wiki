@@ -88,9 +88,8 @@
   .contentDisplay,
   .summaryDisplay {
     max-width: 100%; /* Prevent them from overflowing the container */
-    max-height: none; /* Remove height limits on small screens */
     overflow-y: auto; /* Let content flow naturally */
-    height: calc(100vh - (100vw / 1.5));
+    max-height: calc(100vh - (100vw / 1.5));
   }
 }
 
