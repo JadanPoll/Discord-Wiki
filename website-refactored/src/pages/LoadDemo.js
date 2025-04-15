@@ -208,7 +208,7 @@ const LoadDemo = () => {
                   <h5 className="card-title">{file.name}</h5>
                   <p className="card-text">{file.description}</p>
                   <a href="#" className="card-link" onClick={() => handleDownload(file.filename)}>
-                    Download
+                    Load Title
                   </a>
                 </div>
               </div>
