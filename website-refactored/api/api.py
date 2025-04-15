@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
 # Print startup info
-print("Run website on http://127.0.0.1:3000")
+print("Run Nwebsite on http://127.0.0.1:3000")
 
 # Initialize Flask app with SocketIO
 app = Flask(__name__, static_folder="demo")
