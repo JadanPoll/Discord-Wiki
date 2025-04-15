@@ -8,7 +8,7 @@ import io from 'socket.io-client';
 
 
 // Set up the Socket.io connection (adjust the URL if needed)
-const socket = io(`${location.hostname || 'localhost'}:5000`);
+const socket = io(`${location.hostname || 'localhost:5000'}`);
 
 
 
