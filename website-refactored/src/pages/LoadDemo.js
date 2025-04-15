@@ -145,7 +145,9 @@ const LoadDemo = () => {
       await dataManager.setRelationships(dbFilename, response.relationships);
       await dataManager.setConversationBlocks(dbFilename, response.conversation_blocks);
       await dataManager.setAllSummariesForChannel(dbFilename, response.summary);
-    
+      await dataManager.setServerGameDisc(dbFilename,response.imageUrl);
+      await dataManager.setActiveServerDisc(dbFilename)
+
       //So it knows about it for display
       dbList.push(dbFilename);
       await dataManager.setDBServersObjList(dbList);

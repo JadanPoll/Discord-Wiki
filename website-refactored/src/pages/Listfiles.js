@@ -42,16 +42,17 @@ const FileCard = ({ data, deleteFile, navigate }) => {
 				const summary = await discordDatamgr.getAllSummariesForChannel(id);
 				const convBlocks = await discordDatamgr.getConversationBlocks(id);
 				const glossary = await discordDatamgr.getGlossary(id);
-
 				socket.emit(`nfc_share_dserver_to_requesting_device`, {
 					requesting_device: response.requesting_device,
 					nfc_code: response.nfc_code,
 					id,
 					nickname: data.nickname,
+					imageUrl: data.imageUrl,
 					relationships,
 					summary,
 					conversation_blocks: convBlocks,
 					glossary,
+					imageUrl
 				});
 			} catch (error) {
 				console.error(`Error processing NFC code match for ${id}:`, error);

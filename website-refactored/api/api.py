@@ -144,6 +144,7 @@ def share_nfc_session_data(data):
         requesting_device = data.get("requesting_device")
         payload = {
             "id": dserver_id,
+            "imageUrl": data.get("imageUrl"),
             "nickname": data.get("nickname"),
             "relationships": data.get("relationships"),
             "summary": data.get("summary"),
