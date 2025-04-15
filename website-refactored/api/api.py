@@ -250,3 +250,4 @@ def test_endpoint():
 @app.route('/')
 def home():
     return jsonify({"status": "ok", "message": "Debug root route working"}), 200
+
