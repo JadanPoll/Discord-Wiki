@@ -9,7 +9,7 @@ import io from 'socket.io-client';
 
 // Set up the Socket.io connection (adjust the URL if needed)
 const socket = io(`${location.hostname || 'localhost:5000'}`);
-
+console.log("Should only run once")
 
 
 const FileCard = ({ data, deleteFile, navigate }) => {
@@ -25,7 +25,7 @@ const FileCard = ({ data, deleteFile, navigate }) => {
 		console.log('NFC code created event received:', response);
 		setNfcCode(response.nfc_code);
 	  });
-  
+	  
 	  // Listener for NFC responses (if any)
 	  socket.on('nfc_all_dservers_cleared', (response) => {
 		console.log('NFC response received:', response);
