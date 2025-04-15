@@ -298,17 +298,30 @@ const Analyse = () => {
       // Build treeview data structure from hierarchicalRelationships
       const hierarchicalRelationships  = relationshipsData;
       
-      // Recursive helper to build nested tree nodes.
+      // Recursive helper to build nested tree nodes,
+      // and sort children such that nodes with children come first.
       const buildNode = (topicName) => {
         const rel = hierarchicalRelationships[topicName];
         // Create the basic node.
         const node = { id: topicName, name: topicName };
-        // Recursively add children if they exist.
+
         if (rel.children && rel.children.length > 0) {
-          node.children = rel.children.map(childName => buildNode(childName));
+          // Build the children recursively.
+          let children = rel.children.map(childName => buildNode(childName));
+          // Sort: nodes with children come before leaves.
+          children.sort((a, b) => {
+            const aHasChildren = a.children && a.children.length > 0;
+            const bHasChildren = b.children && b.children.length > 0;
+            if (aHasChildren && !bHasChildren) return -1;
+            if (!aHasChildren && bHasChildren) return 1;
+            // If both are similar in having children (or not), sort alphabetically.
+            return a.name.localeCompare(b.name);
+          });
+          node.children = children;
         }
         return node;
       };
+
   
       // Build treeData: All topics with no parent become tree roots.
       const treeData = [];
