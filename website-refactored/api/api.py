@@ -136,7 +136,7 @@ def process_nfc_share_request(data):
         session_info["notified"] = True
     else:
         print(f"Unknown NFC code {nfc_code} from device {request.sid}.")
-        emit('nfc_request_dserver_from_host_device.error', {"error": "NFC code not found"}, room=request.sid)
+        emit('nfc_request_dserver_from_host_device.error', {"error": f"NFC code not found. Searching for {nfc_code} from {nfc_sessions}"}, room=request.sid)
 
 
 @socketio.on('nfc_share_dserver_to_requesting_device')
