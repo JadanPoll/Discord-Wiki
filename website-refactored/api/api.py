@@ -23,8 +23,12 @@ app = Flask(__name__)
 app.secret_key = "DSearchPokémon"  # Replace with a secure value in production
 CORS(app)
 
-socketio = SocketIO(app, async_mode="eventlet",cors_allowed_origins="*")  # enable cross-origin for SocketIO
-
+if os.environ.get("FLASK_ENV") == "development":
+    # Development configuration
+    socketio = SocketIO(app, cors_allowed_origins="*")
+else:
+    # Production configuration
+    socketio = SocketIO(app, async_mode="eventlet", cors_allowed_origins="*")
 # Configuration variables
 GIT_SCRIPT = "../../git.sh"  # Adjust path as necessary
 PORT = 5000

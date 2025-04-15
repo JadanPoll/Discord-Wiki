@@ -141,7 +141,7 @@ const FileCard = ({ data, deleteFile, navigate }) => {
 					onMouseEnter={handleNfcMouseEnter}
 					onMouseLeave={handleNfcMouseLeave}
 				>
-					{nfcHovered && nfcCode ? `NFC: ${nfcCode}` : "NFC"}
+					{nfcActive && nfcCode ? `NFC: ${nfcCode}` : "NFC"}
 				</div>
 			</div>
 		</div>
