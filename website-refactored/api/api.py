@@ -240,3 +240,13 @@ def cors_bypass(target_url):
     except requests.RequestException as e:
         print("Error forwarding request:", e)
         return jsonify({"error": str(e)}), 500
+
+@app.route('/test-endpoint', methods=['GET'])
+def test_endpoint():
+    print("Test endpoint hit")
+    return jsonify({"status": "ok", "message": "Test endpoint working"}), 200
+
+
+@app.route('/')
+def home():
+    return jsonify({"status": "ok", "message": "Debug root route working"}), 200
