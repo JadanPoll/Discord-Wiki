@@ -417,7 +417,7 @@ const Download = () => {
                 <h1 className={styles.heading}>Load Discord Data</h1>
                 <details className={styles.tokendetails}>
                     <summary className={styles.tokensummary}>
-                        <h5>How to find your discord token</h5>
+                        <h5>► How to find your discord token</h5>
                     </summary>
 
                     <div className={styles.gridcontainer}>

@@ -116,7 +116,7 @@ const FileCard = ({ data, deleteFile, navigate }) => {
 
 				{data.isActive ? (
 					<span className="card-link">
-						<i>Active File</i>
+						<i>Active Title</i>
 					</span>
 				) : (
 					<a href="#" className="card-link" onClick={(e) => {
@@ -124,7 +124,7 @@ const FileCard = ({ data, deleteFile, navigate }) => {
 						discordDatamgr.setActiveServerDisc(data.id);
 						navigate(0);
 					}}>
-						Set as active file
+						Set as active title
 					</a>
 				)}
 
@@ -191,7 +191,7 @@ const Listfiles = () => {
 		
 		if (id === (await discordData.getActiveServerDisc())) {
 			alert(
-				"You are about to delete the active file. The newest file will become the next active file."
+				"You are about to delete the active file. The newest file will become the next active title."
 			);
 		}
 		

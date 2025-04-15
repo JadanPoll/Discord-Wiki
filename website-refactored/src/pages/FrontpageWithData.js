@@ -88,7 +88,7 @@ const FrontPageWithData = () => {
                         </ul>
                     </form>
                     <div class="mt-2">
-                        <Link to="/download" className={styles.link}>Add another file</Link> | <Link to="/titles" className={styles.link}>Manage files</Link> | <a href="#" className={styles.link}>I'm bored</a>
+                        <Link to="/download" className={styles.link}>Add another title</Link> | <Link to="/titles" className={styles.link}>Manage titles</Link> | <a href="#" className={styles.link}>I'm bored</a>
                     </div>
                 </div>
             </div>
