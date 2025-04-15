@@ -35,7 +35,7 @@ root.render(
           {activeChannel !== "" && <Route index element={<FrontPageWithData />} />}
           <Route path="download" element={<Download />} />
           <Route path="titles" element={<Listfiles />} />
-          <Route path="loaddemo" element={<LoadDemo />} />
+          <Route path="xmenu" element={<LoadDemo />} />
           <Route path="explore" element={<Analyse />} />
           <Route path="preview/:id" element={<Preview />} />
           <Route path="/server-experience/:serverId" element={<ServerExperience />} />
