@@ -56,12 +56,12 @@
 @media (max-width: 768px) {
   /* Adjust the treeview container */
   .treeviewContainer {
-    width: 70%;       /* As per your working code */
+    width: 100%;       /* As per your working code */
     min-width: unset; /* Remove the minimum width restriction */
     padding: 10px;    /* Reduce padding to save space */
     border-bottom: 2px solid #ddd; /* Optional: switch right border to bottom */
     overflow-y: auto;
-    height: calc(100vh - (100vw / 1.5));
+    height: calc(100vh - (100vw / 1.2));
   }
 
   /* Stack elements vertically instead of horizontally */
