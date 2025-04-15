@@ -61,7 +61,7 @@
     padding: 10px;    /* Reduce padding to save space */
     border-bottom: 2px solid #ddd; /* Optional: switch right border to bottom */
     overflow-y: auto;
-    height: calc(100vh - (100vw / 1.2));
+    height: calc(100vh - (100vw / 1.1));
   }
 
   /* Stack elements vertically instead of horizontally */
