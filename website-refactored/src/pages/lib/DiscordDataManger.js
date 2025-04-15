@@ -21,8 +21,7 @@
  * 
  * NB: globalglossary is removed for performance reasons.
  */
-import { get, set, clear, del } from "idb-keyval";
-
+import { get, set, clear, del, keys } from "idb-keyval";
 export class DiscordDataManager {
   // Holds the single instance.
   static instance = null;
