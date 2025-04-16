@@ -14,9 +14,11 @@ import FloatingBackground from "./FloatingBackground.js";
 import moment from "moment";
 import io from "socket.io-client";
 
-const socket = io(location.hostname === 'localhost' || location.hostname === '' 
-  ? 'http://127.0.0.1:5000' 
-  : `http://${location.hostname}`);
+const socket = io(
+  location.hostname === "localhost" || location.hostname === ""
+    ? "http://127.0.0.1:5000"
+    : `http://${location.hostname}`
+);
 
 const LoadDemo = () => {
   const navigate = useNavigate();
@@ -47,7 +49,10 @@ const LoadDemo = () => {
   // Function to download and process a demo file
   const handleDownload = async (filename) => {
     // Show progress modal
-    const progressModal = new window.bootstrap.Modal(progressModalRef.current, { keyboard: false });
+    const progressModal = new window.bootstrap.Modal(
+      progressModalRef.current,
+      { keyboard: false }
+    );
     progressModal.show();
     setProgress(0);
 
@@ -101,7 +106,9 @@ const LoadDemo = () => {
       window.location.href = "/";
     } catch (error) {
       alert(`Download error: ${error.message}`);
-      const progressModalInstance = window.bootstrap.Modal.getInstance(progressModalRef.current);
+      const progressModalInstance = window.bootstrap.Modal.getInstance(
+        progressModalRef.current
+      );
       if (progressModalInstance) progressModalInstance.hide();
     }
   };
@@ -109,57 +116,54 @@ const LoadDemo = () => {
   // NFC Modal functions
   const openNfcModal = () => {
     setShowNfcModal(true);
-    const nfcModal = new window.bootstrap.Modal(nfcModalRef.current, { keyboard: false });
+    const nfcModal = new window.bootstrap.Modal(nfcModalRef.current, {
+      keyboard: false,
+    });
     nfcModal.show();
   };
 
+  useEffect(() => {
+    console.log("Run x times");
+    socket.on("nfc_host_is_sharing_requested_data", (response) => {
+      console.log("Run only once");
+      alert("NFC communication installed successfully!");
+      console.log(response);
+      setShowNfcModal(false);
+      setNfcCode("");
+      const nfcModalInstance = window.bootstrap.Modal.getInstance(
+        nfcModalRef.current
+      );
+      if (nfcModalInstance) nfcModalInstance.hide();
 
+      const dataManager = new DiscordDataManager();
+      (async () => {
+        const dbFilename = `NFC-${response.id}`;
+        const dbList = await dataManager.getDBServersObjList();
+        if (dbList.includes(dbFilename)) {
+          alert("NFC Game Already exists");
+          return;
+        }
+        const nickname = `NFC: ${response.nickname}`;
+        await dataManager.setChannelNickname(dbFilename, nickname);
+        await dataManager.setGlossary(dbFilename, response.glossary);
+        await dataManager.setRelationships(dbFilename, response.relationships);
+        await dataManager.setConversationBlocks(dbFilename, response.conversation_blocks);
+        await dataManager.setAllSummariesForChannel(dbFilename, response.summary);
+        await dataManager.setServerGameDisc(dbFilename, response.imageUrl);
+        await dataManager.setActiveServerDisc(dbFilename);
 
-  useEffect(() =>
-  {
-  console.log("Run x times")
-  socket.on("nfc_host_is_sharing_requested_data", (response) => {
-    console.log("Run only once")
-    alert("NFC communication installed successfully!");
-    console.log(response)
-    setShowNfcModal(false);
-    setNfcCode("");
-    const nfcModalInstance = window.bootstrap.Modal.getInstance(nfcModalRef.current);
-    if (nfcModalInstance) nfcModalInstance.hide();
+        // So it knows about it for display
+        dbList.push(dbFilename);
+        await dataManager.setDBServersObjList(dbList);
+      })();
+    });
 
-    const dataManager = new DiscordDataManager();
-    (async () => {
-      
-      const dbFilename = `NFC-${response.id}`;
+    socket.on("nfc_request_dserver_from_host_device.error", (error) => {
+      alert(error.error);
+      setNfcCode("");
+    });
+  }, []);
 
-      const dbList = await dataManager.getDBServersObjList();
-      if (dbList.includes(dbFilename))
-      {
-        alert("NFC Game Already exists")
-        return
-      }
-
-      const nickname = `NFC: ${response.nickname}`;
-      await dataManager.setChannelNickname(dbFilename, nickname);
-      await dataManager.setGlossary(dbFilename, response.glossary);
-      await dataManager.setRelationships(dbFilename, response.relationships);
-      await dataManager.setConversationBlocks(dbFilename, response.conversation_blocks);
-      await dataManager.setAllSummariesForChannel(dbFilename, response.summary);
-      await dataManager.setServerGameDisc(dbFilename,response.imageUrl);
-      await dataManager.setActiveServerDisc(dbFilename)
-
-      //So it knows about it for display
-      dbList.push(dbFilename);
-      await dataManager.setDBServersObjList(dbList);
-
-    })();
-  });
-
-  socket.on("nfc_request_dserver_from_host_device.error", (error) => {
-    alert(error.error);
-    setNfcCode("");
-  });
-  },[])
   const handleNfcSubmit = async (event) => {
     event.preventDefault();
     socket.emit("nfc_request_dserver_from_host_device", { nfc_code: nfcCode });
@@ -203,11 +207,18 @@ const LoadDemo = () => {
         <div className="row">
           {demoCatalogue.map((file, index) => (
             <div key={file.filename} className="col-sm-12 col-md-4 mb-4">
-              <div className={`${styles.card} card h-100`} style={{ animationDelay: `${index * 0.3}s` }}>
+              <div
+                className={`${styles.card} card h-100`}
+                style={{ animationDelay: `${index * 0.3}s` }}
+              >
                 <div className="card-body">
                   <h5 className="card-title">{file.name}</h5>
                   <p className="card-text">{file.description}</p>
-                  <a href="#" className="card-link" onClick={() => handleDownload(file.filename)}>
+                  <a
+                    href="#"
+                    className="card-link"
+                    onClick={() => handleDownload(file.filename)}
+                  >
                     Load Title
                   </a>
                 </div>
@@ -238,6 +249,29 @@ const LoadDemo = () => {
                         NFC
                       </div>
                     </div>
+                  </div>
+                );
+              }
+              // Second extra slot: Community Wiki card
+              else if (idx === 1) {
+                return (
+                  <div key={`placeholder-${idx}`} className="col-sm-12 col-md-4 mb-4">
+                    <Link to="/community">
+                      <div
+                        className={`${styles.card} card ${styles.placeholderCard} h-100`}
+                        style={{ cursor: "pointer", textDecoration: "none" }}
+                      >
+                        <div
+                          className="card-body d-flex flex-column align-items-center justify-content-center"
+                        >
+                          <div style={{ fontSize: "2rem", color: "#aaa", display: "flex", alignItems: "center" }}>
+                            <img src="./community/community_with_transparency.png" alt="Community Wiki" style={{ height: "2rem", marginRight: "0.5rem" }} />
+                            Community Wiki
+                          </div>
+
+                        </div>
+                      </div>
+                    </Link>
                   </div>
                 );
               }

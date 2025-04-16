@@ -17,7 +17,7 @@ import LoadDemo from './pages/LoadDemo'
 import ServerExperience from './pages/ServerExperience';
 import NotFound from './pages/NotFound'
 import SummaryPane from './pages/SummaryPane'; // ✅ Import SummaryPane here
-
+import Community from './pages/Community';
 import reportWebVitals from './reportWebVitals'
 import { Helmet } from 'react-helmet';
 
@@ -37,6 +37,7 @@ root.render(
           <Route path="titles" element={<Listfiles />} />
           <Route path="xmenu" element={<LoadDemo />} />
           <Route path="explore" element={<Analyse />} />
+          <Route path="community" element={<Community />} />
           <Route path="preview/:id" element={<Preview />} />
           <Route path="/server-experience/:serverId" element={<ServerExperience />} />
           <Route path="/explorer/:serverId" element={<Analyse />} />
