@@ -111,14 +111,15 @@ const Community = () => {
         <footer className={styles.footer}>
           <button
             className={styles.uploadButton}
-            onClick={() => navigate("/upload")}
+            onClick={() => navigate("/share_hub")}
           >
-            Upload Your Wiki
+            Share Your Wiki
           </button>
         </footer>
       </div>
     </>
   );
 };
+
 
 export default Community;
