@@ -251,7 +251,7 @@ def test_endpoint():
     return jsonify({"status": "ok", "message": "Test endpoint working"}), 200
 
 
-@app.route('/')
+@app.route('/API')
 def home():
     return jsonify({"status": "ok", "message": "Debug root route working"}), 200
 
