@@ -242,8 +242,8 @@ const Listfiles = () => {
 			<div
 			className={`${styles.card} card`}
 			style={{
-				"--cd-img": `url(./blue-logo.png)`,
-			}}
+				"--cd-img": `url(/blue-logo.png)`,
+			  }}			  
 			>
 			<div className="card-body">
 			<h5 className="card-title">Load Demo Titles</h5>
