@@ -7,8 +7,8 @@ import { FaRegStickyNote } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 import styles from "./Analyse.module.css";
-import { DiscordDataManager } from "./lib/DiscordDataManger";
-import { initializeAPI } from "./lib/ShubhanGPT";
+import { DiscordDataManager } from "../lib/DiscordDataManger";
+import { initializeAPI } from "../lib/ShubhanGPT";
 
 /* ============================================================
    Helper Functions

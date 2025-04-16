@@ -20,19 +20,19 @@ const fetchCommunityGroups = async () => {
       id: "uiuc",
       name: "UIUC",
       imageUrl: "./community/UIUC/UIUC_logo.png", // Path to UIUC logo or group image
-      description: "Explore RSOs, academic groups, and community projects at UIUC."
+      description: "Explore Discord RSOs, academic groups, and community projects at UIUC."
     },
     {
       id: "pokemon",
       name: "Pokémon Trainers",
       imageUrl: "./community/Pokemon/pokemon_logo.jpg", // Make sure to add this image to your assets
-      description: "Catching, train, and battle your favorite Pokémon with fellow fans!"
+      description: "Everything Catching, Training, and Leveling up your favorite Pokémon!"
     },
     {
       id: "research",
       name: "Research Nexus",
       imageUrl: "/assets/research-logo.png",
-      description: "Collaborate on scholarly work, share papers, and explore discoveries together."
+      description: "Explore scholarly work, papers, and discoveries together."
     }
     
     // Add more groups as needed...
@@ -62,8 +62,9 @@ const Community = () => {
 
   // Navigate to the detailed page for a selected group.
   const handleCardClick = (groupId) => {
-    navigate(`/community/${groupId}`);
+    navigate(`/community/?group=${groupId}`);
   };
+  
 
   return (
     <>

@@ -7,19 +7,19 @@ import { Helmet } from "react-helmet"
 import { useNavigate } from 'react-router-dom';
 
 
-import { DiscordClient } from "./lib/DiscordClient"
-import { DiscordAPI } from "./lib/DiscordAPI"
+import { DiscordClient } from "../lib/DiscordClient.js"
+import { DiscordAPI } from "../lib/DiscordAPI.js"
 
-import { DiscordDataManager } from "./lib/DiscordDataManger"
-import { engineAnalyseDriver } from "./lib/EngineAnalyseDriver"
+import { DiscordDataManager } from "../lib/DiscordDataManger.js"
+import { engineAnalyseDriver } from "../lib/EngineAnalyseDriver.js"
 
 // we should honestly make these shorter
-import { loadConversationEngine, processAllContextChains, calculateGlossary, calculateDisplayGlossary } from './lib/engine2.js'
+import { loadConversationEngine, processAllContextChains, calculateGlossary, calculateDisplayGlossary } from '../lib/engine2.js'
 
-import tokenimg1 from "./static/discord-tut-images/discord-token-tut-img1.webp"
-import tokenimg2 from "./static/discord-tut-images/discord-token-tut-img2.webp"
-import tokenimg3 from "./static/discord-tut-images/discord-token-tut-img3.webp"
-import tokenimg4 from "./static/discord-tut-images/discord-token-tut-img4.webp"
+import tokenimg1 from "../static/discord-tut-images/discord-token-tut-img1.webp"
+import tokenimg2 from "../static/discord-tut-images/discord-token-tut-img2.webp"
+import tokenimg3 from "../static/discord-tut-images/discord-token-tut-img3.webp"
+import tokenimg4 from "../static/discord-tut-images/discord-token-tut-img4.webp"
 
 const Download = () => {
 
@@ -417,7 +417,7 @@ const Download = () => {
                 <h1 className={styles.heading}>Load Discord Data</h1>
                 <details className={styles.tokendetails}>
                     <summary className={styles.tokensummary}>
-                        <h5>► How to find your discord token</h5>
+                        <h5>How to find your discord token</h5>
                     </summary>
 
                     <div className={styles.gridcontainer}>

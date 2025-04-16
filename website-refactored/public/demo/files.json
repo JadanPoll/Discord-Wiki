@@ -5,8 +5,8 @@
         "description": "Cool OpenVR Projects!"
     },
     {
-        "filename": "rpishowcase.json",
-        "name": "RPI Project Showcase",
-        "description": "Everything RaspberryPi"
+        "filename": "minecraft_redstone.json",
+        "name": "Minecraft Redstone",
+        "description": "Everything Redstone"
     }
 ]

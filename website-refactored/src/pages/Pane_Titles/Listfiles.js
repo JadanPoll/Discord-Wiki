@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import moment from "moment";
-import { DiscordDataManager } from "./lib/DiscordDataManger";
+import { DiscordDataManager } from "../lib/DiscordDataManger";
 import styles from "./Listfiles.module.css";
 import io from 'socket.io-client';
 

@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
-import { DiscordDataManager } from "./lib/DiscordDataManger";
-import { engineAnalyseDriver } from "./lib/EngineAnalyseDriver";
+import { DiscordDataManager } from "../lib/DiscordDataManger.js";
+import { engineAnalyseDriver } from "../lib/EngineAnalyseDriver.js";
 import {
   loadConversationEngine,
   processAllContextChains,
   calculateGlossary,
   calculateDisplayGlossary,
-} from "./lib/engine2.js";
+} from "../lib/engine2.js";
 import styles from "./LoadDemo.module.css";
 import FloatingBackground from "./FloatingBackground.js";
 import moment from "moment";
@@ -64,7 +64,7 @@ const LoadDemo = () => {
 
       // Extract messages from the JSON file
       const { messages } = await response.json();
-
+      console.log(messages)
       // Create a unique database filename and nickname for the demo
       const dbFilename = `DEMO-${filename.replaceAll("_", "-")}_${Date.now()}`;
       const nickname = `DEMO: ${filename}`;
