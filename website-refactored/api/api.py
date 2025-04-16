@@ -248,10 +248,10 @@ def cors_bypass(target_url):
 @app.route('/test-endpoint', methods=['GET'])
 def test_endpoint():
     print("Test endpoint hit")
-    return jsonify({"status": "ok", "message": "Test endpoint working"}), 200
+    return jsonify({"status": "ok", "message": "Flask Proxy test endpoint working"}), 200
 
 
 @app.route('/API')
 def home():
-    return jsonify({"status": "ok", "message": "Debug root route working"}), 200
+    return jsonify({"status": "ok", "message": "Default API route working"}), 200
 

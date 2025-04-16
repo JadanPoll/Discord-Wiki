@@ -23,10 +23,10 @@ const fetchCommunityGroups = async () => {
       description: "Explore RSOs, academic groups, and community projects at UIUC."
     },
     {
-      id: "tech",
-      name: "Tech Enthusiasts",
-      imageUrl: "/assets/tech-logo.png",
-      description: "Discover cutting-edge technology, coding projects, and innovation."
+      id: "pokemon",
+      name: "Pokémon Trainers",
+      imageUrl: "./community/Pokemon/pokemon_logo.jpg", // Make sure to add this image to your assets
+      description: "Catching, train, and battle your favorite Pokémon with fellow fans!"
     },
     {
       id: "research",
