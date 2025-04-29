@@ -113,14 +113,23 @@ const Download = () => {
    
                 // build list of objects, as described before channels
                 let serverList = Object.create(null);
+                let i = 0; //merged_members is a parallel array, need index to access.
                 for (const server of json.d.guilds) {
                     let serverName = server.properties.name;
                     let serverID = server.properties.id;
                     let channels = server.channels;
                     let permission_id = server.id;
                     let properties_icon = server.properties.icon;
+
+                    // json.d.merged_members[i][0] stores some useful (my) member info in each server.
    
-                    serverList[serverID] = { serverName: serverName, channels: channels, permission_id: permission_id, properties_icon: properties_icon };
+                    serverList[serverID] = { serverName: serverName,
+                        channels: channels,
+                        permission_id: permission_id,
+                        properties_icon: properties_icon,
+                        roles: json.d.merged_members[i][0].roles
+                    };
+                    i++;
                 }
    
                 setServers(serverList);
@@ -360,17 +369,41 @@ const Download = () => {
                         <div className={styles.popupcontent}>
                             <ul className={styles.channelList}>
                                 {
-                                
                                 servers[selectedServer].channels.map((channel) => {
                                 // only text channels
                                 if (channel.type !== 0) return null;
-                                console.log("User Permission ID:",servers[selectedServer].permission_id)
-                                // find @everyone overwrite (its ID === guild ID)
-                                const everyoneOW = channel.permission_overwrites.find(
-                                    (ow) => ow.id === servers[selectedServer].permission_id
-                                );
-                                // if deny mask explicitly has VIEW_CHANNEL (0x0400), skip
-                                if (everyoneOW && (everyoneOW.deny & 0x0400) !== 0) return null;
+
+                                // build the user's 'permission group.' Here we define a user's permission group as
+                                // all of discord internal id that has to do with giving permission with the user.
+                                // ATP we define this as the union of user roles and permission ID.
+                                let permissionGroup = [...servers[selectedServer].roles]
+                                permissionGroup.push(servers[selectedServer].permission_id)
+
+                                console.log("User Permission ID:",servers[selectedServer].permission_id, " User permission group:", permissionGroup)
+
+                                let ok = false
+                                let ruleseen = false
+
+                                // ok i think here's how it goes...
+                                // No rule -> ok.
+                                // There's only one applicable rule -> follow that.
+                                // There's conflicting rules -> OK.
+                                // so it suffices to determine !ruleseen | ok_exists, where both defaults to false
+                                
+                                // go thru the rules and evaluate. Exit whenever we found the first matching criteria. Think of firewall rules if unsure of how this works.
+                                for (let i = 0; i < channel.permission_overwrites.length; i++)
+                                {
+                                    if (permissionGroup.includes(channel.permission_overwrites[i].id))
+                                    {
+                                        // this rule is relavent to us...
+                                        //if (channel.permission_overwrites[i].deny !== "0") ok = false
+                                        if (channel.permission_overwrites[i].allow & 0x0400) ok = true
+                                        ruleseen = true
+                                    }
+                                }
+                                if (ruleseen && !ok) return null
+                                // if deny mask explicitly has VIEW_CHANNEL (0x0400),
+                                //if (everyoneOW && (everyoneOW.deny & 0x0400) !== 0) return null;
 
                                 // otherwise render
                                 return (
