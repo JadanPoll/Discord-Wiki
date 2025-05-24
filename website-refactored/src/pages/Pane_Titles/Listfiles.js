@@ -12,8 +12,8 @@ const socket = io(location.hostname === 'localhost' || location.hostname === ''
 	? 'http://127.0.0.1:5000' 
 	: `${location.protocol}//${location.hostname}`);
   
-console.log("Should only run once")
-
+console.log("Should only run once");
+console.log(`Protocol being used ${location.protocol}//${location.hostname}`);
 
 
 const FileCard = ({ data, deleteFile, navigate }) => {
