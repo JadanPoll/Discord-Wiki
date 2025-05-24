@@ -10,7 +10,7 @@ import io from 'socket.io-client';
 // Set up the Socket.io connection (adjust the URL if needed)
 const socket = io(location.hostname === 'localhost' || location.hostname === '' 
 	? 'http://127.0.0.1:5000' 
-	: `http://${location.hostname}`);
+	: `${location.protocol}//${location.hostname}`);
   
 console.log("Should only run once")
 
