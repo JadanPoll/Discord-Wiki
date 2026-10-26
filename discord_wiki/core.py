@@ -82,6 +82,8 @@ def normalize_export(raw: bytes, filename: str):
             "channel_id": str(m.get("channel_id") or (channel.get("id") if isinstance(channel, dict) else "") or ""),
             "_original_position": i,
         })
+    if root and not parsed:
+        raise ValueError("No Discord message objects found. This may be a glossary or stopword list, not a message export.")
     parsed.sort(key=lambda m: (m["ts"], m["_original_position"]))
     for m in parsed:
         m.pop("_original_position")
