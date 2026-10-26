@@ -64,6 +64,8 @@ def serve(host="127.0.0.1", port=8767, data=None, browser=True):
                                              min(25, max(1, int(one("radius") or "3"))))})
                     if path.path == "/api/history":
                         return self._json({"history": librarian.history(one("dataset"))})
+                    if path.path == "/api/notes":
+                        return self._json({"notes": library.notes(one("dataset"))})
                 filename = "index.html" if path.path in ("/", "/index.html") else path.path.removeprefix("/")
                 if filename not in ("index.html", "style.css", "app.js"):
                     return self._json({"error": "Not found"}, 404)
@@ -99,6 +101,13 @@ def serve(host="127.0.0.1", port=8767, data=None, browser=True):
                         return self._json(librarian.investigate(
                             payload.get("dataset", ""), payload.get("question", ""),
                             payload.get("parent_id"), payload.get("reason") is True))
+                    if path == "/api/note":
+                        payload = json.loads(raw)
+                        if not isinstance(payload, dict):
+                            raise ValueError("Expected a JSON object.")
+                        return self._json(library.save_note(
+                            payload.get("dataset", ""), payload.get("target_type", ""),
+                            payload.get("target_key", ""), payload.get("note", "")))
                 return self._json({"error": "Not found"}, 404)
             except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as e:
                 return self._json({"error": str(e)}, 400)
