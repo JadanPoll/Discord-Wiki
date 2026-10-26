@@ -33,6 +33,7 @@ feel like gonna guys ready anything everyone available someone kind things
 
 # A few words are harmless inside useful phrases but poor standalone glossary headings.
 INDEX_TERM_STOP = INDEX_STOP | {"small", "currently", "uses", "everything", "nothing", "seems", "seem"}
+INDEX_VERSION = 4
 
 
 def tokens(text: str) -> list[str]:
@@ -137,6 +138,9 @@ CREATE TABLE IF NOT EXISTS seen (
  seen_at TEXT NOT NULL,
  PRIMARY KEY(dataset_id,target_type,target_key)
 );
+CREATE TABLE IF NOT EXISTS index_meta (
+ dataset_id TEXT PRIMARY KEY, version INTEGER NOT NULL
+);
 """
 
 
@@ -154,6 +158,32 @@ class Library:
         except sqlite3.OperationalError:
             self.fts = False
         self.db.commit()
+        self._refresh_compiled_indexes()
+
+    def _refresh_compiled_indexes(self):
+        """Recompile derived navigation when feature rules change.
+
+        Source messages, notes, and seen state are untouched. This prevents an old
+        cached glossary from surviving newer static-feature rules indefinitely.
+        """
+        stale = self.db.execute(
+            """SELECT d.id FROM datasets d
+               LEFT JOIN index_meta i ON i.dataset_id=d.id
+               WHERE i.version IS NULL OR i.version<>?""",
+            (INDEX_VERSION,)).fetchall()
+        for row in stale:
+            did = row["id"]
+            messages = [dict(r) for r in self.db.execute(
+                "SELECT id,content FROM messages WHERE dataset_id=? ORDER BY ordinal",
+                (did,))]
+            with self.db:
+                self.db.execute("DELETE FROM term_refs WHERE dataset_id=?", (did,))
+                self.db.execute("DELETE FROM terms WHERE dataset_id=?", (did,))
+                self._build_index(did, messages)
+                self.db.execute(
+                    """INSERT INTO index_meta(dataset_id,version) VALUES (?,?)
+                       ON CONFLICT(dataset_id) DO UPDATE SET version=excluded.version""",
+                    (did, INDEX_VERSION))
 
     def close(self):
         self.db.close()
@@ -178,6 +208,8 @@ class Library:
                     [(did, m["id"], m["content"]) for m in messages]
                 )
             self._build_index(did, messages)
+            self.db.execute("INSERT INTO index_meta(dataset_id,version) VALUES (?,?)",
+                            (did, INDEX_VERSION))
             self.db.execute("INSERT INTO datasets VALUES (?,?,?,?)",
                             (did, name, datetime.now(timezone.utc).isoformat(), len(messages)))
         return {"id": did, "name": name, "count": len(messages), "cached": False}
