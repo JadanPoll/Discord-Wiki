@@ -15,3 +15,31 @@ jobs:
         run: node --check discord_wiki/web/app.js
       - name: Test without third-party runtime dependencies
         run: python -m unittest discover -s tests -v
+
+  corpus-quality-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Recover original public Discord exports without vendoring them
+        run: |
+          git fetch --depth=1 origin archive/pre-rsm-reboot-2026-10-26
+          mkdir -p .corpus-report/sources
+          for stem in minecraft_redstone vrhardwaredev rpishowcase; do
+            git show FETCH_HEAD:website-refactored/public/demo/files/$stem.json > .corpus-report/sources/$stem.json
+          done
+      - name: Run the real index against all three Discord exports
+        run: |
+          for stem in minecraft_redstone vrhardwaredev rpishowcase; do
+            python tools/audit_export.py .corpus-report/sources/$stem.json --top 35 > .corpus-report/$stem.index.json
+            echo "## $stem"
+            python -c 'import json,sys; d=json.load(open(sys.argv[1])); print("Messages:",d["messages"]); print("Top subjects:",[x["term"] for x in d["top_terms"][:25]])' ".corpus-report/$stem.index.json"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real-discord-index-review
+          path: .corpus-report/*.index.json
