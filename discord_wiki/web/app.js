@@ -182,12 +182,14 @@ $("ask-form").addEventListener("submit",async ev=>{
   if(!state.dataset){notice("Import a Discord JSON export first.",true);return;}
   const question=$("question").value.trim();
   if(!question)return;
+  const parentId=state.parent;
+  state.parent=null; // Explicit continuation applies only to this next question.
   const button=$("ask");
   button.disabled=true;
   notice("Retrieving evidence and forming the investigation packet…");
   try {
     const result=await api("/api/investigate",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({dataset:state.dataset,question,parent_id:state.parent,
+      body:JSON.stringify({dataset:state.dataset,question,parent_id:parentId,
                            reason:$("reason").checked})});
     displayCertificate(result);
     showEvidence(result.evidence,"Evidence for: "+question);
