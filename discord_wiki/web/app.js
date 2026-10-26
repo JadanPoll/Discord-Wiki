@@ -1,6 +1,6 @@
 "use strict";
 const $ = id => document.getElementById(id);
-const state = { dataset:null, topics:[], parent:null, selected:null };
+const state = { dataset:null, topics:[], book:null, parent:null, selected:null };
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -48,6 +48,9 @@ async function chooseDataset(ds) {
   $("evidence-count").textContent="";
   notice(ds.message_count.toLocaleString()+" original messages ready. Index entries are provisional navigation, not verified technical claims.");
   state.topics=(await api(url("/api/index",{dataset:ds.id}))).topics;
+  state.book=await api(url("/api/book",{dataset:ds.id}));
+  renderBook();
+  renderChapters();
   renderTopics();
   await loadHistory();
   await loadDatasetsShallow();
@@ -58,6 +61,45 @@ async function loadDatasetsShallow() {
     const title=item.firstChild?.textContent || "";
     item.classList.toggle("selected",data.datasets.some(d=>d.id===state.dataset && d.name===title));
   }
+}
+
+function renderBook() {
+  const cover=$("book-cover");
+  if(!state.book){cover.hidden=true;return;}
+  const p=state.book.profile;
+  cover.hidden=false;
+  $("book-type").textContent=p.headline;
+  const secondary=p.secondary ? " It also benefits from "+p.secondary.purpose+"." : "";
+  $("book-purpose").textContent="Best treated as a "+p.primary.grammar+" resource: "+p.primary.purpose+"."+secondary;
+  $("book-topology").textContent=p.topology;
+  $("book-why").textContent=(p.why||[]).join(" · ") || p.boundary;
+}
+function renderChapters() {
+  const list=$("chapters"); clear(list);
+  const chapters=state.book?.chapters||[];
+  $("chapter-count").textContent=chapters.length+" parts";
+  if(!chapters.length){
+    list.append(el("p","hint","No broad chapter regions yet; use the glossary or ask a question."));
+    return;
+  }
+  chapters.forEach((chapter,i)=>{
+    const item=el("button","chapter");
+    const n=el("span","chapter-no",String(i+1).padStart(2,"0"));
+    const text=el("span","chapter-text");
+    text.append(el("strong",null,chapter.title));
+    const sub=(chapter.subtopics||[]).slice(0,3).join(" · ");
+    text.append(el("small",null,(sub?sub+" · ":"")+chapter.source_count+" source messages"));
+    item.append(n,text);
+    item.onclick=async()=>{
+      try{
+        notice("Opening a chapter-like region. Its heading is a navigational bundle, not an asserted taxonomy.");
+        const data=await api(url("/api/chapter",{dataset:state.dataset,key:chapter.key}));
+        $("certificate").hidden=true;
+        showEvidence(data.messages,"Chapter "+(i+1)+": "+chapter.title);
+      }catch(e){notice(e.message,true);}
+    };
+    list.append(item);
+  });
 }
 function renderTopics() {
   const filter=$("topic-filter").value.trim().toLowerCase();
