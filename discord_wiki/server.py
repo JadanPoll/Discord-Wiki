@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 import webbrowser
 
 from .core import Library, MAX_IMPORT_BYTES
+from . import book
 from .librarian import Librarian
 
 WEB = Path(__file__).parent / "web"
@@ -51,6 +52,11 @@ def serve(host="127.0.0.1", port=8767, data=None, browser=True):
                         return self._json({"datasets": library.datasets()})
                     if path.path == "/api/index":
                         return self._json({"topics": library.index(one("dataset"))})
+                    if path.path == "/api/book":
+                        return self._json(book.view(library, one("dataset")))
+                    if path.path == "/api/chapter":
+                        return self._json({"messages": book.chapter_messages(
+                            library, one("dataset"), one("key"))})
                     if path.path == "/api/term":
                         return self._json({"messages": library.term_messages(one("dataset"), one("term"))})
                     if path.path == "/api/context":
