@@ -19,49 +19,49 @@ PROJECTIONS = {
         "label": "Casebook",
         "grammar": "case-first",
         "topology": "case network",
-        "purpose": "compare concrete technical episodes, diagnoses, and outcomes",
+        "purpose": "learn from real questions, problems, and what happened next",
     },
     "problem_book": {
         "label": "Problem book / troubleshooting manual",
         "grammar": "problem-first",
         "topology": "problem lattice",
-        "purpose": "move from recurring problems to attempts, fixes, and boundary cases",
+        "purpose": "find recurring problems, attempted fixes, and edge cases",
     },
     "project_book": {
         "label": "Project book / workshop notebook",
         "grammar": "project-first",
         "topology": "constructive ladder",
-        "purpose": "learn from builds, implementations, revisions, and artifacts",
+        "purpose": "learn from builds, revisions, and working artifacts",
     },
     "atlas": {
         "label": "Atlas / showcase catalog",
         "grammar": "example-first",
         "topology": "atlas",
-        "purpose": "browse concrete artifacts and recognize useful exemplars quickly",
+        "purpose": "browse projects and examples quickly",
     },
     "handbook": {
         "label": "Handbook / reference",
         "grammar": "modular reference",
         "topology": "reference lookup",
-        "purpose": "jump directly to recurring subjects, techniques, and examples",
+        "purpose": "jump to recurring topics, techniques, and examples",
     },
     "sourcebook": {
         "label": "Sourcebook / proceedings",
         "grammar": "source-first",
         "topology": "source constellation",
-        "purpose": "navigate primary discussions, references, and competing accounts",
+        "purpose": "follow original discussions, references, and competing views",
     },
     "research_notes": {
         "label": "Frontier notes / research notebook",
         "grammar": "inquiry-first",
         "topology": "branching investigation",
-        "purpose": "follow tentative ideas, experiments, unresolved questions, and revisions",
+        "purpose": "follow experiments, open questions, and changing ideas",
     },
     "methods": {
         "label": "Methods / cookbook",
         "grammar": "procedure-first",
         "topology": "reference lookup",
-        "purpose": "recover practical recipes, fixes, and implementation moves",
+        "purpose": "find practical procedures, fixes, and implementation steps",
     },
 }
 
@@ -158,21 +158,21 @@ def profile(library, did):
 
     why = []
     if s["reply_rate"] >= .10:
-        why.append("many messages participate in explicit reply-linked exchanges")
+        why.append("many conversations use reply chains")
     if s["question_rate"] >= .08 or s["problem_rate"] >= .10:
-        why.append("questions and troubleshooting language recur")
+        why.append("questions and troubleshooting come up often")
     if s["attachment_rate"] >= .08:
-        why.append("attachments are a substantial part of the record")
+        why.append("many posts include attachments")
     if s["build_rate"] >= .10 or s["code_rate"] >= .05:
-        why.append("build, implementation, or code-oriented discussion is common")
+        why.append("build and coding discussions are common")
     if s["research_rate"] >= .10:
-        why.append("testing, comparison, and tentative reasoning recur")
+        why.append("people often test and compare ideas")
     if s["recurring_subject_coverage"] >= .35:
-        why.append("recurring subjects provide a strong lookup backbone")
+        why.append("many topics recur enough to browse directly")
     if s["link_rate"] >= .06:
-        why.append("external references are common enough to matter")
+        why.append("external references are common")
     if not why:
-        why.append("a non-linear source-grounded reference is the safest default")
+        why.append("a browsable reference fits this community best")
 
     return {
         "headline": headline,
