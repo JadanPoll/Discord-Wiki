@@ -15,6 +15,10 @@ from pathlib import Path
 import re
 import sys
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from discord_wiki.core import INDEX_STOP, Library, URL, good_token, normalize_export, tokens
 
 COMMON_CONTENT = set("""
