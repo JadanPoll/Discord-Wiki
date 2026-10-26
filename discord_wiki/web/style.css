@@ -193,3 +193,32 @@ html,body,.main{background:var(--central-bg)}
 .query-box{
   border-color:color-mix(in srgb,var(--accent) 14%,#dce4ee);
 }
+
+/* Attention field over invariant central particles.
+   Central work surfaces remain white at rest; hover/focus borrows just enough
+   theme color to show where attention currently sits. */
+.query-box,.book-cover,.results,.source-pane{
+  transition:background-color .14s ease,border-color .14s ease,box-shadow .14s ease,transform .14s ease;
+}
+@media (hover:hover) and (pointer:fine){
+  .book-cover:hover,
+  .results:hover,
+  .source-pane:hover{
+    background:color-mix(in srgb,var(--central-bg) 96%,var(--accent-soft));
+    border-color:color-mix(in srgb,var(--accent) 28%,#dfe5ec);
+    box-shadow:0 6px 22px color-mix(in srgb,var(--accent) 7%,transparent);
+  }
+  .query-box:hover{
+    background:color-mix(in srgb,var(--central-bg) 96%,var(--accent-soft));
+    border-color:color-mix(in srgb,var(--accent) 30%,#dce4ee);
+  }
+}
+.query-box:focus-within{
+  background:color-mix(in srgb,var(--central-bg) 95%,var(--accent-soft));
+  border-color:color-mix(in srgb,var(--accent) 42%,#dce4ee);
+  box-shadow:0 5px 24px color-mix(in srgb,var(--accent) 9%,transparent);
+}
+.message:focus-visible,.chapter:focus-visible,.topic:focus-visible,.community-switcher:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--accent) 65%,white);
+  outline-offset:2px;
+}
