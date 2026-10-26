@@ -34,11 +34,11 @@
         <div class="book-cover-main">
           <div class="eyebrow">IF THIS DISCORD WERE COMPILED INTO A BOOK</div>
           <h2 id="book-type">Reference</h2>
-          <p id="book-purpose"></p>
+          <div id="book-purpose" class="book-list"></div>
         </div>
         <div class="book-meta">
-          <div><span>Reading topology</span><strong id="book-topology"></strong></div>
-          <div><span>Why this shape</span><strong id="book-why"></strong></div>
+          <div><span>Navigation</span><div id="book-topology" class="book-list compact"></div></div>
+          <div><span>Why this shape</span><div id="book-why" class="book-list compact"></div></div>
         </div>
       </section>
       <form id="ask-form" class="query-box">
@@ -62,6 +62,17 @@
         </aside>
       </div>
     </main>
+  </div>
+  <div id="sticky-editor" class="sticky-editor" hidden>
+    <div class="sticky-pin">NOTE</div>
+    <div class="sticky-title" id="sticky-title">Your note</div>
+    <textarea id="sticky-text" maxlength="4000" placeholder="What mattered here? What did you learn? Why might you return?"></textarea>
+    <div class="sticky-actions">
+      <button id="sticky-remove" class="quiet danger" type="button">Remove</button>
+      <span></span>
+      <button id="sticky-cancel" class="quiet" type="button">Cancel</button>
+      <button id="sticky-save" class="primary" type="button">Save note</button>
+    </div>
   </div>
 </body>
 </html>
