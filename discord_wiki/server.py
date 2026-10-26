@@ -54,7 +54,8 @@ def serve(host="127.0.0.1", port=8767, data=None, browser=True):
                     if path.path == "/api/term":
                         return self._json({"messages": library.term_messages(one("dataset"), one("term"))})
                     if path.path == "/api/context":
-                        return self._json({"messages": library.context(one("dataset"), one("message"))})
+                        return self._json({"messages": library.context(one("dataset"), one("message"),
+                                             min(25, max(1, int(one("radius") or "3"))))})
                     if path.path == "/api/history":
                         return self._json({"history": librarian.history(one("dataset"))})
                 filename = "index.html" if path.path in ("/", "/index.html") else path.path.removeprefix("/")
