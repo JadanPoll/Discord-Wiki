@@ -17,3 +17,6 @@ packages = ["discord_wiki"]
 
 [tool.setuptools.package-data]
 discord_wiki = ["web/*.html", "web/*.css", "web/*.js"]
+
+[tool.vercel]
+entrypoint = "app:app"
