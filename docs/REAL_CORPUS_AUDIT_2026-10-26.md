@@ -64,6 +64,26 @@ or the correctness of its claims.
 | Where is the MQTT Ambilight project? | Top: \`778006821344116736\`, the original project post. | Strong exact discovery. |
 | What was PyPoker? | Top: \`359824135443972097\`, the original playing-card design post. | Strong exact discovery, but this one-off project is not necessarily visible in the recurring phrase index. |
 
+## Static-feature vocabulary sanity check
+
+An internal REM audit now separates **what the static machinery evaluates** from
+**what the reader-facing glossary promotes**. Its witness is aggressively filtered
+recurring content vocabulary and is only a proxy for high-information/technical
+language, not a semantic or educational-level classifier.
+
+| Corpus | Witness evaluated by static basis | Witness surfaced in index |
+| --- | ---: | ---: |
+| Minecraft redstone | 98.24% | 16.83% |
+| VR hardware | 99.83% | 13.10% |
+| Raspberry Pi showcase | 99.77% | 11.65% |
+
+This is an important negative result: the static layer is **not materially blind to
+the vocabulary witness**. Most witness terms are evaluated and then simply not
+promoted into the deliberately compact reader index. Therefore the current evidence
+does **not** justify adding runtime dynamic feature machinery for vocabulary
+coverage. Future Discord types can rerun the audit and escalate only if a genuine
+static blind spot appears.
+
 ## Static → dynamo-static Librarian check
 
 The Librarian now performs a cheap lexical first pass and then asks which already
