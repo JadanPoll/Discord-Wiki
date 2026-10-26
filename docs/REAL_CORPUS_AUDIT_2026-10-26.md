@@ -28,6 +28,28 @@ Reproducible actual-code run: [Actions corpus-quality-review](https://github.com
 
 **Assessment:** Directionally improved and now meaningfully browsable, but not yet an admissible high-quality index in the strong PDFlets sense. A phrase's recurrence and collocation do not establish that it is a useful subject, still less that its source passages are a coherent episode.
 
+## Book-oriented projection
+
+The same three corpora were compiled through the new reader-facing book layer.
+
+| Corpus | Recommended projection | Reading topology | Example contents |
+| --- | --- | --- | --- |
+| Minecraft redstone | Handbook + Casebook | reference lookup + case network | sand duper, flying machines, item sorter, command block, redstone dust/torch, activator rail |
+| VR hardware | Handbook + Casebook | reference lookup + case network | eye tracking, Meta Quest, body/hand tracking, Bigscreen Beyond, foveated rendering, Quest Pro |
+| Raspberry Pi showcase | Atlas + Handbook | atlas + reference lookup | Home Assistant, Ice Tower, LED strip, power consumption/supply, captive portal, RetroPie |
+
+Each also exposes a synthetic **One-off projects & artifacts** part so recurrence is
+not allowed to make rare showcases invisible. Early contents generation produced
+word-like headings such as `without` and `running`; the real-corpus failure was
+used to change chapter seeds to repeated, multi-author phrase subjects while leaving
+rarer/noisier entries in the glossary. Some low-cost noise remains (for example,
+`self taught` in VR). Under REM this is currently cheaper to tolerate than adding a
+large semantic classifier.
+
+The projection is intentionally multi-label and provisional. It describes the
+reading interface that appears useful for the corpus, not the community's identity
+or the correctness of its claims.
+
 ## Real question → evidence audit (no generated answers)
 
 | Natural question | Observed source retrieval | RSM verdict |
@@ -41,6 +63,25 @@ Reproducible actual-code run: [Actions corpus-quality-review](https://github.com
 | How did the Raspberry Pi Home Assistant museum tour work? | First five hits cover the controller, outlets, Amazon Dash triggers, UI and tour progression. | Strong multi-post project reconstruction. |
 | Where is the MQTT Ambilight project? | Top: \`778006821344116736\`, the original project post. | Strong exact discovery. |
 | What was PyPoker? | Top: \`359824135443972097\`, the original playing-card design post. | Strong exact discovery, but this one-off project is not necessarily visible in the recurring phrase index. |
+
+## Static → dynamo-static Librarian check
+
+The Librarian now performs a cheap lexical first pass and then asks which already
+compiled glossary terms become salient inside that evidence packet. Those terms can
+redirect a bounded second retrieval without pretending they are explanations.
+
+Observed real-corpus examples:
+
+- compact Minecraft 7-segment question → learned `binary adder`, `segment display`,
+  `bedrock edition`; the original build and optimized follow-up remained the first two sources.
+- Lighthouse + finger rotations → learned `lucidvr gloves`, `hand tracking`, `tracker`;
+  the proposed custom-driver architecture and originating question remained first.
+- Home Assistant museum tour → book entry `home assistant`; learned `amazon dash`,
+  `self guided`, `guided tour`; the main project progression filled the top results.
+
+This is a deliberately small REM-style adaptive step. It should be retained only
+while the learned vocabulary reduces useful reasoning/navigation distance without
+admitting substantially more noise.
 
 ## Tested architecture implications
 
