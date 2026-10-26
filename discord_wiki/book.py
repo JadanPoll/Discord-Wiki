@@ -216,15 +216,17 @@ def _oneoffs(library, did, covered, limit=24):
 
 
 def chapters(library, did, limit=8):
-    """Build broad chapter headings from the existing intentionally messy index."""
+    """Build chapter-like headings from phrase subjects, then retain the messy glossary.
+
+    The contents page should read like an editor chose subjects, not like a bag of
+    high-frequency words. Overlap is tolerated; a textbook index is not a partition.
+    """
     rows = [dict(r) for r in library.db.execute(
         "SELECT term,df,kind,score FROM terms WHERE dataset_id=? ORDER BY score DESC,term",
         (did,))]
     refs = _refs(library, did)
-    phrases = [r for r in rows if r["kind"] == "phrase"][:100]
-    seeds = [r for r in rows if r["kind"] == "term"][:50]
-    if len(seeds) < 8:
-        seeds += phrases[:24]
+    phrases = [r for r in rows if r["kind"] == "phrase"][:120]
+    seeds = phrases[:60]
 
     candidates = []
     for seed in seeds:
@@ -242,23 +244,25 @@ def chapters(library, did, limit=8):
             inter = len(seed_ids & other_ids)
             co = inter / max(1, min(len(seed_ids), len(other_ids)))
             other_words = set(other["term"].split())
-            lexical = len(seed_words & other_words) / max(1, min(len(seed_words), len(other_words)))
-            contains = len(seed_words) == 1 and next(iter(seed_words)) in other_words
-            relation = 1.35*co + .7*lexical + (.45 if contains else 0)
-            if relation >= .42:
+            lexical = len(seed_words & other_words) / max(
+                1, min(len(seed_words), len(other_words)))
+            relation = 1.4*co + .85*lexical
+            if relation >= .48:
                 related.append((relation, other))
         related.sort(key=lambda x: (-x[0], -x[1]["df"], x[1]["term"]))
         related = related[:6]
         ids = set(seed_ids)
         for _, item in related:
             ids |= refs.get(item["term"], set())
+        # Prefer headings that recur and also open onto nearby related material.
+        strength = math.log1p(seed["df"]) + .55*sum(x[0] for x in related[:4])
         candidates.append({
             "key": seed["term"],
             "title": seed["term"],
             "source_count": len(ids),
             "subtopics": [item["term"] for _, item in related[:5]],
             "_ids": ids,
-            "_strength": math.log1p(len(ids)) + sum(score for score, _ in related[:4]),
+            "_strength": strength,
         })
 
     candidates.sort(key=lambda x: (-x["_strength"], -x["source_count"], x["title"]))
@@ -286,7 +290,6 @@ def chapters(library, did, limit=8):
             "_strength": 0,
         })
     return chosen
-
 
 def view(library, did):
     if not library.db.execute("SELECT 1 FROM datasets WHERE id=?", (did,)).fetchone():
