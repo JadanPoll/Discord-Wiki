@@ -104,13 +104,20 @@ function showEvidence(messages, title) {
     result.append(card);
   }
 }
-async function showContext(mid) {
+async function showContext(mid, radius=3) {
   state.selected=mid;
-  const data=await api(url("/api/context",{dataset:state.dataset,message:mid}));
+  const data=await api(url("/api/context",{dataset:state.dataset,message:mid,radius}));
   const pane=$("source-detail");clear(pane);
   if(!data.messages.length) {
     pane.append(el("div","empty","Original message was not found."));
     return;
+  }
+  const explainer=el("p","hint","Nearby messages are chronological context, not necessarily the same conversation. Reply references are explicit links.");
+  pane.append(explainer);
+  if(radius<25) {
+    const more=el("button","history-item",radius<12?"Show wider context (±12 messages)":"Show wider context (±25 messages)");
+    more.onclick=()=>showContext(mid,radius<12?12:25).catch(e=>notice(e.message,true));
+    pane.append(more);
   }
   for (const msg of data.messages) {
     const row=el("div","context-item"+(msg.id===mid?" active":""));
