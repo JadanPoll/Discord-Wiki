@@ -14,9 +14,22 @@ import sqlite3
 from pathlib import Path
 
 MAX_IMPORT_BYTES = 100 * 1024 * 1024
-TOKEN = re.compile(r"[a-z][a-z0-9_+#.-]{1,39}", re.I)
+TOKEN = re.compile(r"[a-z0-9][a-z0-9_+#.-]{1,39}", re.I)
 URL = re.compile(r"https?://\S+", re.I)
 STOP = set("""a about above after again against all also am an and any are arent as at back be because been before being below between both but by can cant could couldn did didnt do does doesnt doing don dont down during each few for from further get gets getting got had has hasnt have havent having he her here hers herself him himself his how i id if ill im in into is isnt it its itself just let lets like lol lmao make me more most much my myself no nor not now of off on once only or other our ours ourselves out over own really right same say says said see she should so some such than that thats the their theirs them themselves then there theres these they this those through to too under until up us very via was wasnt we were werent what whats when where which while who whom why will with wont would wouldnt yeah yes you your yours yourself yourselves okay ok oh hmm hey hi thanks thank please people someone anyone something anything thing things stuff time today tomorrow yesterday way ways one two three four first second new old good bad need needs want wants use using used work works working know knows known think thought maybe probably actually basically pretty quite sure issue issues problem problems question questions answer answers look looks looking try trying tried lot lots kind kinds case cases right better best worst like likee yeahh youre theyre ive doesnt wouldnt couldve isnt youre thats didnt doesnt well gonna wanna got gotta yea yep nope yep idk tbh imo iirc afaik btw fr ngl tbh rn btw edit edited reply message discord channel server user users author conversation chat text comment comments content file files https http www com net org gif png jpg jpeg mp4 webp youtube google link links image images video videos""".split())
+
+
+# Navigational labels need more aggressive filtering than evidence search.
+# These are conversational/function terms, not forbidden words in source messages.
+INDEX_STOP = STOP | set("""able already always around based bit build built building buy check
+cost cool could couldn different doesn done easy enough even far feel find free fun
+getting going good great guys hard help just keeps latest left long made make making
+many mean might much need nice obviously okay open people personal possible pretty
+project projects really recommend requires right run said send show simple since
+something source started still stuff take thanks think though using want worth wow
+yeah yet ago darn gosh gotta couldn isnt won havent couldn bad looks looking
+feel like gonna guys ready anything everyone available someone kind things
+""".split())
 
 
 def tokens(text: str) -> list[str]:
@@ -156,32 +169,67 @@ class Library:
         return {"id": did, "name": name, "count": len(messages), "cached": False}
 
     def _build_index(self, did, messages):
-        """Book-index-like backreferences. All terms provisional, never source claims."""
-        postings = defaultdict(set)
-        kinds = {}
+        """Index recurring multiword subjects before fallback keywords.
+
+        Rank independent source statements, not repeated copy-pasted templates.
+        A heading is a navigation candidate, not a verified semantic category.
+        """
+        from collections import Counter
+        repetitions = Counter(re.sub(r"\s+", " ", m["content"].lower()).strip()
+                              for m in messages if m["content"].strip())
+        # Exact repeated messages (>=3) often represent copied moderation/help
+        # boilerplate. They remain available through direct search, never removed.
+        postings, word_docs, kinds = defaultdict(set), defaultdict(set), {}
+        seen_content = set()
         for m in messages:
-            original = tokens(m["content"])
-            words = [t for t in original if good_token(t)]
-            candidates = set(words)
-            # Adjacent words must be adjacent in original content, not across removed stopwords.
-            candidates |= {original[i] + " " + original[i + 1] for i in range(len(original) - 1)
-                           if good_token(original[i]) and good_token(original[i + 1])}
-            for term in candidates:
-                postings[term].add(m["id"])
-                kinds[term] = "phrase" if " " in term else "term"
-        n = max(1, len(messages))
-        ranked = []
+            canonical = re.sub(r"\s+", " ", m["content"].lower()).strip()
+            if not canonical or repetitions[canonical] >= 3:
+                continue
+            if canonical in seen_content:
+                continue
+            seen_content.add(canonical)
+            words = tokens(m["content"])
+            valid = {t for t in words if good_token(t) and t not in INDEX_STOP}
+            for word in valid:
+                word_docs[word].add(m["id"])
+            # Preserve contiguous terms; stopwords are boundaries, not bridges.
+            for size in (2, 3):
+                for i in range(len(words) - size + 1):
+                    chunk = words[i:i + size]
+                    if all(good_token(w) and w not in INDEX_STOP and "." not in w
+                           for w in chunk):
+                        term = " ".join(chunk)
+                        postings[term].add(m["id"])
+                        kinds[term] = "phrase"
+        n = max(1, len(seen_content))
+        phrases = []
         for term, ids in postings.items():
             df = len(ids)
             if df < 2:
                 continue
-            # Penalty for mechanically high-frequency words, reward recurring phrases.
-            score = math.log1p(df) * math.log1p((n + 1) / (df + 1)) * (1.18 if " " in term else 1)
-            ranked.append((score, term, ids))
-        ranked.sort(key=lambda x: (-x[0], x[1]))
-        for score, term, ids in ranked[:250]:
+            words = term.split()
+            association = df / min(len(word_docs[w]) for w in words)
+            specificity = sum(math.log((n + 1) / (len(word_docs[w]) + 1))
+                              for w in words) / len(words)
+            score = (1.1 + math.log1p(df)) * (1 + .75 * association) * (1 + .08 * specificity)
+            phrases.append((score, term, ids))
+        phrases.sort(key=lambda t: (-t[0], t[1]))
+        # Keep a limited secondary term index for standalone technical names.
+        singletons = []
+        for word, ids in word_docs.items():
+            df = len(ids)
+            if df < 3 or df > max(5, n // 5):
+                continue
+            score = math.log1p(df) * math.log1p((n + 1) / (df + 1))
+            singletons.append((score, word, ids))
+        singletons.sort(key=lambda t: (-t[0], t[1]))
+
+        for i, (score, term, ids) in enumerate(phrases[:85] + singletons[:55]):
+            kind = "phrase" if " " in term else "term"
+            # Put meaningful subjects before fallback keywords in the UI.
+            display_score = (100 + score if kind == "phrase" else score)
             self.db.execute("INSERT INTO terms VALUES (?,?,?,?,?)",
-                            (did, term, len(ids), kinds[term], score))
+                            (did, term, len(ids), kind, display_score))
             self.db.executemany("INSERT INTO term_refs VALUES (?,?,?)",
                                 [(did, term, mid) for mid in ids])
 
