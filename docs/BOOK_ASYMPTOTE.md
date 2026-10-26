@@ -78,6 +78,23 @@ analysis console:
 
 The interface should reveal machinery only when it helps the user's decision.
 
+## Reader memory: margins, sticky notes, and coverage
+
+Books become substantially more useful when the reader can leave a personal layer
+over the editorial one. Discord-Wiki therefore treats notes as a separate local
+memory surface:
+
+- right-click a chapter, glossary entry, or source message to attach a note,
+- noted objects receive a small yellow marker and retain the note across sessions,
+- the note records what mattered *to the reader*, not what the source establishes,
+- notes never rewrite or upgrade source evidence,
+- notes are not silently sent to an external model.
+
+This creates a future bridge to FKEN-style encounter/coverage tracking. A sticky
+note is a strong signal that an object was encountered and personally relevant,
+but it should not be confused with automatic "seen" state or with understanding.
+Those can remain separate certificates.
+
 ## REM: static -> dynamo-static -> meta-dynamo-static
 
 ### Static compilation
@@ -147,6 +164,20 @@ For an explanatory question:
 
 A hypothesis that merely permits more retrieved noise has not earned its place.
 Dynamic machinery should outperform the simpler static explanation.
+
+## Static-feature sanity audit
+
+The runtime should not keep growing dynamic machinery merely because more clever
+machinery can be imagined. The repository includes an internal audit that creates
+an aggressively filtered, recurring high-information vocabulary witness and asks
+how much of it is accounted for by several cheap feature families.
+
+This witness is only a proxy for technical/advanced vocabulary. Its purpose is to
+catch systematic blindness: if the static index repeatedly fails to even evaluate
+large portions of the corpus's distinctive vocabulary, try alternative static
+feature hypotheses and compare their marginal coverage/cost. If the established
+static basis already covers the useful witness set, the correct dynamic decision is
+to do nothing. The audit belongs in development experiments, not the reader UI.
 
 ## Utility and stopping
 
