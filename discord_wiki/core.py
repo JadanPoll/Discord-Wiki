@@ -31,6 +31,9 @@ yeah yet ago darn gosh gotta couldn isnt won havent couldn bad looks looking
 feel like gonna guys ready anything everyone available someone kind things
 """.split())
 
+# A few words are harmless inside useful phrases but poor standalone glossary headings.
+INDEX_TERM_STOP = INDEX_STOP | {"small", "currently", "uses", "everything", "nothing", "seems", "seem"}
+
 
 def tokens(text: str) -> list[str]:
     cleaned = URL.sub(" ", text or "").lower()
@@ -200,7 +203,7 @@ class Library:
                 continue
             seen_content.add(canonical)
             words = tokens(m["content"])
-            valid = {t for t in words if good_token(t) and t not in INDEX_STOP}
+            valid = {t for t in words if good_token(t) and t not in INDEX_TERM_STOP}
             for word in valid:
                 word_docs[word].add(m["id"])
             # Preserve contiguous terms; stopwords are boundaries, not bridges.
