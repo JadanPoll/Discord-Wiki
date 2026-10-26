@@ -55,3 +55,8 @@
   .rail-footer{display:none}
   .certificate-field{grid-template-columns:1fr;gap:4px}
 }
+
+.seen:not(.noted){box-shadow:inset 2px 0 0 #d7e0ea}
+.chapter.seen .chapter-no::after{content:" ✓";color:#8a99ab;font-weight:800}
+.topic.seen .topic-body::after{content:" · seen";color:#9aa5b4;font-size:10px;font-weight:500}
+.message.seen:not(.noted){border-left-color:#c8d3df}
