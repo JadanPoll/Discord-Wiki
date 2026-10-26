@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS messages (
  PRIMARY KEY(dataset_id,id)
 );
 CREATE INDEX IF NOT EXISTS messages_order ON messages(dataset_id,ordinal);
+CREATE INDEX IF NOT EXISTS messages_reply ON messages(dataset_id,reply_to);
 CREATE TABLE IF NOT EXISTS terms (
  dataset_id TEXT NOT NULL, term TEXT NOT NULL, df INTEGER NOT NULL,
  kind TEXT NOT NULL, score REAL NOT NULL, PRIMARY KEY(dataset_id,term)
@@ -247,14 +248,27 @@ class Library:
         return d
 
     def context(self, did, mid, radius=3):
-        row = self.db.execute("SELECT ordinal FROM messages WHERE dataset_id=? AND id=?", (did,mid)).fetchone()
+        """Chronological neighbors PLUS explicit reply relationships.
+
+        A nearby message is not assumed to belong to the same conversation.
+        Explicit reply links are stronger evidence and can be nonadjacent.
+        """
+        row = self.db.execute(
+            "SELECT ordinal,reply_to FROM messages WHERE dataset_id=? AND id=?",
+            (did,mid)).fetchone()
         if not row:
             return []
         i = row["ordinal"]
         rows = self.db.execute(
-            "SELECT id FROM messages WHERE dataset_id=? AND ordinal BETWEEN ? AND ? ORDER BY ordinal",
+            "SELECT id,ordinal FROM messages WHERE dataset_id=? AND ordinal BETWEEN ? AND ?",
             (did, max(0, i - radius), i + radius)).fetchall()
-        return [self.message(did, r["id"]) for r in rows]
+        linked = self.db.execute(
+            """SELECT id,ordinal FROM messages WHERE dataset_id=? AND
+               (id=? OR reply_to=?) ORDER BY ordinal LIMIT 12""",
+            (did, row["reply_to"] or "", mid)).fetchall()
+        ordered = {r["id"]: r["ordinal"] for r in list(rows) + list(linked)}
+        return [self.message(did, msg_id) for msg_id in
+                sorted(ordered, key=lambda x: ordered[x])]
 
     def term_messages(self, did, term, limit=40):
         rows = self.db.execute(
@@ -265,27 +279,54 @@ class Library:
         return [self.message(did, r["id"]) for r in rows]
 
     def search(self, did, question, limit=12):
-        """Return exact citations only; never substitute a fabricated summary."""
-        q = [t for t in tokens(question) if good_token(t)]
+        """Retrieve a broad lexical pool, then prefer multi-term evidence.
+
+        OR-only BM25 often elevates one rare but misleading token.
+        No semantic claim or invented evidence is produced by this ranking.
+        """
+        location_words = {"above", "below", "behind", "before", "after",
+                          "under", "between", "without", "not"}
+        q = list(dict.fromkeys(t for t in tokens(question)
+                               if good_token(t) or t in location_words))[:14]
         if not q:
-            q = [t for t in tokens(question) if len(t) >= 2]
+            q = list(dict.fromkeys(t for t in tokens(question) if len(t) >= 2))[:14]
         if not q:
             return []
         limit = min(30, max(1, int(limit)))
-        ids = []
+        candidate_ids = []
         if self.fts:
             try:
-                expression = " OR ".join('"' + t.replace('"', '') + '"' for t in dict.fromkeys(q[:12]))
+                expression = " OR ".join('"' + t.replace('"', '') + '"' for t in q)
                 rows = self.db.execute(
                     """SELECT id FROM message_fts WHERE dataset_id=? AND message_fts MATCH ?
-                    ORDER BY bm25(message_fts) LIMIT ?""", (did, expression, limit)).fetchall()
-                ids = [r["id"] for r in rows]
+                    ORDER BY bm25(message_fts) LIMIT ?""",
+                    (did, expression, max(100, limit * 12))).fetchall()
+                candidate_ids = [r["id"] for r in rows]
             except sqlite3.OperationalError:
                 pass
-        if not ids:
+        if not candidate_ids:
             conditions = " OR ".join("LOWER(content) LIKE ?" for _ in q[:8])
             rows = self.db.execute(
                 "SELECT id FROM messages WHERE dataset_id=? AND (" + conditions + ") LIMIT ?",
-                [did] + ["%" + t + "%" for t in q[:8]] + [limit]).fetchall()
-            ids = [r["id"] for r in rows]
-        return [self.message(did, mid) for mid in ids]
+                [did] + ["%" + t + "%" for t in q[:8]] + [max(100, limit * 12)]).fetchall()
+            candidate_ids = [r["id"] for r in rows]
+        candidates = [self.message(did, mid) for mid in candidate_ids]
+        # Preserve independent reports; repeated identical templates add no
+        # further conversational evidence to the selected packet.
+        ranked, seen = [], set()
+        for rank, m in enumerate(candidates):
+            content = m["content"]
+            canonical = re.sub(r"\s+", " ", content.lower()).strip()
+            if canonical in seen:
+                continue
+            seen.add(canonical)
+            subject = set(tokens(content))
+            overlap = sum(term in subject for term in q)
+            # Consecutive matched tokens are more discriminating than isolated
+            # ones; separators in the question are not used as FTS operators.
+            phrase = " ".join(tokens(content))
+            adjacency = sum((q[i] + " " + q[i + 1]) in phrase
+                            for i in range(len(q) - 1))
+            ranked.append((-overlap, -adjacency, rank, m))
+        ranked.sort(key=lambda p: p[:3])
+        return [m for _, _, _, m in ranked[:limit]]
