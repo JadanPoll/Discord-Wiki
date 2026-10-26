@@ -16,8 +16,11 @@
         <input type="file" id="upload" accept=".json,application/json" hidden>
         <div id="datasets" class="dataset-list"><p class="hint">Import a local export to begin.</p></div>
       </div>
-      <div class="rail-section topic-section"><div class="row between"><div class="section-label">BOOK-STYLE INDEX</div><small id="topic-count"></small></div>
-        <input id="topic-filter" class="filter" type="search" placeholder="Filter topics..." aria-label="Filter topics">
+      <div class="rail-section contents-section"><div class="row between"><div class="section-label">CONTENTS</div><small id="chapter-count"></small></div>
+        <div id="chapters" class="chapter-list"><p class="hint">Choose a corpus to compile its contents.</p></div>
+      </div>
+      <div class="rail-section topic-section"><div class="row between"><div class="section-label">MESSY BUT USEFUL GLOSSARY</div><small id="topic-count"></small></div>
+        <input id="topic-filter" class="filter" type="search" placeholder="Find a subject..." aria-label="Find a subject">
         <div id="topics" class="topic-list"></div>
       </div>
       <div class="rail-footer">Source messages stay on this computer. Model requests are optional and send selected excerpts externally.</div>
@@ -27,6 +30,17 @@
         <div><div class="eyebrow">AN INVESTIGATION, NOT A SUMMARIZATION DUMP</div><h1>What would you like to understand?</h1></div>
         <div id="dataset-pill" class="pill">No dataset selected</div>
       </header>
+      <section id="book-cover" class="book-cover" hidden>
+        <div class="book-cover-main">
+          <div class="eyebrow">IF THIS DISCORD WERE COMPILED INTO A BOOK</div>
+          <h2 id="book-type">Reference</h2>
+          <p id="book-purpose"></p>
+        </div>
+        <div class="book-meta">
+          <div><span>Reading topology</span><strong id="book-topology"></strong></div>
+          <div><span>Why this shape</span><strong id="book-why"></strong></div>
+        </div>
+      </section>
       <form id="ask-form" class="query-box">
         <textarea id="question" rows="2" required placeholder="Which proposed fixes were confirmed, what contradicts them, and what should we investigate next?"></textarea>
         <div class="query-tools"><label class="check"><input type="checkbox" id="reason"> Request model synthesis (optional; sends excerpts to configured provider)</label>
