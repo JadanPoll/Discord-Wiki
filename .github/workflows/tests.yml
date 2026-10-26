@@ -122,4 +122,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: real-discord-index-review
-          path: quality-report/*.index.json
+          path: quality-report/*.json
