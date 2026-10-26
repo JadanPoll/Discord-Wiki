@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discord-Wiki · Investigation Workspace</title>
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <div class="brand"><div class="brandmark">DW</div><div><strong>Discord-Wiki</strong><small>RSM Research Workspace</small></div></div>
+      <div class="rail-section"><div class="section-label">LIBRARY</div>
+        <label class="import" for="upload"><span class="plus">+</span> Import Discord JSON</label>
+        <input type="file" id="upload" accept=".json,application/json" hidden>
+        <div id="datasets" class="dataset-list"><p class="hint">Import a local export to begin.</p></div>
+      </div>
+      <div class="rail-section topic-section"><div class="row between"><div class="section-label">BOOK-STYLE INDEX</div><small id="topic-count"></small></div>
+        <input id="topic-filter" class="filter" type="search" placeholder="Filter topics..." aria-label="Filter topics">
+        <div id="topics" class="topic-list"></div>
+      </div>
+      <div class="rail-footer">Source messages stay on this computer. Model requests are optional and send selected excerpts externally.</div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div><div class="eyebrow">AN INVESTIGATION, NOT A SUMMARIZATION DUMP</div><h1>What would you like to understand?</h1></div>
+        <div id="dataset-pill" class="pill">No dataset selected</div>
+      </header>
+      <form id="ask-form" class="query-box">
+        <textarea id="question" rows="2" required placeholder="Which proposed fixes were confirmed, what contradicts them, and what should we investigate next?"></textarea>
+        <div class="query-tools"><label class="check"><input type="checkbox" id="reason"> Request model synthesis (optional; sends excerpts to configured provider)</label>
+          <button class="primary" id="ask" type="submit">Investigate</button></div>
+      </form>
+      <div id="notice" class="notice" role="status" aria-live="polite">Import a Discord JSON export, then choose a question or browse its provisional index.</div>
+      <div class="workspace">
+        <section class="results">
+          <div class="pane-heading"><h2 id="results-title">Investigation</h2><span id="evidence-count"></span></div>
+          <div id="certificate" class="certificate" hidden></div>
+          <div id="results" class="message-list"><div class="empty">A useful index points back to evidence. Select a topic to browse its messages, or ask the Librarian a question.</div></div>
+        </section>
+        <aside class="source-pane">
+          <div class="pane-heading"><h2>Source context</h2><span class="subtle">Original messages</span></div>
+          <div id="source-detail"><div class="empty">Select a source message to view its surrounding conversation, reply reference, timestamps, and attachments.</div></div>
+          <div class="divider"></div>
+          <div class="pane-heading"><h2>Recent investigations</h2></div>
+          <div id="history" class="history"></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

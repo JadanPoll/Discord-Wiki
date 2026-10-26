@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "discord-wiki"
+version = "0.1.0"
+description = "Localhost Discord conversation index and RSM investigation workspace"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+discord-wiki = "discord_wiki.server:main"
+
+[tool.setuptools]
+packages = ["discord_wiki"]
+
+[tool.setuptools.package-data]
+discord_wiki = ["web/*.html", "web/*.css", "web/*.js"]

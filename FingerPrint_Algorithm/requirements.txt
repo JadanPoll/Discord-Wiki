@@ -1,9 +1,0 @@
-tkinterweb
-textrank4zh
-matplotlib
-kneed
-aiohttp
-bs4
-halo
-spacy
-textblob
