@@ -89,6 +89,24 @@ def artifact_vocabulary(messages):
     return out, anchors
 
 
+def evaluated_static_vocabulary(messages):
+    """Reconstruct the cheap vocabulary actually evaluated by core._build_index."""
+    repetitions = Counter(
+        re.sub(r"\\s+", " ", (m["content"] or "").lower()).strip()
+        for m in messages if (m["content"] or "").strip()
+    )
+    evaluated = set()
+    for m in messages:
+        canonical = re.sub(r"\\s+", " ", (m["content"] or "").lower()).strip()
+        if not canonical or repetitions[canonical] >= 3:
+            continue
+        evaluated.update(
+            t for t in tokens(m["content"])
+            if good_token(t) and t not in INDEX_STOP
+        )
+    return evaluated
+
+
 def report(path: Path):
     raw = path.read_bytes()
     _, _, messages = normalize_export(raw, path.name)
@@ -96,22 +114,26 @@ def report(path: Path):
     did = lib.import_bytes(raw, path.name)["id"]
 
     wanted, df, examples = witness(messages)
+    evaluated_vocab = evaluated_static_vocabulary(messages)
     current_terms = lib.index(did, 250)
-    current_vocab = set()
+    surfaced_vocab = set()
     for row in current_terms:
-        current_vocab.update(tokens(row["term"]))
+        surfaced_vocab.update(tokens(row["term"]))
 
     phrase_vocab, phrase_labels = phrase_vocabulary(messages)
     artifact_vocab, artifact_anchors = artifact_vocabulary(messages)
 
+    evaluated = wanted & evaluated_vocab
+    surfaced = wanted & surfaced_vocab
     families = {
-        "current_index": (current_vocab, len(current_terms)),
+        "evaluated_static_basis": (evaluated_vocab, len(evaluated_vocab)),
+        "surfaced_reader_index": (surfaced_vocab, len(current_terms)),
         "recurring_phrase_family": (phrase_vocab, phrase_labels),
         "artifact_anchor_family": (artifact_vocab, artifact_anchors),
         "recurring_singleton_upper_bound": (set(wanted), len(wanted)),
     }
     rows = []
-    for name, (covered_vocab, labels) in families.items():
+    for name, (covered_vocab, objects) in families.items():
         covered = wanted & covered_vocab
         coverage = len(covered) / max(1, len(wanted))
         rows.append({
@@ -119,12 +141,16 @@ def report(path: Path):
             "coverage": round(coverage, 4),
             "covered": len(covered),
             "witness_words": len(wanted),
-            "feature_objects": labels,
-            "coverage_per_100_objects": round(100 * len(covered) / max(1, labels), 2),
+            "feature_objects": objects,
+            "coverage_per_100_objects": round(100 * len(covered) / max(1, objects), 2),
         })
 
-    missing = sorted((t for t in wanted-current_vocab),
-                     key=lambda t: (-df[t], t))
+    missing_evaluated = sorted(
+        (t for t in wanted-evaluated_vocab), key=lambda t: (-df[t], t))
+    missing_surfaced = sorted(
+        (t for t in wanted-surfaced_vocab), key=lambda t: (-df[t], t))
+    evaluated_coverage = len(evaluated) / max(1, len(wanted))
+    surfaced_coverage = len(surfaced) / max(1, len(wanted))
     result = {
         "file": path.name,
         "messages": len(messages),
@@ -132,16 +158,25 @@ def report(path: Path):
             "recurring non-common content tokens after aggressive stop filtering; "
             "proxy for high-information technical vocabulary, not educational level"
         ),
-        "current_coverage": rows[0]["coverage"],
+        "evaluated_coverage": round(evaluated_coverage, 4),
+        "surfaced_coverage": round(surfaced_coverage, 4),
+        "verdict": (
+            "STATIC_BASIS_SEES_WITNESS; do not add dynamic machinery for vocabulary blindness"
+            if evaluated_coverage >= .90 else
+            "STATIC_BLIND_SPOT; compare alternative cheap feature families before adding dynamics"
+        ),
         "hypotheses": sorted(rows, key=lambda r: (-r["coverage"], r["feature_objects"])),
-        "missing_top": [
+        "missing_from_static_evaluation": [
             {"term": t, "df": df[t], "example_message_ids": examples[t]}
-            for t in missing[:40]
+            for t in missing_evaluated[:40]
+        ],
+        "not_promoted_to_reader_index": [
+            {"term": t, "df": df[t], "example_message_ids": examples[t]}
+            for t in missing_surfaced[:40]
         ],
     }
     lib.close()
     return result
-
 
 def main():
     ap = argparse.ArgumentParser()
