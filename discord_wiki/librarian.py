@@ -122,8 +122,11 @@ def _dynamic_terms(library, did, question, evidence, limit=3):
         # expose as standalone navigation.
         if row["kind"] == "term" and (not words or any(w in INDEX_TERM_STOP for w in words)):
             continue
-        if row["kind"] == "term" and row["df"] > max(6, len(ids) * 3):
-            continue
+        if row["kind"] == "term":
+            # Single words must be genuinely rare to redirect a search. In
+            # practice the useful learned clues are usually specific phrases.
+            if row["df"] > 5 or len(term) < 5:
+                continue
         # Reward terms repeated inside the evidence packet but not ubiquitous in
         # the corpus. Phrase labels are a little easier for humans to interpret.
         score = row["hits"] / max(1, row["df"]) + .18 * row["hits"]
