@@ -115,10 +115,17 @@ jobs:
                   print(i,msg["id"],repr(msg["content"][:150]))
               lib.close()
           PY
+      - name: Challenge static features with an aggressive vocabulary witness
+        run: |
+          for stem in minecraft_redstone vrhardwaredev rpishowcase; do
+            python tools/static_feature_audit.py .corpus-report/sources/$stem.json --pretty > .corpus-report/$stem.static-audit.json
+            echo "## STATIC FEATURE AUDIT $stem"
+            python -c 'import json,sys; d=json.load(open(sys.argv[1])); print("Current coverage:",d["current_coverage"]); print("Hypotheses:",[(x["hypothesis"],x["coverage"],x["feature_objects"]) for x in d["hypotheses"]]); print("Missing:",[x["term"] for x in d["missing_top"][:15]])' ".corpus-report/$stem.static-audit.json"
+          done
       - name: Prepare review artifacts
         run: |
           mkdir -p quality-report
-          cp .corpus-report/*.index.json .corpus-report/*.book.json quality-report/
+          cp .corpus-report/*.index.json .corpus-report/*.book.json .corpus-report/*.static-audit.json quality-report/
       - uses: actions/upload-artifact@v4
         with:
           name: real-discord-index-review
