@@ -193,7 +193,7 @@ class Library:
                               for m in messages if m["content"].strip())
         # Exact repeated messages (>=3) often represent copied moderation/help
         # boilerplate. They remain available through direct search, never removed.
-        postings, word_docs, kinds = defaultdict(set), defaultdict(set), {}
+        postings, word_docs, phrase_word_docs, kinds = defaultdict(set), defaultdict(set), defaultdict(set), {}
         seen_content = set()
         for m in messages:
             canonical = re.sub(r"\s+", " ", m["content"].lower()).strip()
@@ -204,8 +204,11 @@ class Library:
             seen_content.add(canonical)
             words = tokens(m["content"])
             valid = {t for t in words if good_token(t) and t not in INDEX_TERM_STOP}
+            phrase_valid = {t for t in words if good_token(t) and t not in INDEX_STOP}
             for word in valid:
                 word_docs[word].add(m["id"])
+            for word in phrase_valid:
+                phrase_word_docs[word].add(m["id"])
             # Preserve contiguous terms; stopwords are boundaries, not bridges.
             for size in (2, 3):
                 for i in range(len(words) - size + 1):
@@ -222,8 +225,8 @@ class Library:
             if df < 2:
                 continue
             words = term.split()
-            association = df / min(len(word_docs[w]) for w in words)
-            specificity = sum(math.log((n + 1) / (len(word_docs[w]) + 1))
+            association = df / max(1, min(len(phrase_word_docs[w]) for w in words))
+            specificity = sum(math.log((n + 1) / (len(phrase_word_docs[w]) + 1))
                               for w in words) / len(words)
             score = (1.1 + math.log1p(df)) * (1 + .75 * association) * (1 + .08 * specificity)
             phrases.append((score, term, ids))
