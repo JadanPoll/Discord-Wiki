@@ -1,8 +1,8 @@
 "use strict";
 const $ = id => document.getElementById(id);
 const state = {
-  dataset:null, topics:[], book:null, parent:null, selected:null,
-  notes:new Map(), seen:new Set(), sticky:null
+  dataset:null, datasets:[], topics:[], book:null, parent:null, selected:null,
+  notes:new Map(), seen:new Set(), sticky:null, theme:"paper"
 };
 
 function el(tag, className, text) {
@@ -27,6 +27,57 @@ function url(path,params){
   const u=new URL(path,location.origin);
   for(const [key,value] of Object.entries(params)) u.searchParams.set(key,value);
   return u;
+}
+
+const THEME_NAMES={paper:"Paper",sage:"Sage",lavender:"Lavender",sky:"Sky"};
+function applyTheme(name){
+  name=THEME_NAMES[name]?name:"paper";
+  state.theme=name;
+  document.documentElement.dataset.theme=name;
+  $("theme-name").textContent=THEME_NAMES[name];
+  localStorage.setItem("discordWikiTheme",name);
+}
+function initials(name){
+  const parts=String(name||"").trim().split(/\s+/).filter(Boolean);
+  if(!parts.length)return "+";
+  return parts.slice(0,2).map(x=>x[0]).join("").toUpperCase();
+}
+function hueFor(text){
+  let h=0;for(const ch of String(text||""))h=(h*31+ch.charCodeAt(0))%360;
+  return h;
+}
+function renderCommunitySwitcher(){
+  const ds=state.datasets.find(x=>x.id===state.dataset);
+  $("community-name").textContent=ds?ds.name:"Add a community";
+  $("community-meta").textContent=ds?ds.message_count.toLocaleString()+" messages":"Choose a Discord export";
+  $("community-avatar").textContent=ds?initials(ds.name):"+";
+  $("community-avatar").style.setProperty("--avatar-hue",ds?hueFor(ds.name):220);
+}
+function renderCommunityMenu(){
+  const list=$("datasets");clear(list);
+  if(!state.datasets.length)list.append(el("p","hint","No communities yet."));
+  for(const ds of state.datasets){
+    const item=el("button","dataset"+(state.dataset===ds.id?" selected":""));
+    const avatar=el("span","mini-avatar",initials(ds.name));
+    avatar.style.setProperty("--avatar-hue",hueFor(ds.name));
+    const copy=el("span","dataset-copy");
+    copy.append(el("strong",null,ds.name));
+    copy.append(el("small",null,ds.message_count.toLocaleString()+" messages"));
+    item.append(avatar,copy);
+    item.onclick=()=>{
+      $("community-menu").hidden=true;
+      $("community-switcher").setAttribute("aria-expanded","false");
+      chooseDataset(ds);
+    };
+    list.append(item);
+  }
+}
+function toggleMenu(id,buttonId){
+  const menu=$(id),opening=menu.hidden;
+  $("community-menu").hidden=true;
+  $("theme-menu").hidden=true;
+  if(opening)menu.hidden=false;
+  if(buttonId)$(buttonId).setAttribute("aria-expanded",String(opening));
 }
 
 function noteId(type,key){return type+"\n"+key;}
@@ -136,27 +187,23 @@ async function loadReaderState(){
 
 async function loadDatasets(){
   const data=await api("/api/datasets");
-  const list=$("datasets");clear(list);
-  if(!data.datasets.length) list.append(el("p","hint","No imported exports yet."));
-  for(const ds of data.datasets){
-    const item=el("button","dataset"+(state.dataset===ds.id?" selected":""),ds.name);
-    item.append(el("small",null,ds.message_count.toLocaleString()+" messages"));
-    item.onclick=()=>chooseDataset(ds);
-    list.append(item);
-  }
-  if(!state.dataset&&data.datasets.length) await chooseDataset(data.datasets[0]);
+  state.datasets=data.datasets;
+  renderCommunityMenu();
+  renderCommunitySwitcher();
+  if(!state.dataset&&state.datasets.length) await chooseDataset(state.datasets[0]);
 }
 async function chooseDataset(ds){
   state.dataset=ds.id;state.parent=null;state.selected=null;
-  $("dataset-pill").textContent=ds.name;
-  $("results-title").textContent="Investigation";
+  renderCommunitySwitcher();
+  renderCommunityMenu();
+  $("results-title").textContent="Explore";
   $("certificate").hidden=true;
   clear($("results"));
-  $("results").append(el("div","empty","Choose a part, browse the glossary, or ask a question."));
+  $("results").append(el("div","empty","Choose something from Key Contents or the Glossary, or ask a question."));
   clear($("source-detail"));
-  $("source-detail").append(el("div","empty","Select an evidence message to inspect source context."));
+  $("source-detail").append(el("div","empty","Select a source to see the surrounding conversation."));
   $("evidence-count").textContent="";
-  notice(ds.message_count.toLocaleString()+" original messages ready.");
+  notice(ds.message_count.toLocaleString()+" messages ready to explore.");
   const [indexData,bookData]=await Promise.all([
     api(url("/api/index",{dataset:ds.id})),
     api(url("/api/book",{dataset:ds.id})),
@@ -168,14 +215,6 @@ async function chooseDataset(ds){
   renderChapters();
   renderTopics();
   await loadHistory();
-  await loadDatasetsShallow();
-}
-async function loadDatasetsShallow(){
-  const data=await api("/api/datasets");
-  for(const item of $("datasets").children){
-    const title=item.firstChild?.textContent||"";
-    item.classList.toggle("selected",data.datasets.some(d=>d.id===state.dataset&&d.name===title));
-  }
 }
 
 function renderBook(){
@@ -208,7 +247,7 @@ function renderChapters(){
     item.onclick=async()=>{
       markSeen("chapter",chapter.key,item);
       try{
-        notice("Opening "+chapter.title+". The heading is a useful region, not a rigid taxonomy.");
+        notice("Opening "+chapter.title+".");
         const data=await api(url("/api/chapter",{dataset:state.dataset,key:chapter.key}));
         $("certificate").hidden=true;
         showEvidence(data.messages,"Part "+(i+1)+": "+chapter.title);
@@ -231,10 +270,10 @@ function renderTopics(){
     item.onclick=async()=>{
       markSeen("term",topic.term,item);
       try{
-        notice("Opening glossary entry: "+topic.term);
+        notice("Opening "+topic.term+".");
         const data=await api(url("/api/term",{dataset:state.dataset,term:topic.term}));
         $("certificate").hidden=true;
-        showEvidence(data.messages,"Glossary: "+topic.term);
+        showEvidence(data.messages,topic.term);
       }catch(e){notice(e.message,true);}
     };
     list.append(item);
@@ -283,7 +322,12 @@ async function showContext(mid,radius=3){
   if(!data.messages.length){
     pane.append(el("div","empty","Original message was not found."));return;
   }
-  pane.append(el("p","hint","Nearby messages are chronological context, not necessarily the same conversation. Reply references are explicit links."));
+  pane.append(el("p","hint","Nearby messages are shown in time order. Replies are included when available."));
+  const lengths=data.messages.map(m=>(m.content||"").trim().length).filter(Boolean);
+  const average=lengths.length?lengths.reduce((a,b)=>a+b,0)/lengths.length:1;
+  const keyMessage=data.messages.find(m=>m.id===mid);
+  const keyLength=Math.max(1,(keyMessage?.content||"").trim().length);
+  const densityReference=Math.max(80,(average+keyLength)/2);
   if(radius<25){
     const more=el("button","history-item",radius<12?"Show wider context (±12 messages)":"Show wider context (±25 messages)");
     more.onclick=()=>showContext(mid,radius<12?12:25).catch(e=>notice(e.message,true));
@@ -292,6 +336,10 @@ async function showContext(mid,radius=3){
   for(const msg of data.messages){
     const row=noteable(el("div","context-item"+(msg.id===mid?" active":"")),
       "message",msg.id,(msg.author||"unknown")+" · "+(msg.content||"[attachment]").slice(0,70));
+    const textLength=(msg.content||"").trim().length;
+    const density=Math.max(.15,Math.min(2.4,textLength/densityReference));
+    const alpha=msg.id===mid ? .045 : Math.min(.16,.025+.055*Math.log2(1+density));
+    row.style.setProperty("--context-alpha",alpha.toFixed(3));
     const label=el("div");
     label.append(el("strong",null,msg.author));
     label.append(el("span","timestamp",msg.ts?new Date(msg.ts).toLocaleString():"Time unavailable"));
@@ -308,15 +356,15 @@ async function loadHistory(){
   const box=$("history");clear(box);
   if(!state.dataset)return;
   const data=await api(url("/api/history",{dataset:state.dataset}));
-  if(!data.history.length) box.append(el("div","hint","No investigations yet."));
+  if(!data.history.length) box.append(el("div","hint","No questions yet."));
   for(const investigation of data.history){
     const item=el("button","history-item",investigation.question);
-    item.title="Continue this investigation while preserving its original goal";
+    item.title="Ask a follow-up question";
     item.onclick=()=>{
       $("question").value=investigation.question+"\nFollow up: ";
       state.parent=investigation.id;
       $("question").focus();
-      notice("Following up this investigation while preserving what you were originally trying to understand.");
+      notice("Follow-up ready. Your original question will stay connected.");
     };
     box.append(item);
   }
@@ -335,20 +383,30 @@ function field(parent,label,value,cls=""){
 }
 function displayCertificate(result){
   const pane=$("certificate");clear(pane);pane.hidden=false;
-  pane.append(el("h3",null,"Investigation trail · "+result.mode));
-  field(pane,"What you are trying to understand",result.root_goal);
-  field(pane,"What this search covered",result.boundary);
-  field(pane,"Source status",result.coverage==="no_match"?
+  pane.append(el("h3",null,"What we found"));
+  field(pane,"Your question",result.root_goal);
+  field(pane,"Looked through",result.boundary);
+  field(pane,"Sources",result.coverage==="no_match"?
     "No matches; this does not mean the idea is false":
     "Relevant discussion found; participant claims are not automatically verified");
-  if(result.orientation?.length) field(pane,"Nearby parts of the book",result.orientation.map(x=>x.title));
-  if(result.learned_terms?.length) field(pane,"The discussion introduced",result.learned_terms);
-  if(result.interpretation) field(pane,"Qualified model interpretation",result.interpretation,"interpretation");
+  if(result.orientation?.length) field(pane,"Related sections",result.orientation.map(x=>x.title));
+  if(result.learned_terms?.length) field(pane,"Useful terms",result.learned_terms);
+  if(result.interpretation) field(pane,"AI summary",result.interpretation,"interpretation");
   if(result.model_error) field(pane,"Model",result.model_error);
-  field(pane,"Useful next question",result.next_question);
-  field(pane,"When enough is enough",result.stopping_condition);
+  field(pane,"You could ask next",result.next_question);
+  field(pane,"Enough for now when",result.stopping_condition);
 }
 
+applyTheme(localStorage.getItem("discordWikiTheme")||"paper");
+$("community-switcher").onclick=()=>toggleMenu("community-menu","community-switcher");
+$("theme-button").onclick=()=>toggleMenu("theme-menu","theme-button");
+document.querySelectorAll("[data-theme-choice]").forEach(button=>{
+  button.onclick=()=>{
+    applyTheme(button.dataset.themeChoice);
+    $("theme-menu").hidden=true;
+    $("theme-button").setAttribute("aria-expanded","false");
+  };
+});
 $("topic-filter").addEventListener("input",renderTopics);
 $("sticky-save").onclick=()=>saveSticky(false);
 $("sticky-remove").onclick=()=>saveSticky(true);
@@ -359,13 +417,21 @@ document.addEventListener("mousedown",ev=>{
   if(!editor.hidden&&!editor.contains(ev.target)&&!ev.target.closest?.(".sticky-badge")){
     closeSticky();
   }
+  if(!ev.target.closest?.(".community-section")){
+    $("community-menu").hidden=true;
+    $("community-switcher").setAttribute("aria-expanded","false");
+  }
+  if(!ev.target.closest?.(".topbar-actions")){
+    $("theme-menu").hidden=true;
+    $("theme-button").setAttribute("aria-expanded","false");
+  }
 });
 
 $("upload").addEventListener("change",async ev=>{
   const file=ev.target.files?.[0];
   if(!file)return;
   try{
-    notice("Importing and indexing "+file.name+"…");
+    notice("Adding "+file.name+"…");
     $("upload").disabled=true;
     const raw=await file.arrayBuffer();
     const result=await api("/api/import",{method:"POST",
@@ -373,7 +439,7 @@ $("upload").addEventListener("change",async ev=>{
     await loadDatasets();
     const ds=(await api("/api/datasets")).datasets.find(d=>d.id===result.id);
     if(ds) await chooseDataset(ds);
-    notice((result.cached?"Already imported: ":"Imported: ")+result.count.toLocaleString()+" messages from "+result.name);
+    notice((result.cached?"Already added: ":"Added: ")+result.count.toLocaleString()+" messages from "+result.name);
   }catch(e){notice(e.message,true);}
   finally{$("upload").disabled=false;ev.target.value="";}
 });
@@ -386,15 +452,15 @@ $("ask-form").addEventListener("submit",async ev=>{
   state.parent=null;
   const button=$("ask");
   button.disabled=true;
-  notice("Finding useful evidence…");
+  notice("Finding useful sources…");
   try{
     const result=await api("/api/investigate",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({dataset:state.dataset,question,parent_id:parentId,reason:$("reason").checked})});
     displayCertificate(result);
-    showEvidence(result.evidence,"Evidence for: "+question);
+    showEvidence(result.evidence,"Sources for: "+question);
     await loadHistory();
-    notice(result.interpretation?"Source-grounded interpretation ready; inspect its original messages.":
-      result.evidence.length?"Evidence ready. Open any message for its original context.":
+    notice(result.interpretation?"AI summary ready. Open any source to check the original conversation.":
+      result.evidence.length?"Sources ready. Open any message for its surrounding conversation.":
       "No relevant messages found. Try a narrower or alternate formulation.");
   }catch(e){notice(e.message,true);}
   finally{button.disabled=false;}
