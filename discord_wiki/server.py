@@ -68,6 +68,12 @@ def serve(host="127.0.0.1", port=8767, data=None, browser=True):
 
         def do_POST(self):
             path = urlsplit(self.path).path
+            origin = self.headers.get("Origin")
+            allowed = {"http://localhost:" + str(port), "http://127.0.0.1:" + str(port)}
+            if origin and origin not in allowed:
+                return self._json({"error": "Cross-origin changes are not allowed."}, 403)
+            if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+                return self._json({"error": "Expected application/json."}, 415)
             try:
                 length = int(self.headers.get("Content-Length", "0"))
                 if length <= 0 or length > MAX_IMPORT_BYTES:
