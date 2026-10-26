@@ -78,6 +78,29 @@ analysis console:
 
 The interface should reveal machinery only when it helps the user's decision.
 
+## If the source is already a book
+
+The same flow should generalize naturally to textbooks and reference books, but the
+machine should not rediscover structure the author already supplied. If a source has
+a table of contents and glossary/index, ingest those as high-quality static priors:
+
+- **table of contents -> authored landscape / chapter graph**
+- **glossary or back-of-book index -> authored lookup surface**
+- **pages/sections -> source evidence**
+- **reader notes and seen state -> personal traversal layer**
+- **Librarian -> question-conditioned movement across the authored structure**
+
+This removes the requirement to read linearly without pretending sequence is
+useless. A reader can move spatially by concept, chapter, case, or question, then
+descend into the original passage when needed. The existing book structure should
+normally outrank machine-inferred chapters unless actual use exposes a concrete
+navigation failure.
+
+This also makes LLM use more admissible: the model receives a bounded, authored
+structural packet plus selected passages instead of an undifferentiated entire book.
+The model's role becomes choosing and connecting relevant regions, not inventing the
+book's organization from scratch.
+
 ## Reader memory: margins, sticky notes, and coverage
 
 Books become substantially more useful when the reader can leave a personal layer
