@@ -159,3 +159,37 @@ html,body{background:var(--page-bg)}
 .context-item[data-density-level="2"]{--context-alpha:.077}
 .context-item[data-density-level="3"]{--context-alpha:.132}
 .context-item[data-density-level="4"]{--context-alpha:.227}
+
+/* Centrality invariant: themes color the notebook's leaflets, not its working ground.
+   White remains the stable visual "paper" across every theme. */
+:root{
+  --central-bg:#ffffff;
+  --central-soft:#fbfcfe;
+}
+html,body,.main{background:var(--central-bg)}
+.query-box,.results,.source-pane,.book-cover{background:var(--central-bg)}
+.workspace{background:var(--central-bg)}
+.message{background:var(--central-bg)}
+.message:hover{
+  background:color-mix(in srgb,var(--central-bg) 94%,var(--accent-soft));
+}
+.finding-card{
+  background:var(--central-soft);
+  border-color:color-mix(in srgb,var(--accent) 17%,#dfe5ec);
+}
+.notice{
+  background:color-mix(in srgb,var(--central-bg) 91%,var(--accent-soft));
+}
+.book-cover{
+  border-color:color-mix(in srgb,var(--accent) 12%,#e7e1d6);
+  box-shadow:0 4px 18px #28374a0a;
+}
+.source-pane{
+  border-color:color-mix(in srgb,var(--accent) 10%,#e0e7ef);
+}
+.results{
+  border-color:color-mix(in srgb,var(--accent) 10%,#e0e7ef);
+}
+.query-box{
+  border-color:color-mix(in srgb,var(--accent) 14%,#dce4ee);
+}
