@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 const state = {
   dataset:null, topics:[], book:null, parent:null, selected:null,
-  notes:new Map(), sticky:null
+  notes:new Map(), seen:new Set(), sticky:null
 };
 
 function el(tag, className, text) {
@@ -31,6 +31,7 @@ function url(path,params){
 
 function noteId(type,key){return type+"\n"+key;}
 function noteFor(type,key){return state.notes.get(noteId(type,key))||"";}
+function isSeen(type,key){return state.seen.has(noteId(type,key));}
 function addLines(parent,items){
   clear(parent);
   const list=el("ul","scan-list");
@@ -42,7 +43,8 @@ function syncSticky(node){
   node.querySelector(":scope > .sticky-badge")?.remove();
   const note=noteFor(type,key);
   node.classList.toggle("noted",!!note);
-  node.title=note ? note : "Right-click to add a personal note";
+  node.classList.toggle("seen",isSeen(type,key));
+  node.title=note ? note : (isSeen(type,key)?"Encountered · right-click to add a note":"Right-click to add a personal note");
   if(note){
     const badge=el("span","sticky-badge","▰");
     badge.title=note;
@@ -103,13 +105,33 @@ async function saveSticky(remove=false){
 function updateNoteCounts(){
   const chapterNotes=[...state.notes.keys()].filter(x=>x.startsWith("chapter\n")).length;
   const termNotes=[...state.notes.keys()].filter(x=>x.startsWith("term\n")).length;
+  const chapterSeen=[...state.seen].filter(x=>x.startsWith("chapter\n")).length;
+  const termSeen=[...state.seen].filter(x=>x.startsWith("term\n")).length;
   const chapters=state.book?.chapters?.length||0;
-  $("chapter-count").textContent=chapters+" parts"+(chapterNotes?" · "+chapterNotes+" noted":"");
-  $("topic-count").textContent=state.topics.length+" entries"+(termNotes?" · "+termNotes+" noted":"");
+  $("chapter-count").textContent=chapters+" parts"+(chapterSeen?" · "+chapterSeen+" seen":"")+(chapterNotes?" · "+chapterNotes+" noted":"");
+  $("topic-count").textContent=state.topics.length+" entries"+(termSeen?" · "+termSeen+" seen":"")+(termNotes?" · "+termNotes+" noted":"");
 }
-async function loadNotes(){
-  const data=await api(url("/api/notes",{dataset:state.dataset}));
-  state.notes=new Map((data.notes||[]).map(n=>[noteId(n.target_type,n.target_key),n.note]));
+async function markSeen(type,key,node){
+  if(!state.dataset||isSeen(type,key)) return;
+  state.seen.add(noteId(type,key));
+  if(node) syncSticky(node);
+  updateNoteCounts();
+  try{
+    await api("/api/seen",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({dataset:state.dataset,target_type:type,target_key:key})});
+  }catch(e){
+    state.seen.delete(noteId(type,key));
+    if(node) syncSticky(node);
+    updateNoteCounts();
+  }
+}
+async function loadReaderState(){
+  const [notesData,seenData]=await Promise.all([
+    api(url("/api/notes",{dataset:state.dataset})),
+    api(url("/api/seen",{dataset:state.dataset}))
+  ]);
+  state.notes=new Map((notesData.notes||[]).map(n=>[noteId(n.target_type,n.target_key),n.note]));
+  state.seen=new Set((seenData.seen||[]).map(n=>noteId(n.target_type,n.target_key)));
 }
 
 async function loadDatasets(){
@@ -138,7 +160,7 @@ async function chooseDataset(ds){
   const [indexData,bookData]=await Promise.all([
     api(url("/api/index",{dataset:ds.id})),
     api(url("/api/book",{dataset:ds.id})),
-    loadNotes()
+    loadReaderState()
   ]);
   state.topics=indexData.topics;
   state.book=bookData;
@@ -184,6 +206,7 @@ function renderChapters(){
     text.append(el("small",null,(sub?sub+" · ":"")+chapter.source_count+" source messages"));
     item.prepend(n,text);
     item.onclick=async()=>{
+      markSeen("chapter",chapter.key,item);
       try{
         notice("Opening "+chapter.title+". The heading is a useful region, not a rigid taxonomy.");
         const data=await api(url("/api/chapter",{dataset:state.dataset,key:chapter.key}));
@@ -206,6 +229,7 @@ function renderTopics(){
     body.append(el("small",null,topic.df+" source messages · "+topic.kind));
     item.prepend(body);
     item.onclick=async()=>{
+      markSeen("term",topic.term,item);
       try{
         notice("Opening glossary entry: "+topic.term);
         const data=await api(url("/api/term",{dataset:state.dataset,term:topic.term}));
@@ -237,6 +261,7 @@ function showEvidence(messages,title){
                       card.querySelector(".sticky-badge"));
     card.insertBefore(el("div","id","message:"+msg.id),card.querySelector(".sticky-badge"));
     card.onclick=async()=>{
+      markSeen("message",msg.id,card);
       document.querySelectorAll(".message").forEach(x=>x.classList.remove("selected"));
       card.classList.add("selected");
       try{
