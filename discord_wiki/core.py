@@ -124,6 +124,11 @@ CREATE TABLE IF NOT EXISTS term_refs (
  PRIMARY KEY(dataset_id,term,message_id)
 );
 CREATE INDEX IF NOT EXISTS refs_term ON term_refs(dataset_id,term);
+CREATE TABLE IF NOT EXISTS notes (
+ dataset_id TEXT NOT NULL, target_type TEXT NOT NULL, target_key TEXT NOT NULL,
+ note TEXT NOT NULL, updated_at TEXT NOT NULL,
+ PRIMARY KEY(dataset_id,target_type,target_key)
+);
 """
 
 
@@ -277,6 +282,38 @@ class Library:
                WHERE r.dataset_id=? AND r.term=? ORDER BY m.ordinal LIMIT ?""",
             (did,term,min(100,limit))).fetchall()
         return [self.message(did, r["id"]) for r in rows]
+
+    def notes(self, did):
+        return [dict(r) for r in self.db.execute(
+            """SELECT target_type,target_key,note,updated_at FROM notes
+               WHERE dataset_id=? ORDER BY updated_at DESC""", (did,))]
+
+    def save_note(self, did, target_type, target_key, note):
+        if not self.db.execute("SELECT 1 FROM datasets WHERE id=?", (did,)).fetchone():
+            raise ValueError("Unknown imported dataset.")
+        target_type = str(target_type or "").strip()
+        target_key = str(target_key or "").strip()
+        note = str(note or "").strip()
+        if target_type not in {"chapter", "term", "message"}:
+            raise ValueError("Unsupported note target.")
+        if not target_key or len(target_key) > 300:
+            raise ValueError("Invalid note target.")
+        if len(note) > 4000:
+            raise ValueError("Notes are limited to 4,000 characters.")
+        with self.db:
+            if note:
+                self.db.execute(
+                    """INSERT INTO notes(dataset_id,target_type,target_key,note,updated_at)
+                       VALUES (?,?,?,?,?)
+                       ON CONFLICT(dataset_id,target_type,target_key)
+                       DO UPDATE SET note=excluded.note,updated_at=excluded.updated_at""",
+                    (did, target_type, target_key, note,
+                     datetime.now(timezone.utc).isoformat()))
+            else:
+                self.db.execute(
+                    "DELETE FROM notes WHERE dataset_id=? AND target_type=? AND target_key=?",
+                    (did, target_type, target_key))
+        return {"target_type": target_type, "target_key": target_key, "note": note}
 
     def search(self, did, question, limit=12):
         """Retrieve a broad lexical pool, then prefer multi-term evidence.
