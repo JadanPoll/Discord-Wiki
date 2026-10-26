@@ -77,6 +77,9 @@ RESEARCH_RE = re.compile(
 CODE_RE = re.compile(
     r"(^|\n)\s*(?:\$|>|python\b|pip\b|git\b|sudo\b|npm\b|cargo\b|gcc\b|"
     r"cmake\b|make\b|SELECT\b|INSERT\b)", re.I)
+ADMIN_RE = re.compile(
+    r"\b(permission|permissions|role|roles|channel|moderator|verified|verification|"
+    r"post images|post videos|server rules|server rule)\b", re.I)
 
 
 def profile(library, did):
@@ -231,7 +234,16 @@ def chapters(library, did, limit=8):
     candidates = []
     for seed in seeds:
         seed_ids = refs.get(seed["term"], set())
-        if not seed_ids:
+        # Two mentions are useful glossary evidence but usually too little to
+        # deserve scarce contents-page space. Rare material remains reachable in
+        # the glossary and one-off artifact chapter.
+        if len(seed_ids) < 3:
+            continue
+        seed_rows = [library.message(did, mid) for mid in seed_ids]
+        distinct_authors = len({m["author"] for m in seed_rows if m})
+        admin_fraction = sum(bool(ADMIN_RE.search((m or {}).get("content", "")))
+                             for m in seed_rows) / max(1, len(seed_rows))
+        if distinct_authors < 2 or admin_fraction >= .5:
             continue
         seed_words = set(seed["term"].split())
         related = []
@@ -267,9 +279,16 @@ def chapters(library, did, limit=8):
 
     candidates.sort(key=lambda x: (-x["_strength"], -x["source_count"], x["title"]))
     chosen = []
+    def title_signature(title):
+        return tuple(w[:-1] if len(w) > 4 and w.endswith("s") else w
+                     for w in tokens(title))
+
     for candidate in candidates:
         if len(chosen) >= limit:
             break
+        if any(title_signature(candidate["title"]) == title_signature(prior["title"])
+               for prior in chosen):
+            continue
         if any(len(candidate["_ids"] & prior["_ids"]) /
                max(1, min(len(candidate["_ids"]), len(prior["_ids"]))) >= .72
                for prior in chosen):
