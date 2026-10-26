@@ -129,6 +129,11 @@ CREATE TABLE IF NOT EXISTS notes (
  note TEXT NOT NULL, updated_at TEXT NOT NULL,
  PRIMARY KEY(dataset_id,target_type,target_key)
 );
+CREATE TABLE IF NOT EXISTS seen (
+ dataset_id TEXT NOT NULL, target_type TEXT NOT NULL, target_key TEXT NOT NULL,
+ seen_at TEXT NOT NULL,
+ PRIMARY KEY(dataset_id,target_type,target_key)
+);
 """
 
 
@@ -314,6 +319,30 @@ class Library:
                     "DELETE FROM notes WHERE dataset_id=? AND target_type=? AND target_key=?",
                     (did, target_type, target_key))
         return {"target_type": target_type, "target_key": target_key, "note": note}
+
+    def seen(self, did):
+        return [dict(r) for r in self.db.execute(
+            """SELECT target_type,target_key,seen_at FROM seen
+               WHERE dataset_id=? ORDER BY seen_at DESC""", (did,))]
+
+    def mark_seen(self, did, target_type, target_key):
+        if not self.db.execute("SELECT 1 FROM datasets WHERE id=?", (did,)).fetchone():
+            raise ValueError("Unknown imported dataset.")
+        target_type = str(target_type or "").strip()
+        target_key = str(target_key or "").strip()
+        if target_type not in {"chapter", "term", "message"} or not target_key:
+            raise ValueError("Invalid seen target.")
+        if len(target_key) > 300:
+            raise ValueError("Invalid seen target.")
+        now = datetime.now(timezone.utc).isoformat()
+        with self.db:
+            self.db.execute(
+                """INSERT INTO seen(dataset_id,target_type,target_key,seen_at)
+                   VALUES (?,?,?,?)
+                   ON CONFLICT(dataset_id,target_type,target_key)
+                   DO UPDATE SET seen_at=excluded.seen_at""",
+                (did, target_type, target_key, now))
+        return {"target_type": target_type, "target_key": target_key, "seen_at": now}
 
     def search(self, did, question, limit=12):
         """Retrieve a broad lexical pool, then prefer multi-term evidence.
