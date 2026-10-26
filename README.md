@@ -27,7 +27,7 @@ Optional installation for the \`discord-wiki\` command:
 
 - Import authorized Discord JSON exports (flat message arrays and two common object-wrapped shapes) up to 100 MB each. They are stored in a local SQLite database; repeated identical files are deduplicated by SHA-256.
 - Preserve message identity, timestamp, author, reply reference, channel identity and attachment **names**; keep chronological source context recoverable.
-- Generate a **provisional book-style index**: useful repeated words and adjacent two-word phrases, with counts and exact message backreferences.
+- Compile a **book-oriented reading surface**: a recommended book/reference projection, a small chapter-like contents page, a deliberately messy but useful glossary, and exact source backreferences. The projection is an interface recommendation, not a claim about the community.
 - Search with SQLite FTS5 (or a slower substring fallback). Relevance is a way to select evidence, not a truth or expertise claim.
 - Open a question-conditioned **RSM investigation certificate**: original goal, scope, routed task, selected message evidence, coverage boundary, next question and stopping rule.
 - Save compact investigation histories locally; explicitly pick a previous investigation when continuing its parent goal.
@@ -43,6 +43,31 @@ Configure one API key in the **local machine's environment** before launching. N
     python -m discord_wiki
 
 This uses an OpenAI-compatible HTTPS chat-completions API by default. \`DISCORD_WIKI_LLM_URL\` changes the endpoint and \`DISCORD_WIKI_MODEL\` selects the model. Check your provider's compatibility and privacy policy first. Tick the model checkbox per question to send up to twelve bounded source excerpts. The static index and evidence retrieval use no model calls. If no key is configured or a request fails, the UI reports the limitation without inventing a synthesis.
+
+## The book asymptote
+
+The UI is designed by asking: **if an excellent editor had to turn this Discord into
+the most useful possible technical book/reference, what would the reader need in
+order to act on an intention immediately?**
+
+Different corpora can want different reading topologies. Troubleshooting-heavy
+channels may look like a **casebook + handbook**; showcase channels like an
+**atlas + project book**; exploratory technical communities like **research notes
++ sourcebook**. The app infers only a cheap provisional projection from corpus
+structure, then exposes:
+
+1. a cover-like reading promise,
+2. a small contents page,
+3. a messy but useful glossary,
+4. the Librarian for question-conditioned investigation,
+5. one-click descent to original source messages.
+
+This is intentionally not a perfect taxonomy. In REM terms, false-positive
+glossary entries are usually cheap while invisible valuable material is expensive.
+The system should spend complexity only when a demonstrated failure materially
+blocks learning or investigation.
+
+See [The Book Asymptote](docs/BOOK_ASYMPTOTE.md) for the design contract.
 
 ## Why this architecture (RSM / REM / FKEN)
 
