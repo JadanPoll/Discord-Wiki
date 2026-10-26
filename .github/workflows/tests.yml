@@ -120,7 +120,7 @@ jobs:
           for stem in minecraft_redstone vrhardwaredev rpishowcase; do
             python tools/static_feature_audit.py .corpus-report/sources/$stem.json --pretty > .corpus-report/$stem.static-audit.json
             echo "## STATIC FEATURE AUDIT $stem"
-            python -c 'import json,sys; d=json.load(open(sys.argv[1])); print("Current coverage:",d["current_coverage"]); print("Hypotheses:",[(x["hypothesis"],x["coverage"],x["feature_objects"]) for x in d["hypotheses"]]); print("Missing:",[x["term"] for x in d["missing_top"][:15]])' ".corpus-report/$stem.static-audit.json"
+            python -c 'import json,sys; d=json.load(open(sys.argv[1])); print("Evaluated:",d["evaluated_coverage"],"Surfaced:",d["surfaced_coverage"]); print("Verdict:",d["verdict"]); print("Hypotheses:",[(x["hypothesis"],x["coverage"],x["feature_objects"]) for x in d["hypotheses"]]); print("Static misses:",[x["term"] for x in d["missing_from_static_evaluation"][:15]]); print("Not surfaced:",[x["term"] for x in d["not_promoted_to_reader_index"][:15]])' ".corpus-report/$stem.static-audit.json"
           done
       - name: Prepare review artifacts
         run: |
