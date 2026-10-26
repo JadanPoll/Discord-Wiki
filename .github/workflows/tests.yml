@@ -92,6 +92,29 @@ jobs:
               Path(".corpus-report",stem+".book.json").write_text(json.dumps(view,indent=2),encoding="utf-8")
               lib.close()
           PY
+      - name: Inspect Librarian static-to-dynamic routing on real questions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from discord_wiki.core import Library
+          from discord_wiki.librarian import Librarian
+          cases = {
+              "minecraft_redstone": "How was the compact 7-segment display made?",
+              "vrhardwaredev": "How can Lighthouse pose and finger rotations combine in a SteamVR driver?",
+              "rpishowcase": "How does the Home Assistant computer museum tour work?",
+          }
+          for stem, question in cases.items():
+              lib=Library(":memory:")
+              did=lib.import_bytes(Path(".corpus-report/sources",stem+".json").read_bytes(),stem+".json")["id"]
+              result=Librarian(lib).investigate(did,question,reason=False)
+              print("## LIBRARIAN",stem)
+              print("QUESTION:",question)
+              print("BOOK ENTRY:",[x["title"] for x in result["orientation"]])
+              print("LEARNED:",result["learned_terms"])
+              for i,msg in enumerate(result["evidence"][:6],1):
+                  print(i,msg["id"],repr(msg["content"][:150]))
+              lib.close()
+          PY
       - name: Prepare review artifacts
         run: |
           mkdir -p quality-report
