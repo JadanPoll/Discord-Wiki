@@ -4,7 +4,7 @@
 
 Discord-Wiki takes a Discord export and turns it into a spatial reference surface: **Key Contents**, a **Glossary**, source-backed browsing, nearby conversation context, questions, sticky notes, and a quiet record of what you have already seen.
 
-![Discord-Wiki community notebook](docs/assets/discord-wiki-hero.jpg)
+![Discord-Wiki — turn a community into a browsable notebook](docs/assets/discord-wiki-community-notebook-showcase.png)
 
 ## The 30-second explanation
 
@@ -18,6 +18,8 @@ Pick a community. Then:
 6. **Leave sticky notes** and let the notebook remember what you have already visited.
 
 The interface is deliberately closer to a **book + notebook + research desk** than to Discord search.
+
+![Discord-Wiki — spatial flow from community to contents, questions, sources, and notes](docs/assets/discord-wiki-community-knowledge-journey.png)
 
 The user acts at the intention level — *browse this, find this, ask this, remember this* — while the program handles indexing, retrieval, context expansion, provenance, and optional model use.
 
