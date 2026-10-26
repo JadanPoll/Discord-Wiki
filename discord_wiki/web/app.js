@@ -278,6 +278,8 @@ async function showContext(mid,radius=3){
   state.selected=mid;
   const data=await api(url("/api/context",{dataset:state.dataset,message:mid,radius}));
   const pane=$("source-detail");clear(pane);
+  const sourcePane=document.querySelector(".source-pane");
+  if(sourcePane) sourcePane.scrollTop=0;
   if(!data.messages.length){
     pane.append(el("div","empty","Original message was not found."));return;
   }
