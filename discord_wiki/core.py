@@ -21,7 +21,7 @@ STOP = set("""a about above after again against all also am an and any are arent
 
 def tokens(text: str) -> list[str]:
     cleaned = URL.sub(" ", text or "").lower()
-    return [m.group() for m in TOKEN.finditer(cleaned)]
+    return [m.group().strip("._-") for m in TOKEN.finditer(cleaned)]
 
 
 def good_token(t: str) -> bool:
