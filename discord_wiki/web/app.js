@@ -199,16 +199,16 @@ function field(parent,label,value,cls="") {
 }
 function displayCertificate(result) {
   const pane=$("certificate");clear(pane);pane.hidden=false;
-  pane.append(el("h3",null,"RSM investigation certificate · "+result.mode));
-  field(pane,"Root purpose",result.root_goal);
-  field(pane,"Evidence boundary",result.boundary);
-  field(pane,"Coverage",result.coverage==="no_match"?"No matches; do not infer contradiction":"Candidate discussion evidence, not verified conclusions");
+  pane.append(el("h3",null,"Investigation trail · "+result.mode));
+  field(pane,"What you are trying to understand",result.root_goal);
+  field(pane,"What this search covered",result.boundary);
+  field(pane,"Source status",result.coverage==="no_match"?"No matches; this does not mean the idea is false":"Relevant discussion found; participant claims are not automatically verified");
   if(result.orientation?.length) field(pane,"Nearby parts of the book",result.orientation.map(x=>x.title).join(" · "));
   if(result.learned_terms?.length) field(pane,"The discussion introduced",result.learned_terms.join(" · "));
   if(result.interpretation) field(pane,"Qualified model interpretation",result.interpretation,"interpretation");
   if(result.model_error) field(pane,"Model",result.model_error);
-  field(pane,"Next consequential question",result.next_question);
-  field(pane,"Stopping rule",result.stopping_condition);
+  field(pane,"Useful next question",result.next_question);
+  field(pane,"When enough is enough",result.stopping_condition);
 
 }
 $("topic-filter").addEventListener("input",renderTopics);
