@@ -72,10 +72,30 @@ jobs:
                       print(i,msg["id"],repr(msg["content"][:150]))
               lib.close()
           PY
+      - name: Inspect compiled book shapes on real Discord corpora
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from discord_wiki.core import Library
+          from discord_wiki import book
+          import json
+          for stem in ("minecraft_redstone","vrhardwaredev","rpishowcase"):
+              lib=Library(":memory:")
+              did=lib.import_bytes(Path(".corpus-report/sources",stem+".json").read_bytes(),stem+".json")["id"]
+              view=book.view(lib,did)
+              print("## BOOK",stem)
+              print("TYPE:",view["profile"]["headline"])
+              print("TOPOLOGY:",view["profile"]["topology"])
+              print("WHY:",view["profile"]["why"])
+              for i,ch in enumerate(view["chapters"],1):
+                  print(f"  {i}. {ch['title']} :: {ch['subtopics'][:4]} ({ch['source_count']} msgs)")
+              Path(".corpus-report",stem+".book.json").write_text(json.dumps(view,indent=2),encoding="utf-8")
+              lib.close()
+          PY
       - name: Prepare review artifacts
         run: |
           mkdir -p quality-report
-          cp .corpus-report/*.index.json quality-report/
+          cp .corpus-report/*.index.json .corpus-report/*.book.json quality-report/
       - uses: actions/upload-artifact@v4
         with:
           name: real-discord-index-review
