@@ -337,9 +337,18 @@ async function showContext(mid,radius=3){
     const row=noteable(el("div","context-item"+(msg.id===mid?" active":"")),
       "message",msg.id,(msg.author||"unknown")+" · "+(msg.content||"[attachment]").slice(0,70));
     const textLength=(msg.content||"").trim().length;
-    const density=Math.max(.15,Math.min(2.4,textLength/densityReference));
-    const alpha=msg.id===mid ? .045 : Math.min(.16,.025+.055*Math.log2(1+density));
+    const density=Math.max(.05,Math.min(4,textLength/densityReference));
+    // Regularized visual multiplier: discrete bands stay distinguishable at a
+    // glance, while the cap prevents long messages from dominating the pane.
+    let level=0;
+    if(density>=.55) level=1;
+    if(density>=.90) level=2;
+    if(density>=1.35) level=3;
+    if(density>=2.00) level=4;
+    const baseAlpha=.026, shadeMultiplier=1.72;
+    const alpha=msg.id===mid ? .030 : Math.min(.23,baseAlpha*Math.pow(shadeMultiplier,level));
     row.style.setProperty("--context-alpha",alpha.toFixed(3));
+    row.dataset.densityLevel=String(msg.id===mid?0:level);
     const label=el("div");
     label.append(el("strong",null,msg.author));
     label.append(el("span","timestamp",msg.ts?new Date(msg.ts).toLocaleString():"Time unavailable"));
@@ -382,19 +391,51 @@ function field(parent,label,value,cls=""){
   line.append(body);parent.append(line);
 }
 function displayCertificate(result){
-  const pane=$("certificate");clear(pane);pane.hidden=false;
-  pane.append(el("h3",null,"What we found"));
-  field(pane,"Your question",result.root_goal);
-  field(pane,"Looked through",result.boundary);
-  field(pane,"Sources",result.coverage==="no_match"?
-    "No matches; this does not mean the idea is false":
-    "Relevant discussion found; participant claims are not automatically verified");
-  if(result.orientation?.length) field(pane,"Related sections",result.orientation.map(x=>x.title));
-  if(result.learned_terms?.length) field(pane,"Useful terms",result.learned_terms);
-  if(result.interpretation) field(pane,"AI summary",result.interpretation,"interpretation");
-  if(result.model_error) field(pane,"Model",result.model_error);
-  field(pane,"You could ask next",result.next_question);
-  field(pane,"Enough for now when",result.stopping_condition);
+  const pane=$("certificate");clear(pane);
+  const hasSources=(result.evidence||[]).length>0;
+  const related=(result.orientation||[]).map(x=>x.title).filter(Boolean);
+  const hasSummary=!!result.interpretation;
+  const hasModelError=!!result.model_error;
+
+  // No internal reasoning scaffold is shown merely because it exists.
+  if(!hasSources&&!hasSummary&&!hasModelError){
+    pane.hidden=true;
+    return;
+  }
+
+  pane.hidden=false;
+  pane.className="certificate finding-card";
+  pane.append(el("h3",null,"Found in this community"));
+
+  const summary=el("div","finding-summary");
+  summary.append(el("strong",null,hasSources?
+    (result.evidence.length+" source"+(result.evidence.length===1?"":"s")):
+    "No close sources found"));
+  summary.append(el("span",null,hasSources?
+    "Open any source to see the original conversation.":
+    "Try a different wording or browse Key Contents."));
+  pane.append(summary);
+
+  if(related.length){
+    const block=el("div","finding-block");
+    block.append(el("label",null,"Related"));
+    const chips=el("div","finding-chips");
+    related.slice(0,4).forEach(term=>chips.append(el("span","finding-chip",term)));
+    block.append(chips);
+    pane.append(block);
+  }
+
+  if(hasSummary){
+    const block=el("div","finding-block ai-finding");
+    block.append(el("label",null,"AI summary"));
+    block.append(el("div","finding-text",result.interpretation));
+    pane.append(block);
+  }else if(hasModelError){
+    const block=el("div","finding-block model-note");
+    block.append(el("label",null,"AI"));
+    block.append(el("div","finding-text","AI couldn't add a summary. The source messages are still available below."));
+    pane.append(block);
+  }
 }
 
 applyTheme(localStorage.getItem("discordWikiTheme")||"paper");
