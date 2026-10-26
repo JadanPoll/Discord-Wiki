@@ -203,6 +203,8 @@ function displayCertificate(result) {
   field(pane,"Root purpose",result.root_goal);
   field(pane,"Evidence boundary",result.boundary);
   field(pane,"Coverage",result.coverage==="no_match"?"No matches; do not infer contradiction":"Candidate discussion evidence, not verified conclusions");
+  if(result.orientation?.length) field(pane,"Nearby parts of the book",result.orientation.map(x=>x.title).join(" · "));
+  if(result.learned_terms?.length) field(pane,"The discussion introduced",result.learned_terms.join(" · "));
   if(result.interpretation) field(pane,"Qualified model interpretation",result.interpretation,"interpretation");
   if(result.model_error) field(pane,"Model",result.model_error);
   field(pane,"Next consequential question",result.next_question);
