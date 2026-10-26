@@ -4,6 +4,9 @@
 
 Discord-Wiki takes a Discord export and turns it into a spatial reference surface: **Key Contents**, a **Glossary**, source-backed browsing, nearby conversation context, questions, sticky notes, and a quiet record of what you have already seen.
 
+
+![Discord-Wiki — turn a community into a browsable notebook](docs/assets/discord-wiki-community-notebook-showcase-live.png)
+
 ![Discord-Wiki — turn a community into a browsable notebook](docs/assets/discord-wiki-community-notebook-showcase.png)
 
 ## The 30-second explanation
