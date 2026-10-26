@@ -39,6 +39,39 @@ jobs:
             echo "## $stem"
             python -c 'import json,sys; d=json.load(open(sys.argv[1])); print("Messages:",d["messages"]); print("Top subjects:",[x["term"] for x in d["top_terms"][:25]])' ".corpus-report/$stem.index.json"
           done
+      - name: Inspect natural investigation questions against real messages
+        run: |
+          python - <<'PY'
+          from discord_wiki.core import Library
+          from pathlib import Path
+          cases = {
+              "minecraft_redstone": [
+                  "Why does the daylight detector activate in daytime when the block is above it?",
+                  "How is the compact 7-segment binary display constructed?",
+                  "Why is the sugarcane farm not growing up to its observers?",
+              ],
+              "vrhardwaredev": [
+                  "How can Lighthouse pose and finger rotations combine in a SteamVR driver?",
+                  "How much does DIY eye tracking hardware cost?",
+                  "What causes IMU drift for homemade VR trackers?",
+              ],
+              "rpishowcase": [
+                  "How does Home Assistant automate the computer museum's Amazon Dash button tour?",
+                  "Who built an MQTT Ambilight project using a Raspberry Pi?",
+                  "What did the PyPoker author build and design?",
+              ],
+          }
+          for stem, questions in cases.items():
+              lib = Library(":memory:")
+              did = lib.import_bytes(Path(".corpus-report/sources",stem+".json").read_bytes(),stem+".json")["id"]
+              print("## QUESTION AUDIT",stem)
+              for question in questions:
+                  hits = lib.search(did,question,6)
+                  print("QUESTION:",question)
+                  for i, msg in enumerate(hits[:6],1):
+                      print(i,msg["id"],repr(msg["content"][:150]))
+              lib.close()
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: real-discord-index-review
