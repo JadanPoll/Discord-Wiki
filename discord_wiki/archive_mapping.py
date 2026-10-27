@@ -222,7 +222,13 @@ def _candidate_fields(records: list[Any]) -> tuple[list[dict], dict, dict]:
     for semantic in SEMANTICS:
         scored = []
         for path, values in paths.items():
-            score = _path_name_score(semantic, path) + _value_fit(semantic, values)
+            name_score = _path_name_score(semantic, path)
+            # Message text has enough intrinsic shape to help identify an unknown
+            # field. Optional metadata does not: a random string must never become
+            # an inferred author, timestamp, ID, reply, or channel.
+            if semantic != "content" and name_score == 0:
+                continue
+            score = name_score + _value_fit(semantic, values)
             if score:
                 scored.append((score, path))
         scored.sort(key=lambda item: (-item[0], _norm_path(item[1])))
