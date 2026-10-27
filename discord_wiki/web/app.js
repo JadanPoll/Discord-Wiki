@@ -50,7 +50,7 @@ function hueFor(text){
 function renderCommunitySwitcher(){
   const ds=state.datasets.find(x=>x.id===state.dataset);
   $("community-name").textContent=ds?ds.name:"Add a community";
-  $("community-meta").textContent=ds?ds.message_count.toLocaleString()+" messages":"Choose a Discord export";
+  $("community-meta").textContent=ds?ds.message_count.toLocaleString()+" messages":"Choose an archive";
   $("community-avatar").textContent=ds?initials(ds.name):"+";
   $("community-avatar").style.setProperty("--avatar-hue",ds?hueFor(ds.name):220);
 }
@@ -381,16 +381,22 @@ function showEvidence(messages,title){
     return;
   }
   for(const msg of messages){
+    const hasAuthor=!!msg.author&&msg.author!=="unknown";
+    const hasTime=!!msg.ts;
     const card=noteable(el("button","message"),"message",msg.id,
-      (msg.author||"unknown")+" · "+(msg.content||"[attachment]").slice(0,70));
-    const head=el("div","message-head");
-    head.append(el("strong",null,msg.author||"unknown"));
-    head.append(el("span",null,msg.ts?new Date(msg.ts).toLocaleString():"Time unavailable"));
-    card.prepend(head);
+      (hasAuthor?msg.author:"Source")+" · "+(msg.content||"[attachment]").slice(0,70));
+    if(hasAuthor||hasTime){
+      const head=el("div","message-head");
+      if(hasAuthor)head.append(el("strong",null,msg.author));
+      if(hasTime)head.append(el("span",null,new Date(msg.ts).toLocaleString()));
+      card.prepend(head);
+    }
     const content=msg.content||((msg.attachments||[]).length?"[attachment only]":"[empty message]");
     card.insertBefore(el("pre",null,content.length>850?content.slice(0,850)+"…":content),
                       card.querySelector(".sticky-badge"));
-    card.insertBefore(el("div","id","message:"+msg.id),card.querySelector(".sticky-badge"));
+    if(!String(msg.id).startsWith("synthetic:")){
+      card.insertBefore(el("div","id","source:"+msg.id),card.querySelector(".sticky-badge"));
+    }
     card.onclick=async()=>{
       markSeen("message",msg.id,card);
       document.querySelectorAll(".message").forEach(x=>x.classList.remove("selected"));
@@ -441,15 +447,22 @@ async function showContext(mid,radius=3){
     const alpha=msg.id===mid ? .030 : Math.min(.23,baseAlpha*Math.pow(shadeMultiplier,level));
     row.style.setProperty("--context-alpha",alpha.toFixed(3));
     row.dataset.densityLevel=String(msg.id===mid?0:level);
-    const label=el("div");
-    label.append(el("strong",null,msg.author));
-    label.append(el("span","timestamp",msg.ts?new Date(msg.ts).toLocaleString():"Time unavailable"));
-    row.prepend(label);
+    const hasAuthor=!!msg.author&&msg.author!=="unknown";
+    const hasTime=!!msg.ts;
+    if(hasAuthor||hasTime){
+      const label=el("div");
+      if(hasAuthor)label.append(el("strong",null,msg.author));
+      if(hasTime)label.append(el("span","timestamp",new Date(msg.ts).toLocaleString()));
+      row.prepend(label);
+    }
     row.insertBefore(el("pre",null,msg.content||"[no text]"),row.querySelector(".sticky-badge"));
-    row.insertBefore(el("div","metadata","Original ID: "+msg.id+
-      (msg.reply_to?" · Replies to: "+msg.reply_to:"")+
-      (msg.attachments?.length?" · Attachments: "+msg.attachments.join(", "):"")),
-      row.querySelector(".sticky-badge"));
+    const metadata=[];
+    if(!String(msg.id).startsWith("synthetic:"))metadata.push("Source ID: "+msg.id);
+    if(msg.reply_to)metadata.push("Replies to: "+msg.reply_to);
+    if(msg.attachments?.length)metadata.push("Attachments: "+msg.attachments.join(", "));
+    if(metadata.length){
+      row.insertBefore(el("div","metadata",metadata.join(" · ")),row.querySelector(".sticky-badge"));
+    }
     pane.append(row);
   }
 }
