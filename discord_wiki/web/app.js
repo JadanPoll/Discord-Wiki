@@ -2,7 +2,8 @@
 const $ = id => document.getElementById(id);
 const state = {
   dataset:null, datasets:[], topics:[], book:null, parent:null, selected:null,
-  notes:new Map(), seen:new Set(), sticky:null, theme:"paper"
+  notes:new Map(), seen:new Set(), sticky:null, theme:"paper",
+  pendingImport:null
 };
 
 function el(tag, className, text) {
@@ -78,6 +79,97 @@ function toggleMenu(id,buttonId){
   $("theme-menu").hidden=true;
   if(opening)menu.hidden=false;
   if(buttonId)$(buttonId).setAttribute("aria-expanded",String(opening));
+}
+
+const MAP_SEMANTICS=["content","attachments","author","timestamp","id","reply_to","channel_id"];
+function mapValue(path){return path?JSON.stringify(path):"";}
+function currentMapCandidate(){
+  if(!state.pendingImport)return null;
+  return state.pendingImport.inspection.candidates[Number($("mapper-records").value)||0];
+}
+function fillMapSelect(id,candidate,semantic){
+  const select=$(id);clear(select);
+  select.append(el("option",null,"Not included"));
+  select.options[0].value="";
+  for(const field of candidate.fields||[]){
+    const option=el("option",null,field.label);
+    option.value=mapValue(field.path);
+    select.append(option);
+  }
+  const suggested=candidate.suggested?.[semantic];
+  if(suggested) select.value=mapValue(suggested);
+}
+function renderMapCandidate(){
+  const candidate=currentMapCandidate();
+  if(!candidate)return;
+  fillMapSelect("map-content",candidate,"content");
+  fillMapSelect("map-attachments",candidate,"attachments");
+  fillMapSelect("map-author",candidate,"author");
+  fillMapSelect("map-timestamp",candidate,"timestamp");
+  fillMapSelect("map-id",candidate,"id");
+  fillMapSelect("map-reply_to",candidate,"reply_to");
+  fillMapSelect("map-channel_id",candidate,"channel_id");
+
+  const preview=$("mapper-preview");clear(preview);
+  preview.append(el("div","mapper-preview-title",
+    candidate.count.toLocaleString()+" records · "+(candidate.label||"Top level")));
+  for(const record of (candidate.preview||[]).slice(0,3)){
+    const card=el("div","mapper-sample");
+    for(const [key,value] of Object.entries(record).slice(0,7)){
+      const row=el("div","mapper-sample-row");
+      row.append(el("strong",null,key==="\$value"?"item":key));
+      row.append(el("span",null,value));
+      card.append(row);
+    }
+    preview.append(card);
+  }
+}
+function openImportMapper(file,inspection){
+  state.pendingImport={file,inspection};
+  const records=$("mapper-records");clear(records);
+  (inspection.candidates||[]).forEach((candidate,i)=>{
+    const option=el("option",null,
+      (candidate.label||"Top level")+" · "+candidate.count.toLocaleString()+" records");
+    option.value=String(i);
+    records.append(option);
+  });
+  records.value=String(inspection.recommended||0);
+  $("mapper-note").textContent=
+    "We can read "+file.name+", but its layout is unfamiliar. Match what you have; everything except text or attachments can be left out.";
+  renderMapCandidate();
+  $("import-mapper").hidden=false;
+}
+function closeImportMapper(){
+  $("import-mapper").hidden=true;
+  state.pendingImport=null;
+}
+function selectedPath(id){
+  const value=$(id).value;
+  return value?JSON.parse(value):null;
+}
+async function sendArchive(file,mapping=null){
+  const raw=await file.arrayBuffer();
+  const headers={
+    "Content-Type":file.type||"application/octet-stream",
+    "X-Filename":encodeURIComponent(file.name)
+  };
+  if(mapping) headers["X-Import-Mapping"]=encodeURIComponent(JSON.stringify(mapping));
+  const res=await fetch("/api/import",{method:"POST",headers,body:raw});
+  let body;
+  try{body=await res.json();}catch(_){throw new Error("Invalid server response");}
+  if(res.status===422&&body.mapping_required){
+    openImportMapper(file,body.inspection);
+    return null;
+  }
+  if(!res.ok)throw new Error(body.error||body.message||("HTTP "+res.status));
+  return body;
+}
+async function finishArchiveImport(result){
+  await loadDatasets();
+  const ds=(await api("/api/datasets")).datasets.find(d=>d.id===result.id);
+  if(ds)await chooseDataset(ds);
+  notice((result.cached?"Already added: ":"Added: ")+
+    result.count.toLocaleString()+" messages from "+result.name+".");
 }
 
 function noteId(type,key){return type+"\n"+key;}
@@ -448,6 +540,36 @@ document.querySelectorAll("[data-theme-choice]").forEach(button=>{
     $("theme-button").setAttribute("aria-expanded","false");
   };
 });
+$("mapper-records").addEventListener("change",renderMapCandidate);
+$("mapper-cancel").onclick=closeImportMapper;
+$("mapper-use").onclick=async()=>{
+  const pending=state.pendingImport;
+  const candidate=currentMapCandidate();
+  if(!pending||!candidate)return;
+  const fields={};
+  for(const semantic of MAP_SEMANTICS){
+    const path=selectedPath("map-"+semantic);
+    if(path)fields[semantic]=path;
+  }
+  if(!fields.content&&!fields.attachments){
+    notice("Choose message text or attachments. Everything else can be left out.",true);
+    return;
+  }
+  const mapping={record_path:candidate.record_path||[],fields};
+  $("mapper-use").disabled=true;
+  try{
+    $("import-mapper").hidden=true;
+    notice("Reading "+pending.file.name+" with your mapping…");
+    const result=await sendArchive(pending.file,mapping);
+    if(result){
+      state.pendingImport=null;
+      await finishArchiveImport(result);
+    }
+  }catch(e){
+    $("import-mapper").hidden=false;
+    notice(e.message,true);
+  }finally{$("mapper-use").disabled=false;}
+};
 $("topic-filter").addEventListener("input",renderTopics);
 $("sticky-save").onclick=()=>saveSticky(false);
 $("sticky-remove").onclick=()=>saveSticky(true);
@@ -472,15 +594,10 @@ $("upload").addEventListener("change",async ev=>{
   const file=ev.target.files?.[0];
   if(!file)return;
   try{
-    notice("Adding "+file.name+"…");
+    notice("Reading "+file.name+"…");
     $("upload").disabled=true;
-    const raw=await file.arrayBuffer();
-    const result=await api("/api/import",{method:"POST",
-      headers:{"Content-Type":"application/json","X-Filename":encodeURIComponent(file.name)},body:raw});
-    await loadDatasets();
-    const ds=(await api("/api/datasets")).datasets.find(d=>d.id===result.id);
-    if(ds) await chooseDataset(ds);
-    notice((result.cached?"Already added: ":"Added: ")+result.count.toLocaleString()+" messages from "+result.name);
+    const result=await sendArchive(file);
+    if(result)await finishArchiveImport(result);
   }catch(e){notice(e.message,true);}
   finally{$("upload").disabled=false;ev.target.value="";}
 });
