@@ -416,11 +416,12 @@ def normalize_archive(raw: bytes, filename: str, mapping: dict | None = None):
 
         attachments = _attachment_names(_get(record, attachment_path)) if attachment_path else []
         original_id = _get(record, fields.get("id"))
-        mid = str(original_id) if original_id not in (None, "") else hashlib.sha256(
+        mid = str(original_id) if original_id not in (None, "") else "synthetic:" + hashlib.sha256(
             (dataset_id + ":" + str(i)).encode()).hexdigest()[:20]
         if mid in seen:
             # Duplicate source IDs should not erase records; stabilize with position.
-            mid = hashlib.sha256((dataset_id + ":" + mid + ":" + str(i)).encode()).hexdigest()[:20]
+            mid = "synthetic:" + hashlib.sha256(
+                (dataset_id + ":" + mid + ":" + str(i)).encode()).hexdigest()[:20]
         seen.add(mid)
 
         reply = _get(record, fields.get("reply_to"))
