@@ -11,7 +11,7 @@ from pathlib import Path
 import threading
 from urllib.parse import parse_qs, unquote
 
-from discord_wiki.core import Library, MAX_IMPORT_BYTES
+from discord_wiki.core import Library, MAX_IMPORT_BYTES, ImportMappingRequired
 from discord_wiki import book
 from discord_wiki.librarian import Librarian
 
@@ -92,10 +92,17 @@ def _get(path, one):
 def _post(path, raw, headers):
     with _lock:
         if path == "/api/import":
-            name = unquote(headers.get("x-filename", "import.json"))
-            if not name.lower().endswith(".json"):
-                raise ValueError("Choose a Discord JSON export.")
-            return _json(_library.import_bytes(raw, Path(name).name))
+            name = unquote(headers.get("x-filename", "archive"))
+            mapping_header = headers.get("x-import-mapping")
+            mapping = json.loads(unquote(mapping_header)) if mapping_header else None
+            try:
+                return _json(_library.import_bytes(raw, Path(name).name, mapping))
+            except ImportMappingRequired as exc:
+                return _json({
+                    "mapping_required": True,
+                    "message": str(exc),
+                    "inspection": exc.inspection,
+                }, 422)
 
         payload = json.loads(raw or b"{}")
         if not isinstance(payload, dict):
