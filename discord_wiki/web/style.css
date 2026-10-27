@@ -222,3 +222,30 @@ html,body,.main{background:var(--central-bg)}
   outline:2px solid color-mix(in srgb,var(--accent) 65%,white);
   outline-offset:2px;
 }
+
+/* Import mapping is a repair surface, not a schema editor. */
+.mapper-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:24px;background:rgba(31,42,56,.28);backdrop-filter:blur(3px)}
+.mapper-backdrop[hidden]{display:none}
+.mapper-card{width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;background:#fff;border:1px solid color-mix(in srgb,var(--accent) 18%,#dfe5ec);border-radius:15px;padding:20px;box-shadow:0 28px 80px rgba(34,45,61,.24)}
+.mapper-card h2{margin:4px 0 6px;font-size:22px}
+.mapper-note{margin:0 0 16px;color:#66758a;font-size:12px;line-height:1.5}
+.mapper-row,.mapper-field{display:grid;gap:6px;color:#3d4e62;font-size:11px;font-weight:750}
+.mapper-row{grid-template-columns:150px 1fr;align-items:center;margin-bottom:14px}
+.mapper-row select,.mapper-field select{width:100%;border:1px solid #d8e0e8;border-radius:8px;background:#fff;padding:9px;color:#34465a;font:inherit;font-weight:600}
+.mapper-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.mapper-field small{color:#8793a2;font-size:10px;font-weight:500;line-height:1.35}
+.mapper-preview{border:1px solid #e1e6ec;border-radius:10px;background:var(--central-soft);padding:10px;max-height:210px;overflow:auto}
+.mapper-preview-title{font-size:10px;font-weight:800;letter-spacing:.35px;color:#718096;margin-bottom:7px}
+.mapper-sample{background:#fff;border:1px solid #e9edf2;border-radius:7px;padding:8px;margin-top:6px}
+.mapper-sample-row{display:grid;grid-template-columns:minmax(90px,140px) 1fr;gap:9px;padding:3px 0;font-size:10px;line-height:1.35}
+.mapper-sample-row strong{color:#66758a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mapper-sample-row span{color:#38495e;overflow-wrap:anywhere}
+.mapper-more{margin-top:14px;border-top:1px solid #e8edf2;padding-top:12px}
+.mapper-more summary{cursor:pointer;color:#617086;font-size:11px;font-weight:750}
+.mapper-actions{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;margin-top:18px}
+@media(max-width:650px){
+  .mapper-backdrop{padding:10px}
+  .mapper-card{width:100%;max-height:calc(100vh - 20px);padding:15px}
+  .mapper-grid{grid-template-columns:1fr}
+  .mapper-row{grid-template-columns:1fr;gap:5px}
+}
