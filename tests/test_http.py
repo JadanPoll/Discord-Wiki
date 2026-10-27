@@ -8,6 +8,7 @@ import time
 import unittest
 from pathlib import Path
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 
@@ -59,12 +60,25 @@ class TestHTTP(unittest.TestCase):
                 self.assertEqual({m["id"] for m in answer["evidence"]}, {"555", "556"})
                 with urlopen(base + "/api/context?dataset=" + did + "&message=555") as response:
                     self.assertEqual(json.load(response)["messages"][0]["id"], "555")
-                # A glossary array is not a Discord conversation.
+                # A scalar list is readable but semantically ambiguous. The
+                # program asks for intent instead of silently calling it chat.
                 try:
                     post("/api/import", b'["kinect","sensor"]', {"X-Filename": "words.json"})
-                    self.fail("Non-message array should be rejected")
+                    self.fail("Ambiguous scalar array should request mapping")
                 except HTTPError as error:
-                    self.assertEqual(error.code, 400)
+                    self.assertEqual(error.code, 422)
+                    payload = json.load(error)
+                    self.assertTrue(payload["mapping_required"])
+                    candidate = payload["inspection"]["candidates"][0]
+                mapping = {
+                    "record_path": candidate["record_path"],
+                    "fields": {"content": ["$value"]},
+                }
+                mapped = post(
+                    "/api/import", b'["kinect","sensor"]',
+                    {"X-Filename": "words.json",
+                     "X-Import-Mapping": quote(json.dumps(mapping), safe="")})
+                self.assertEqual(mapped["count"], 2)
                 try:
                     post("/api/investigate", b'{}', {"Origin": "https://attacker.example"})
                     self.fail("Foreign-origin API write should be rejected")
