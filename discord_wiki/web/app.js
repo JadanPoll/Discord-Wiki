@@ -603,7 +603,7 @@ $("upload").addEventListener("change",async ev=>{
 });
 $("ask-form").addEventListener("submit",async ev=>{
   ev.preventDefault();
-  if(!state.dataset){notice("Import a Discord JSON export first.",true);return;}
+  if(!state.dataset){notice("Add an archive first.",true);return;}
   const question=$("question").value.trim();
   if(!question)return;
   const parentId=state.parent;
