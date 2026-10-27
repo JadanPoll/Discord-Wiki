@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 import webbrowser
 
-from .core import Library, MAX_IMPORT_BYTES
+from .core import Library, MAX_IMPORT_BYTES, ImportMappingRequired
 from . import book
 from .librarian import Librarian
 
@@ -83,7 +83,8 @@ def serve(host="127.0.0.1", port=8767, data=None, browser=True):
             allowed = {"http://localhost:" + str(port), "http://127.0.0.1:" + str(port)}
             if origin and origin not in allowed:
                 return self._json({"error": "Cross-origin changes are not allowed."}, 403)
-            if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+            content_type = self.headers.get("Content-Type", "").split(";")[0]
+            if path != "/api/import" and content_type != "application/json":
                 return self._json({"error": "Expected application/json."}, 415)
             try:
                 length = int(self.headers.get("Content-Length", "0"))
@@ -92,10 +93,17 @@ def serve(host="127.0.0.1", port=8767, data=None, browser=True):
                 raw = self.rfile.read(length)
                 with db_lock:
                     if path == "/api/import":
-                        filename = unquote(self.headers.get("X-Filename", "import.json"))
-                        if not filename.lower().endswith(".json"):
-                            raise ValueError("Choose a Discord JSON export.")
-                        return self._json(library.import_bytes(raw, Path(filename).name))
+                        filename = unquote(self.headers.get("X-Filename", "archive"))
+                        mapping_header = self.headers.get("X-Import-Mapping")
+                        mapping = json.loads(unquote(mapping_header)) if mapping_header else None
+                        try:
+                            return self._json(library.import_bytes(raw, Path(filename).name, mapping))
+                        except ImportMappingRequired as exc:
+                            return self._json({
+                                "mapping_required": True,
+                                "message": str(exc),
+                                "inspection": exc.inspection,
+                            }, 422)
                     if path == "/api/investigate":
                         payload = json.loads(raw)
                         if not isinstance(payload, dict):
