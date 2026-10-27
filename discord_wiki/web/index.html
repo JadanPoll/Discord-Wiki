@@ -20,9 +20,9 @@
         </button>
         <div id="community-menu" class="community-menu" hidden>
           <div id="datasets" class="dataset-list"><p class="hint">No communities yet.</p></div>
-          <label class="import compact-import" for="upload"><span class="plus">+</span> Add Discord export</label>
+          <label class="import compact-import" for="upload"><span class="plus">+</span> Add archive</label>
         </div>
-        <input type="file" id="upload" accept=".json,application/json" hidden>
+        <input type="file" id="upload" accept=".json,.jsonl,.ndjson,.csv,.tsv,.txt,application/json,text/csv,text/plain" hidden>
       </div>
       <div class="rail-section contents-section"><div class="row between"><div class="section-label">KEY CONTENTS</div><small id="chapter-count"></small></div>
         <div id="chapters" class="chapter-list"><p class="hint">Choose a corpus to compile its contents.</p></div>
@@ -79,6 +79,59 @@
       </div>
     </main>
   </div>
+  <div id="import-mapper" class="mapper-backdrop" hidden>
+    <section class="mapper-card" role="dialog" aria-modal="true" aria-labelledby="mapper-title">
+      <div class="eyebrow">HELP US READ THIS ARCHIVE</div>
+      <h2 id="mapper-title">Where are the messages?</h2>
+      <p id="mapper-note" class="mapper-note">Discord-Wiki can read the file, but its layout is unfamiliar.</p>
+
+      <label class="mapper-row">
+        <span>Messages are in</span>
+        <select id="mapper-records"></select>
+      </label>
+
+      <div id="mapper-preview" class="mapper-preview"></div>
+
+      <div class="mapper-grid">
+        <label class="mapper-field">
+          <span>Message text</span>
+          <select id="map-content"></select>
+          <small>Usually the only field you need.</small>
+        </label>
+        <label class="mapper-field">
+          <span>Attachments</span>
+          <select id="map-attachments"></select>
+          <small>Optional; can stand in for text in attachment-only archives.</small>
+        </label>
+        <label class="mapper-field">
+          <span>Who said it</span>
+          <select id="map-author"></select>
+          <small>Optional — anonymous archives are fine.</small>
+        </label>
+        <label class="mapper-field">
+          <span>When</span>
+          <select id="map-timestamp"></select>
+          <small>Optional — file order is used if time is missing.</small>
+        </label>
+      </div>
+
+      <details class="mapper-more">
+        <summary>More optional fields</summary>
+        <div class="mapper-grid">
+          <label class="mapper-field"><span>Original message ID</span><select id="map-id"></select></label>
+          <label class="mapper-field"><span>Reply target</span><select id="map-reply_to"></select></label>
+          <label class="mapper-field"><span>Channel</span><select id="map-channel_id"></select></label>
+        </div>
+      </details>
+
+      <div class="mapper-actions">
+        <button id="mapper-cancel" class="quiet" type="button">Cancel</button>
+        <span></span>
+        <button id="mapper-use" class="primary" type="button">Use this mapping</button>
+      </div>
+    </section>
+  </div>
+
   <div id="sticky-editor" class="sticky-editor" hidden>
     <div class="sticky-pin">NOTE</div>
     <div class="sticky-title" id="sticky-title">Your note</div>
