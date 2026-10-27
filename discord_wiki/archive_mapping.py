@@ -370,7 +370,14 @@ def normalize_archive(raw: bytes, filename: str, mapping: dict | None = None):
             (content_path and content_conf >= .65) or
             (attachment_path and attachment_conf >= .65)
         )
-        if candidate["record_kind"] != "object" or not payload_is_clear:
+        scalar_messages_are_clear = (
+            candidate["record_kind"] == "value"
+            and bool(candidate["record_path"])
+            and str(candidate["record_path"][-1]).lower() in {"messages", "message"}
+            and content_path == VALUE_PATH
+        )
+        if not ((candidate["record_kind"] == "object" and payload_is_clear)
+                or scalar_messages_are_clear):
             raise ImportMappingRequired(inspection)
         mapping = {
             "record_path": candidate["record_path"],
