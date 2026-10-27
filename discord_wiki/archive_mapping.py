@@ -119,6 +119,17 @@ def parse_archive(raw: bytes, filename: str) -> tuple[Any, str]:
     except csv.Error:
         pass
 
+    suffix = Path(filename).suffix.lower()
+    if suffix in {".csv", ".tsv"}:
+        try:
+            reader = csv.DictReader(
+                io.StringIO(text), delimiter="\t" if suffix == ".tsv" else ",")
+            rows = [dict(row) for row in reader]
+            if rows and reader.fieldnames:
+                return rows, "csv"
+        except csv.Error:
+            pass
+
     # Plain text is inherently ambiguous, but a human can intentionally declare
     # that one non-empty line is one record. Never silently make that assumption.
     if len(lines) >= 2:
@@ -223,12 +234,16 @@ def _candidate_fields(records: list[Any]) -> tuple[list[dict], dict, dict]:
         scored = []
         for path, values in paths.items():
             name_score = _path_name_score(semantic, path)
+            fit = _value_fit(semantic, values)
             # Message text has enough intrinsic shape to help identify an unknown
-            # field. Optional metadata does not: a random string must never become
-            # an inferred author, timestamp, ID, reply, or channel.
+            # field. But a key merely named "message" is not enough if its values
+            # are objects/numbers rather than text.
+            if semantic == "content" and fit == 0:
+                continue
+            # Optional metadata needs name evidence; missing is safer than guessed.
             if semantic != "content" and name_score == 0:
                 continue
-            score = name_score + _value_fit(semantic, values)
+            score = name_score + fit
             if score:
                 scored.append((score, path))
         scored.sort(key=lambda item: (-item[0], _norm_path(item[1])))
@@ -347,9 +362,15 @@ def normalize_archive(raw: bytes, filename: str, mapping: dict | None = None):
         candidate = inspection["candidates"][inspection["recommended"]]
         content_path = candidate["suggested"].get("content")
         content_conf = candidate["confidence"].get("content", 0.0)
-        # Auto-heal only when "what is a message?" and "where is its text?" are
-        # both strong. Missing metadata is not ambiguity.
-        if candidate["record_kind"] != "object" or not content_path or content_conf < .65:
+        attachment_path = candidate["suggested"].get("attachments")
+        attachment_conf = candidate["confidence"].get("attachments", 0.0)
+        # Auto-heal only when "what is a message?" and at least one usable payload
+        # are strong. Missing author/time/IDs are not ambiguity.
+        payload_is_clear = (
+            (content_path and content_conf >= .65) or
+            (attachment_path and attachment_conf >= .65)
+        )
+        if candidate["record_kind"] != "object" or not payload_is_clear:
             raise ImportMappingRequired(inspection)
         mapping = {
             "record_path": candidate["record_path"],
