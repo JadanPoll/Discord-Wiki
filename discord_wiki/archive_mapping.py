@@ -127,7 +127,9 @@ def parse_archive(raw: bytes, filename: str) -> tuple[Any, str]:
 
 
 def _get(value: Any, path: list[str] | tuple[str, ...] | None) -> Any:
-    if not path:
+    if path is None:
+        return None
+    if len(path) == 0:
         return value
     if list(path) == VALUE_PATH:
         return value
