@@ -31,6 +31,14 @@ class ArchiveMappingTests(unittest.TestCase):
         _, _, messages = normalize_export(csv_raw, "chat.csv")
         self.assertEqual([m["content"] for m in messages], ["hello", "world"])
 
+    def test_explicit_messages_string_list_self_heals(self):
+        raw = json.dumps({"messages": ["alpha stripped message", "beta stripped message"]}).encode()
+        _, _, messages = normalize_export(raw, "stripped.json")
+        self.assertEqual([m["content"] for m in messages],
+                         ["alpha stripped message", "beta stripped message"])
+        self.assertEqual([m["author"] for m in messages], ["unknown", "unknown"])
+        self.assertEqual([m["ts"] for m in messages], ["", ""])
+
     def test_scalar_list_requires_human_intent(self):
         raw = json.dumps(["first message", "second message"]).encode()
         with self.assertRaises(ImportMappingRequired) as ctx:
