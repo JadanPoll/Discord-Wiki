@@ -20,7 +20,7 @@ class ArchiveMappingTests(unittest.TestCase):
                          ["first stripped message", "second stripped message"])
         self.assertEqual([m["author"] for m in messages], ["unknown", "unknown"])
         self.assertEqual([m["ts"] for m in messages], ["", ""])
-        self.assertTrue(all(len(m["id"]) == 20 for m in messages))
+        self.assertTrue(all(m["id"].startswith("synthetic:") for m in messages))
 
     def test_jsonl_and_csv_are_record_formats_not_special_cases(self):
         jsonl = b'{"body":"alpha"}\n{"body":"beta"}\n'
