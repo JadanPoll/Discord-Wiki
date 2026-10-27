@@ -59,20 +59,29 @@ There is **no Node build, Docker requirement, cloud backend, or API key required
 
 ## Import a community
 
-Use **Community → Add Discord export** and choose an authorized Discord JSON export.
+Use **Community → Add archive**.
 
-The current importer supports flat message arrays and common object-wrapped Discord export shapes up to 100 MB per interactive import.
+Discord-Wiki accepts record-oriented **JSON, JSONL/NDJSON, CSV/TSV, and line-based text** up to 100 MB per interactive import. It first tries to identify the message list and common field meanings automatically.
 
-Discord-Wiki preserves:
+If the layout is unfamiliar, the app does not simply reject the file. It asks a small number of human questions such as **Where are the messages?**, **Which field is the message text?**, **Who said it?**, and **When?** A preview makes the mapping visible before import.
 
-- original message IDs
-- timestamps and authors
-- reply references
-- channel identity
-- attachment names
-- chronological source order
+The minimum useful contract is deliberately small:
 
-Repeated identical exports are deduplicated by SHA-256.
+- Discord-Wiki can separate and preserve the order of records/messages, and
+- each record has usable **text or attachment information**.
+
+Everything else is optional enrichment:
+
+- author may be missing or intentionally anonymized
+- timestamp may be missing; source-file order is then preserved
+- original message IDs may be missing; deterministic IDs are synthesized
+- reply references may be missing
+- channel identity may be missing
+- attachment metadata may be missing
+
+When those fields do exist, Discord-Wiki preserves them. Missing metadata is preferred over speculative metadata: the importer will not invent an author or timestamp merely because another string field happens to exist.
+
+A manual mapping is part of the dataset identity. That means correcting the interpretation of the same source bytes cannot silently hit a cache created from a different mapping.
 
 By default, the local database lives at:
 
@@ -195,7 +204,8 @@ Check your provider's compatibility and privacy policy before enabling it.
 
 ```text
 discord_wiki/
-  core.py        Discord parsing, SQLite, indexing, search, notes, seen state
+  archive_mapping.py  archive inspection, auto-detection, semantic mapping
+  core.py        normalized storage, indexing, search, notes, seen state
   book.py        book projection, chapter-like contents, one-off discoveries
   librarian.py   question routing, bounded retrieval, optional model synthesis
   server.py      localhost HTTP/API server
