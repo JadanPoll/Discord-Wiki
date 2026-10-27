@@ -199,7 +199,9 @@ def _candidate_fields(records: list[Any]) -> tuple[list[dict], dict, dict]:
                 str(v)[:180] for v in sample[:3] if v not in (None, "")
             ]
         }]
-        return fields, {}, {}
+        # We can suggest "each item is text", but deliberately give it zero
+        # confidence so a list of glossary words is never silently imported as chat.
+        return fields, {"content": VALUE_PATH}, {"content": 0.0}
 
     paths: dict[tuple[str, ...], list[Any]] = {}
     for record in sample:
