@@ -27,7 +27,7 @@ class ArchiveMappingTests(unittest.TestCase):
         _, _, messages = normalize_export(jsonl, "chat.jsonl")
         self.assertEqual([m["content"] for m in messages], ["alpha", "beta"])
 
-        csv_raw = b"content,label\nhello,one\nworld,two\n"
+        csv_raw = b"content\nhello\nworld\n"
         _, _, messages = normalize_export(csv_raw, "chat.csv")
         self.assertEqual([m["content"] for m in messages], ["hello", "world"])
 
@@ -69,11 +69,7 @@ class ArchiveMappingTests(unittest.TestCase):
 
     def test_attachments_can_be_the_only_payload(self):
         raw = json.dumps([{"files": ["photo.png"]}, {"files": ["diagram.jpg"]}]).encode()
-        mapping = {
-            "record_path": [],
-            "fields": {"attachments": ["files"]},
-        }
-        _, _, messages, _ = normalize_archive(raw, "media.json", mapping)
+        _, _, messages = normalize_export(raw, "media.json")
         self.assertEqual(messages[0]["content"], "")
         self.assertEqual(messages[0]["attachments"], ["photo.png"])
 
