@@ -139,7 +139,7 @@ async def app(scope, receive, send):
             status, kind, raw = _get(path, _query(scope))
         elif method == "POST":
             ctype = headers.get("content-type", "").split(";")[0]
-            if ctype != "application/json":
+            if path != "/api/import" and ctype != "application/json":
                 status, kind, raw = _json({"error": "Expected application/json."}, 415)
             else:
                 raw_body = await _body(receive)
