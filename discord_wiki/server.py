@@ -69,7 +69,7 @@ def serve(host="127.0.0.1", port=8767, data=None, browser=True):
                     if path.path == "/api/seen":
                         return self._json({"seen": library.seen(one("dataset"))})
                 filename = "index.html" if path.path in ("/", "/index.html") else path.path.removeprefix("/")
-                if filename not in ("index.html", "style.css", "app.js", "reader_state.js"):
+                if filename not in ("index.html", "style.css", "app.js"):
                     return self._json({"error": "Not found"}, 404)
                 raw = (WEB / filename).read_bytes()
                 kind = mimetypes.guess_type(filename)[0] or "application/octet-stream"
