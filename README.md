@@ -139,6 +139,20 @@ unseen → encountered → personally noted
 
 A note records what mattered to the reader. It does not modify the source or turn a claim into fact.
 
+## Marking interests and moving your notebook
+
+Opening a chapter, glossary entry, or message marks it **seen** automatically; that is only visit history, not a statement of interest.
+
+Select the **☆** beside an item to explicitly mark **I'm interested** (**★**). Select **✎** to add or edit its existing personal sticky note (right-click still works). Open **My interests** to revisit marked items and transfer your notes and interests.
+
+- **Copy for LLM:** copies a readable JSON of your explicitly marked interests, their labels, and your personal sticky notes. The AI can use it to recommend what to investigate or read next; it receives nothing automatically.
+- **Export JSON:** downloads the same portable reader-state file.
+- **Import JSON:** merges imported interests with existing interests and restores matching notes, with confirmation before overwriting the same note. No source archives or raw messages are included.
+- **Another device:** first import the *same* Discord archive, then import the reader-state JSON. Dataset identity is derived from archive bytes and the import mapping. If an archive is missing, its interests are retained but its notes are skipped; import the archive and retry the same JSON file.
+- **Storage:** interests use this browser's localStorage. Notes and automatic seen records remain in the app's local SQLite database; only interests and notes are included in reader-state transfer. Never infer explicit interest from a passive seen checkmark.
+
+The JSON is a backup of **personal navigation state**, not a verified research certificate. Preserve it privately if your notes contain sensitive information; the application does not upload it or sync it automatically.
+
 ## Your community as a book
 
 One of the central design questions is:
