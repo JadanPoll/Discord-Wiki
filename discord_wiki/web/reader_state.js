@@ -68,6 +68,11 @@ window.ReaderState=(()=>{
     document.querySelectorAll(".reader-item-wrap [data-note-type][data-note-key]").forEach(sync);
     if(!$("interests-overlay").hidden)render();
   }
+  function feedback(message,error=false){
+    $("reader-transfer-status").textContent=message;
+    $("reader-transfer-status").classList.toggle("error",error);
+    notice(message,error);
+  }
   function close(){
     $("interests-overlay").hidden=true;
     $("interest-button").focus();
@@ -129,13 +134,13 @@ window.ReaderState=(()=>{
     const p=await pack(),u=URL.createObjectURL(new Blob([JSON.stringify(p,null,2)+"\n"],{type:"application/json"}));
     const a=el("a");a.href=u;a.download="discord-wiki-interests-"+new Date().toISOString().slice(0,10)+".json";
     document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);
-    notice("Exported "+p.interests.length+" interests and "+p.notes.length+" notes.");
+    feedback("Exported "+p.interests.length+" interests and "+p.notes.length+" notes.");
   }
   async function copy(){
     const p=await pack();
     if(!navigator.clipboard?.writeText)throw Error("Clipboard unavailable; use Download JSON.");
     await navigator.clipboard.writeText(JSON.stringify(p,null,2));
-    notice("Copied interests and notes for an LLM.");
+    feedback("Copied interests and notes for an LLM.");
   }
   async function importFile(file){
     if(file.size>4*1024*1024)throw Error("Import exceeds 4 MB.");
@@ -167,19 +172,19 @@ window.ReaderState=(()=>{
     if(state.dataset)await loadReaderState();
     document.querySelectorAll("[data-note-type][data-note-key]").forEach(syncSticky);
     refresh();
-    notice("Imported "+p.interests.length+" interests and "+completed+" notes."+
+    feedback("Imported "+p.interests.length+" interests and "+completed+" notes."+
       (skipped?" "+skipped+" unmatched notes skipped; import the matching archive and retry the same file.":"")+
       " Visits were unchanged.");
   }
-  $("interest-button").onclick=()=>{closeSticky();$("interests-overlay").hidden=false;render();};
+  $("interest-button").onclick=()=>{closeSticky();$("reader-transfer-status").textContent="";$("interests-overlay").hidden=false;render();};
   $("interests-close").onclick=close;
   $("interests-overlay").addEventListener("mousedown",e=>{if(e.target===$("interests-overlay"))close();});
-  $("interests-download").onclick=()=>download().catch(e=>notice(e.message,true));
-  $("interests-copy").onclick=()=>copy().catch(e=>notice(e.message,true));
+  $("interests-download").onclick=()=>download().catch(e=>feedback(e.message,true));
+  $("interests-copy").onclick=()=>copy().catch(e=>feedback(e.message,true));
   $("interests-import").onclick=()=>$("reader-import-file").click();
   $("reader-import-file").onchange=async e=>{
     const f=e.target.files?.[0];if(!f)return;
-    try{await importFile(f);}catch(error){notice("Import failed: "+error.message,true);}
+    try{await importFile(f);}catch(error){feedback("Import failed: "+error.message,true);}
     finally{e.target.value="";}
   };
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("interests-overlay").hidden)close();});
