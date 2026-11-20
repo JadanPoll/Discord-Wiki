@@ -198,7 +198,6 @@ function syncSticky(node){
     };
     node.append(badge);
   }
-  window.ReaderState?.sync(node);
 }
 function noteable(node,type,key,label){
   node.dataset.noteType=type;
@@ -308,7 +307,6 @@ async function chooseDataset(ds){
   renderChapters();
   renderTopics();
   await loadHistory();
-  window.ReaderState?.refresh();
 }
 
 function renderBook(){
@@ -347,7 +345,7 @@ function renderChapters(){
         showEvidence(data.messages,"Part "+(i+1)+": "+chapter.title);
       }catch(e){notice(e.message,true);}
     };
-    list.append(window.ReaderState?.decorate(item)||item);
+    list.append(item);
   });
   updateNoteCounts();
 }
@@ -370,7 +368,7 @@ function renderTopics(){
         showEvidence(data.messages,topic.term);
       }catch(e){notice(e.message,true);}
     };
-    list.append(window.ReaderState?.decorate(item)||item);
+    list.append(item);
   }
   updateNoteCounts();
 }
@@ -410,7 +408,7 @@ function showEvidence(messages,title){
         }
       }catch(e){notice(e.message,true);}
     };
-    result.append(window.ReaderState?.decorate(card)||card);
+    result.append(card);
   }
 }
 async function showContext(mid,radius=3){
@@ -465,7 +463,7 @@ async function showContext(mid,radius=3){
     if(metadata.length){
       row.insertBefore(el("div","metadata",metadata.join(" · ")),row.querySelector(".sticky-badge"));
     }
-    pane.append(window.ReaderState?.decorate(row)||row);
+    pane.append(row);
   }
 }
 async function loadHistory(){
