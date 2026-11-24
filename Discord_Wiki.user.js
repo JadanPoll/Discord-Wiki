@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.5.0
+// @version      0.6.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.5.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.6.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -218,11 +218,20 @@
     html.dw-focus [id^="message-content-"] img.emoji {filter:grayscale(1);opacity:.68}
     html.dw-focus [id^="message-content-"] img.emoji:hover {filter:none;opacity:1}
     html.dw-focus [id^="message-content-"] img.emoji[class*="jumboable"] {width:1.3em!important;height:1.3em!important;object-fit:contain}
-    html.dw-focus #channels :is([class*="name_"],[class*="nameContainer_"]) {color:var(--text-normal,inherit)}
+    html.dw-focus #channels :is([class*="name_"],[class*="nameContainer_"]) {filter:grayscale(1)}
+    html.dw-focus [aria-label="Servers sidebar"] img {filter:grayscale(.85)}
+    html.dw-focus [aria-label="Servers sidebar"] img:hover {filter:none}
+    html.dw-focus [data-list-id="chat-messages"] [class*="guildTag_"],
+    html.dw-focus [data-list-id="chat-messages"] [class*="nameplate_"],
+    html.dw-focus [class*="channelTextArea_"] [class*="emojiButtonNormal_"] {display:none!important}
+    html.dw-focus [data-list-id="chat-messages"] [class*="username_"] {color:var(--text-default,inherit)!important}
+    html.dw-focus [data-list-id="chat-messages"] [class*="timestamp_"] {color:var(--text-muted,inherit)!important}
+    html.dw-focus [data-list-id="chat-messages"] [id^="message-content-"] {line-height:1.45}
+    html.dw-focus [data-dw-label]::before {color:var(--text-default,#94a3b8);border-color:var(--border-subtle,#64748b)}
     html.dw-focus #channels img.emoji {filter:grayscale(1)}
     html.dw-focus [id^="chat-messages-"] [class*="avatar_"] {filter:grayscale(.85);opacity:.72}
     html.dw-focus [id^="chat-messages-"] [class*="avatar_"]:hover {filter:none;opacity:1}
-    html.dw-focus [id^="chat-messages-"] [class*="username_"] {color:var(--text-normal,inherit)!important}
+    html.dw-focus [id^="chat-messages-"] [class*="username_"] {color:var(--text-default,inherit)!important}
   `,document.head);
   let focus=true;try{focus=(await read('dw-focus',true))!==false}catch(e){record('focus-load-failed');fail('load-focus',e)}
   const launcher=el('div',undefined,shadow);launcher.className='row';launcher.style.margin='0';
@@ -277,20 +286,20 @@
   btn(actions,'Copy conversation',async()=>{
     if(!packet.length)throw Error('Select text spanning the messages you want to explore first.');
     await write('dw-last-packet',packet.map(p=>p.source.url));
-    await copy(JSON.stringify({topic,messages:packet.map(p=>({url:p.source.url,text:p.text}))},null,2),'text');
+    await copy(JSON.stringify({topic,messages:packet.map(packetJSON)},null,2),'text');
     status('Copied '+packet.length+' selected message(s) for LLM exploration. Review before sharing.');
     record('conversation-copied',String(packet.length));
   });
   async function copyForLabels(){
-    if(!packet.length){const rows=visibleRows();if(!rows.length)throw Error('No visible channel messages recognized');stage(rows.slice(0,30));}
+    if(!packet.length){const rows=visibleRows(true);if(!rows.length)throw Error('No loaded channel messages recognized');const bounded=[];let chars=0;for(const p of rows){if(bounded.length>=100||chars+p.text.length>60000)break;bounded.push(p);chars+=p.text.length;}stage(bounded);record('loaded-window',String(rows.length));}
     await write('dw-last-packet',packet.map(p=>p.source.url));
-    await copy(JSON.stringify({instruction:'Propose concise specific conversation titles. Group related messages; ignore trivial chatter. Use only the supplied exact URLs. Return JSON: {"conversations":[{"title":"...","messages":["exact URL"],"topics":["..."],"note":"optional"}]}',messages:packet.map(p=>({url:p.source.url,text:p.text}))},null,2),'text');
-    status('Paste into ChatGPT, then Import LLM labels.');record('label-packet',String(packet.length));
+    await copy(JSON.stringify({instruction:'Propose concise specific conversation titles. Group related messages; ignore trivial chatter. Use only the supplied exact URLs. Return JSON: {"conversations":[{"title":"...","messages":["exact URL"],"topics":["..."],"note":"optional"}]}',messages:packet.map(packetJSON)},null,2),'text');
+    status('Copied '+packet.length+' messages. Paste into ChatGPT, then Import LLM labels.');record('label-packet',String(packet.length));
   }
   const quick=el('div',undefined,panel);quick.className='row';panel.insertBefore(quick,captureBox);
   btn(quick,'Copy for AI labels',copyForLabels,true);
   btn(quick,'Label visible',()=>{const rows=visibleRows();if(!rows.length)throw Error('No visible channel messages recognized');stage(rows.slice(0,30));captureBox.open=true;labelInput.focus()});
-  const hint=el('div','Select messages, or use visible messages. Save a title to return later.',captureBox);hint.className='muted';
+  const hint=el('div','Select messages, or use visible messages. Save a title to return later. AI copy uses selected messages or the loaded channel window, not the entire channel.',captureBox);hint.className='muted';
   const msg=el('div','',panel);msg.className='status';msg.setAttribute('role','status');
   function status(s){msg.textContent=s}
   const indexHeader=el('div',undefined,panel);indexHeader.className='row';
@@ -329,15 +338,16 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
     const route=channelRoute();
     if(!route)return {reason:'no-server-channel'};
     if(node.closest('[class*="searchResult"],[class*="searchResults"],[class*="searchResultGroup"]'))return {reason:'search-result'};
-    const row=node.closest('[id^="chat-messages-"]');
-    if(!row)return {reason:'no-row'};
+    const row=node.closest('li[id^="chat-messages-"]');
+    if(!row)return {reason:'no-message-row'};
+    if(!row.parentElement?.matches('[data-list-id="chat-messages"]'))return {reason:'outside-native-message-list'};
     const match=row.id.match(/^chat-messages-(\d{15,22})-(\d{15,22})$/);
     if(!match)return {reason:'row-id-shape'};
     const mid=node.id.slice('message-content-'.length);
@@ -366,16 +376,29 @@
     const box=node=>{const r=node.getBoundingClientRect();return {x:Math.round(r.x),y:Math.round(r.y),w:Math.round(r.width),h:Math.round(r.height),overflowBottom:Math.max(0,Math.round(r.bottom-innerHeight)),scrollHeight:node.scrollHeight,clientHeight:node.clientHeight}};
     return {opened,panel:box(panel),launcher:box(launcher),visualViewport:window.visualViewport?[Math.round(visualViewport.width),Math.round(visualViewport.height)]:null};
   }
-  function visibleRows(){
+  // Native list is the identity contract, not arbitrary chat-messages containers.
+  function messagePacket(node,source){
+    const row=node.closest('li[id^="chat-messages-"]');
+    const author=row?.querySelector('h3 [class*="username_"]');
+    const time=row?.querySelector('time[datetime]');
+    const reply=row?.querySelector('[class*="repliedMessage_"]');
+    const date=new Date(Number(BigInt(source.message)>>22n)+1420070400000);
+    return {source,text:node.innerText||node.textContent||'',author:author?.textContent?.trim()||null,
+      timestamp:time?.getAttribute('datetime')||(Number.isFinite(date.getTime())?date.toISOString():null),
+      reply:reply?.innerText?.trim().slice(0,1000)||null,
+      attachments:row?.querySelectorAll('[class*="attachment_"],[class*="embedFull_"]').length||0};
+  }
+  function packetJSON(p){return {url:p.source.url,text:p.text,author:p.author,timestamp:p.timestamp,reply:p.reply,attachments:p.attachments}}
+  function visibleRows(loaded=false){
     const result=[],seen=new Set();
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
-      const r=node.getBoundingClientRect();if(r.bottom<=0||r.top>=innerHeight||r.width===0||r.height===0)continue;
-      const source=sourceFor(node);if(source&&!seen.has(keyOf(source))){seen.add(keyOf(source));result.push({source,text:node.innerText||node.textContent||''});}
+      const r=node.getBoundingClientRect();if(!loaded&&(r.bottom<=0||r.top>=innerHeight||r.width===0||r.height===0))continue;
+      const source=sourceFor(node);if(source&&!seen.has(keyOf(source))){seen.add(keyOf(source));result.push(messagePacket(node,source));}
     }
     return result;
   }
   function stage(rows){
-    if(!rows.length||rows.length>30||rows.reduce((n,p)=>n+p.text.length,0)>60000)throw Error('Select up to 30 messages / 60,000 characters');
+    if(!rows.length||rows.length>100||rows.reduce((n,p)=>n+p.text.length,0)>60000)throw Error('Select up to 100 messages / 60,000 characters');
     packet=rows;picked=rows[0].source;sourceInput.value=picked.url;
     record('source-staged',String(rows.length));setOpen(true);status(rows.length+' messages selected. Save a label or copy for AI.');
   }
@@ -403,7 +426,7 @@
     const t=performance.now();metrics.scans++;
     const labels=new Map(data.conversations.map(r=>[r.id,r.title]));
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
-      const source=sourceFor(node),row=node.closest('[id^="chat-messages-"]');
+      const source=sourceFor(node),row=node.closest('li[id^="chat-messages-"]');
       const text=(node.innerText||node.textContent||'').trim();
       const protectedContent=node.querySelector('a,code,pre,img:not(.emoji),video')||row?.querySelector('[class*="attachment"],[class*="repliedMessage"],[class*="sticker"],[class*="embed"]');
       if(source&&!protectedContent&&(lowSignal(text)||(!text&&node.querySelector('img.emoji'))))node.dataset.dwLow='1';else delete node.dataset.dwLow;
@@ -449,10 +472,10 @@
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
       if(!range.intersectsNode(node))continue;
       const source=sourceFor(node);if(!source)continue;
-      rows.push({source,text:node.innerText||node.textContent||''});
+      if(!rows.some(p=>keyOf(p.source)===keyOf(source)))rows.push(messagePacket(node,source));
     }
-    if(!rows.length||rows.length>30||rows.reduce((n,p)=>n+p.text.length,0)>60000){
-      picked=null;packet=[];sourceInput.value='';setOpen(true);status('Select a smaller group (up to 30 messages / 60,000 characters).');return;
+    if(!rows.length||rows.length>100||rows.reduce((n,p)=>n+p.text.length,0)>60000){
+      picked=null;packet=[];sourceInput.value='';setOpen(true);status('Select a smaller group (up to 100 messages / 60,000 characters).');return;
     }
     metrics.selection.resolved++;stage(rows);captureBox.open=true;
   }
