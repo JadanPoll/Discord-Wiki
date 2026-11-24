@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.1.0
+// @version      0.1.1
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/channels/*
 // @run-at       document-idle
@@ -12,7 +12,7 @@
 
 (function () {
   'use strict';
-  const VERSION = '0.1.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.1.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if (document.getElementById(ROOT)) return;
   const fresh = () => ({schema:1, sources:{}, topics:{}, visits:[]});
   let data, topic = 'General', opened = false, picked = null, warning = '';
@@ -36,7 +36,7 @@
   function keyOf(s) { return s.guild+'/'+s.channel+'/'+s.message; }
   function topicName(v) {
     const s = String(v || '').trim();
-    if (!s || s.length > 120 || ['__proto__','constructor','prototype'].includes(s)) throw Error('Invalid topic name');
+    if (!s || s.length > 120 || (s === 'prototype' || Object.hasOwn(Object.prototype,s))) throw Error('Invalid topic name');
     return s;
   }
   function normalize(input) {
@@ -65,12 +65,16 @@
   }
   try { data = normalize(GM_getValue(KEY,fresh())); }
   catch(e) { data = fresh(); warning = 'Saved data could not be loaded; changes blocked until reload or valid import.'; record('load-failed'); }
+  function latest() {
+    if (warning) throw Error(warning);
+    return normalize(GM_getValue(KEY,fresh()));
+  }
   function save(next, event) {
     if (warning && event !== 'import') throw Error(warning);
     GM_setValue(KEY,next); data = next; warning = ''; record(event); render();
   }
   function merge(incoming) {
-    const next = normalize(data);
+    const next = warning ? fresh() : latest();
     Object.assign(next.sources,incoming.sources);
     for (const [name,entries] of Object.entries(incoming.topics)) {
       const target = next.topics[name] ||= [];
@@ -109,14 +113,14 @@
   const row=el('div',undefined,panel); row.className='row';
   const topics=el('select',undefined,row); topics.className='grow'; topics.setAttribute('aria-label','Current topic');
   topics.addEventListener('change',()=>{topic=topics.value;render()});
-  btn(row,'New topic',()=>{const n=prompt('Topic name (e.g. MEMS / Fabrication)');if(n===null)return;const t=topicName(n);const next=normalize(data);next.topics[t] ||= [];topic=t;save(next,'topic-created')});
+  btn(row,'New topic',()=>{const n=prompt('Topic name (e.g. MEMS / Fabrication)');if(n===null)return;const t=topicName(n);const next=latest();next.topics[t] ||= [];topic=t;save(next,'topic-created')});
   const sourceInput=el('input',undefined,panel);sourceInput.placeholder='Paste Discord message link';sourceInput.setAttribute('aria-label','Source message link');
   const note=el('textarea',undefined,panel);note.placeholder='Why is this worth returning to? Optional personal annotation.';note.setAttribute('aria-label','Personal annotation');
   const actions=el('div',undefined,panel);actions.className='row';
   btn(actions,'Capture',()=>{
     const source=parseLink(sourceInput.value.trim()) || (!sourceInput.value.trim() ? picked : null);
     if(!source)throw Error('Select a message in its original channel or paste its Copy Message Link URL.');
-    const next=normalize(data), id=keyOf(source);next.sources[id]=source;
+    const next=latest(), id=keyOf(source);next.sources[id]=source;
     const entries=next.topics[topic] ||= [], text=note.value.trim().slice(0,4000);
     if(!entries.some(e=>e.source===id && e.note===text))entries.push({source:id,note:text});
     save(next,'capture');sourceInput.value='';note.value='';picked=null;status('Saved source in '+topic);
@@ -124,7 +128,7 @@
   btn(actions,'Mark visit',()=>{
     const m=location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);
     if(!m)throw Error('Open a server channel first');
-    const next=normalize(data);next.visits.push({guild:m[1],channel:m[2],at:new Date().toISOString()});next.visits=next.visits.slice(-500);
+    const next=latest();next.visits.push({guild:m[1],channel:m[2],at:new Date().toISOString()});next.visits=next.visits.slice(-500);
     save(next,'visit');status('Visit recorded; not a coverage certificate.');
   });
   const hint=el('div','Select text inside a channel message to stage its source, or use Discord’s Copy Message Link. Search and jump in Discord normally.',panel);hint.className='muted';
@@ -132,7 +136,7 @@
   function status(s){msg.textContent=s}
   const list=el('div',undefined,panel);list.className='scroll';
   const footer=el('div',undefined,panel);footer.className='row';
-  btn(footer,'Copy JSON',()=>{GM_setClipboard(JSON.stringify(data,null,2),'text');status('Workspace copied (links + your notes).')});
+  btn(footer,'Copy JSON',()=>{GM_setClipboard(JSON.stringify(latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   btn(footer,'Copy report',()=>{
     const report={version:VERSION,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,visits:data.visits.length,
@@ -155,12 +159,14 @@
         if(!arr.some(e=>e.source===entry.source && e.note===entry.note))arr.push({...entry});
         save(next,'cherry-pick');status('Added to '+name);
       });
-      btn(r,'Remove',()=>{if(!confirm('Remove this annotation from '+topic+'?'))return;const next=normalize(data);next.topics[topic]=next.topics[topic].filter(e=>!(e.source===entry.source&&e.note===entry.note));save(next,'remove')});
+      btn(r,'Remove',()=>{if(!confirm('Remove this annotation from '+topic+'?'))return;const next=latest();next.topics[topic]=next.topics[topic].filter(e=>!(e.source===entry.source&&e.note===entry.note));save(next,'remove')});
     }
     if(!list.children.length)el('div','No sources in this topic yet.',list).className='muted';
     if(warning)status(warning);
   }
-  function setOpen(v){opened=v;panel.hidden=!v;toggle.hidden=v;if(v)render()}
+  function refresh(){ if(warning)return;try{data=latest();render()}catch(e){status('Refresh failed: '+e.message);record('refresh-failed')} }
+  window.addEventListener('focus',refresh);
+  function setOpen(v){opened=v;panel.hidden=!v;toggle.hidden=v;if(v)refresh()}
   toggle.addEventListener('click',()=>setOpen(true));
   document.addEventListener('mouseup',()=>{
     const sel=window.getSelection();if(!sel||sel.isCollapsed||sel.rangeCount!==1)return;
