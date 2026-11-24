@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.1.1
+// @version      0.2.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/channels/*
 // @run-at       document-idle
@@ -12,10 +12,10 @@
 
 (function () {
   'use strict';
-  const VERSION = '0.1.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.2.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if (document.getElementById(ROOT)) return;
   const fresh = () => ({schema:1, sources:{}, topics:{}, visits:[]});
-  let data, topic = 'General', opened = false, picked = null, warning = '';
+  let data, topic = 'General', opened = false, picked = null, packet = [], warning = '';
   const log = [];
   function record(event, detail = '') {
     log.push({at:new Date().toISOString(), event, detail});
@@ -115,23 +115,27 @@
   topics.addEventListener('change',()=>{topic=topics.value;render()});
   btn(row,'New topic',()=>{const n=prompt('Topic name (e.g. MEMS / Fabrication)');if(n===null)return;const t=topicName(n);const next=latest();next.topics[t] ||= [];topic=t;save(next,'topic-created')});
   const sourceInput=el('input',undefined,panel);sourceInput.placeholder='Paste Discord message link';sourceInput.setAttribute('aria-label','Source message link');
+  sourceInput.addEventListener('input',()=>{picked=null;packet=[]});
   const note=el('textarea',undefined,panel);note.placeholder='Why is this worth returning to? Optional personal annotation.';note.setAttribute('aria-label','Personal annotation');
   const actions=el('div',undefined,panel);actions.className='row';
   btn(actions,'Capture',()=>{
     const source=parseLink(sourceInput.value.trim()) || (!sourceInput.value.trim() ? picked : null);
     if(!source)throw Error('Select a message in its original channel or paste its Copy Message Link URL.');
-    const next=latest(), id=keyOf(source);next.sources[id]=source;
-    const entries=next.topics[topic] ||= [], text=note.value.trim().slice(0,4000);
-    if(!entries.some(e=>e.source===id && e.note===text))entries.push({source:id,note:text});
-    save(next,'capture');sourceInput.value='';note.value='';picked=null;status('Saved source in '+topic);
+    const selected = picked && source.url === picked.url && packet.length ? packet.map(p=>p.source) : [source];
+    const next=latest(), entries=next.topics[topic] ||= [], text=note.value.trim().slice(0,4000);
+    for(const src of selected){
+      const id=keyOf(src);next.sources[id]=src;
+      if(!entries.some(e=>e.source===id && e.note===text))entries.push({source:id,note:text});
+    }
+    save(next,'capture');sourceInput.value='';note.value='';picked=null;packet=[];status('Saved '+selected.length+' source(s) in '+topic);
   },true);
-  btn(actions,'Mark visit',()=>{
-    const m=location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);
-    if(!m)throw Error('Open a server channel first');
-    const next=latest();next.visits.push({guild:m[1],channel:m[2],at:new Date().toISOString()});next.visits=next.visits.slice(-500);
-    save(next,'visit');status('Visit recorded; not a coverage certificate.');
+  btn(actions,'Copy conversation',()=>{
+    if(!packet.length)throw Error('Select text spanning the messages you want to explore first.');
+    GM_setClipboard(JSON.stringify({topic,messages:packet.map(p=>({url:p.source.url,text:p.text}))},null,2),'text');
+    status('Copied '+packet.length+' selected message(s) for LLM exploration. Review before sharing.');
+    record('conversation-copied',String(packet.length));
   });
-  const hint=el('div','Select text inside a channel message to stage its source, or use Discord’s Copy Message Link. Search and jump in Discord normally.',panel);hint.className='muted';
+  const hint=el('div','Select one or several messages in the channel, then Copy conversation or Capture. A pasted message link also works. Use Discord search to reach earlier discussions.',panel);hint.className='muted';
   const msg=el('div','',panel);msg.className='status';msg.setAttribute('role','status');
   function status(s){msg.textContent=s}
   const list=el('div',undefined,panel);list.className='scroll';
@@ -155,7 +159,7 @@
       const a=el('a','Open source · '+s.message,item);a.href=s.url;a.target='_blank';a.rel='noopener noreferrer';
       if(entry.note)el('div',entry.note,item);
       const r=el('div',undefined,item);r.className='row';
-      btn(r,'Cherry-pick',()=>{const raw=prompt('Copy to topic',topic);if(raw===null)return;const name=topicName(raw), next=normalize(data), arr=next.topics[name] ||= [];
+      btn(r,'Cherry-pick',()=>{const raw=prompt('Copy to topic',topic);if(raw===null)return;const name=topicName(raw), next=latest(), arr=next.topics[name] ||= [];
         if(!arr.some(e=>e.source===entry.source && e.note===entry.note))arr.push({...entry});
         save(next,'cherry-pick');status('Added to '+name);
       });
@@ -173,16 +177,28 @@
     const element=n=>n?.nodeType===1?n:n?.parentElement;
     const a=element(sel.anchorNode)?.closest('[id^="message-content-"]');
     const b=element(sel.focusNode)?.closest('[id^="message-content-"]');
-    if(!a||a!==b)return;
-    // Do not guess the channel for search result messages. Require normal channel view.
-    if(a.closest('[class*="searchResult"],[class*="searchResults"],[class*="searchResultGroup"]'))return;
-    const row=a.closest('[id^="chat-messages-"]');
-    const match=row?.id.match(/^chat-messages-(\d{15,22})-(\d{15,22})$/);
+    if(!a||!b)return;
     const route=location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);
-    const mid=a.id.slice('message-content-'.length);
-    if(!match||!route||match[1]!==route[2]||match[2]!==mid){record('selection-unresolved');return}
-    picked=parseLink('https://discord.com/channels/'+route[1]+'/'+route[2]+'/'+mid);
-    if(picked){sourceInput.value=picked.url;record('source-staged');setOpen(true);status('Source staged. Capture to save.')}
+    const sourceFor=node=>{
+      if(!route||node.closest('[class*="searchResult"],[class*="searchResults"],[class*="searchResultGroup"]'))return null;
+      const match=node.closest('[id^="chat-messages-"]')?.id.match(/^chat-messages-(\d{15,22})-(\d{15,22})$/);
+      const mid=node.id.slice('message-content-'.length);
+      if(!match||match[1]!==route[2]||match[2]!==mid)return null;
+      return parseLink('https://discord.com/channels/'+route[1]+'/'+route[2]+'/'+mid);
+    };
+    if(!sourceFor(a)||!sourceFor(b)){record('selection-unresolved');return}
+    const range=sel.getRangeAt(0), rows=[];
+    for(const node of document.querySelectorAll('[id^="message-content-"]')){
+      if(!range.intersectsNode(node))continue;
+      const source=sourceFor(node);if(!source)continue;
+      rows.push({source,text:node.innerText||node.textContent||''});
+    }
+    if(!rows.length||rows.length>30||rows.reduce((n,p)=>n+p.text.length,0)>60000){
+      picked=null;packet=[];sourceInput.value='';setOpen(true);status('Select a smaller group (up to 30 messages / 60,000 characters).');return;
+    }
+    packet=rows;picked=rows[0].source;sourceInput.value=picked.url;
+    record('source-staged',String(rows.length));setOpen(true);
+    status(rows.length+' rendered message(s) staged. Copy conversation or Capture.');
   });
   record('ready');render();
 })();
