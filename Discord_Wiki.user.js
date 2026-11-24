@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.2.0
+// @version      0.3.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/channels/*
 // @run-at       document-idle
@@ -12,7 +12,7 @@
 
 (function () {
   'use strict';
-  const VERSION = '0.2.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.3.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if (document.getElementById(ROOT)) return;
   const fresh = () => ({schema:1, sources:{}, topics:{}, visits:[]});
   let data, topic = 'General', opened = false, picked = null, packet = [], warning = '';
@@ -100,7 +100,40 @@
     textarea{min-height:65px;resize:vertical} .muted{font-size:11px;color:#64748b} .status{margin:7px 0;overflow-wrap:anywhere} .entry{background:white;padding:8px;border:1px solid #e2e8f0;border-radius:6px;margin:6px 0;overflow-wrap:anywhere;white-space:pre-wrap}
     a{color:#384da5} h3{margin:0;font-size:14px} .scroll{max-height:34vh;overflow:auto} [hidden]{display:none!important}
   `,shadow);
-  const toggle=el('button','Wiki',shadow); toggle.className='primary';
+  // Focus is reversible CSS only. Keep conversation text, author identity,
+  // replies, attachments, navigation and search available.
+  // Selector precedents: 3pm-dev/vencord-ui-compact-customization/custom.css,
+  // bildpunkt/focus-discord/focus.theme.css. No remote stylesheet dependency.
+  const focusStyle=el('style',`
+    html.dw-focus :is([id^="chat-messages-"],[class*="searchResult_"]) [class*="reactions_"],
+    html.dw-focus :is([role="menu"],[aria-label="Message Actions"]) :is([id*="message-quickreact"],[id*="message-actions-quickreact"],[aria-label^="Click to react with"]),
+    html.dw-focus [class*="avatarDecoration_"],
+    html.dw-focus [class*="profileEffects_"],
+    html.dw-focus :is([role="button"],button):is([aria-label="Send a gift"],[aria-label="Open sticker picker"],[aria-label="Open GIF picker"],[aria-label="Select emoji"]) {display:none!important}
+    html.dw-focus [id^="message-content-"] img.emoji {filter:grayscale(1);opacity:.68}
+    html.dw-focus [id^="message-content-"] img.emoji:hover {filter:none;opacity:1}
+    html.dw-focus [id^="message-content-"] img.emoji[class*="jumboable"] {width:1.3em!important;height:1.3em!important;object-fit:contain}
+    html.dw-focus #channels :is([class*="name_"],[class*="nameContainer_"]) {color:var(--text-normal,inherit)}
+    html.dw-focus #channels img.emoji {filter:grayscale(1)}
+    html.dw-focus [id^="chat-messages-"] [class*="avatar_"] {filter:grayscale(.85);opacity:.72}
+    html.dw-focus [id^="chat-messages-"] [class*="avatar_"]:hover {filter:none;opacity:1}
+    html.dw-focus [id^="chat-messages-"] [class*="username_"] {color:var(--text-normal,inherit)!important}
+  `,document.head);
+  let focus=GM_getValue('dw-focus',true)!==false;
+  const launcher=el('div',undefined,shadow);launcher.className='row';launcher.style.margin='0';
+  const focusToggle=el('button','',launcher);
+  focusToggle.title='Toggle distraction reduction; no messages are removed';
+  function applyFocus(){
+    document.documentElement.classList.toggle('dw-focus',focus);
+    focusToggle.textContent=focus?'Focus on':'Focus off';
+    focusToggle.setAttribute('aria-pressed',String(focus));
+  }
+  focusToggle.addEventListener('click',()=>{
+    focus=!focus;applyFocus();
+    try{GM_setValue('dw-focus',focus);record('focus',String(focus))}catch(e){record('focus-save-failed')}
+  });
+  applyFocus();
+  const toggle=el('button','Wiki',launcher); toggle.className='primary';
   const panel=el('section',undefined,shadow); panel.className='panel'; panel.hidden=true;
   const titleRow=el('div',undefined,panel); titleRow.className='row';
   const title=el('h3','Discord Wiki · Explore',titleRow); title.className='grow';
@@ -144,7 +177,7 @@
   btn(footer,'Import JSON',()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   btn(footer,'Copy report',()=>{
     const report={version:VERSION,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,visits:data.visits.length,
-      messageContentElements:document.querySelectorAll('[id^="message-content-"]').length,staged:!!picked,storageWarning:!!warning,events:log};
+      messageContentElements:document.querySelectorAll('[id^="message-content-"]').length,staged:!!picked,storageWarning:!!warning,focus,focusMatches:{reactions:document.querySelectorAll('[id^="chat-messages-"] [class*="reactions_"]').length,inlineEmoji:document.querySelectorAll('[id^="message-content-"] img.emoji').length,avatarDecorations:document.querySelectorAll('[class*="avatarDecoration_"]').length},events:log};
     GM_setClipboard(JSON.stringify(report,null,2),'text');status('Diagnostics copied (no source links or message content).');
   });
   function render(){
