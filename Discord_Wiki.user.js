@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.6.0
+// @version      0.6.1
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.6.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.6.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -93,7 +93,7 @@
     throw Error('Automatic clipboard unavailable; copy from the selected text box.');
   }
   const fresh = () => ({schema:1, sources:{}, topics:{}, visits:[], conversations:[]});
-  let data, topic = 'General', opened = false, picked = null, packet = [], warning = '';
+  let data, topic = 'General', opened = false, picked = null, packet = [], packetOrigin = '', warning = '';
   const log = [];
   function record(event, detail = '') {
     log.push({at:new Date().toISOString(), event, detail});
@@ -263,7 +263,7 @@
   topics.addEventListener('change',()=>{topic=topics.value;render()});
   btn(row,'New topic',async()=>{const n=prompt('Topic name (e.g. MEMS / Fabrication)');if(n===null)return;const t=topicName(n);const next=await latest();next.topics[t] ||= [];topic=t;await save(next,'topic-created')});
   const sourceInput=el('input',undefined,captureBox);sourceInput.placeholder='Paste Discord message link';sourceInput.setAttribute('aria-label','Source message link');
-  sourceInput.addEventListener('input',()=>{picked=null;packet=[]});
+  sourceInput.addEventListener('input',()=>{picked=null;packet=[];packetOrigin=''});
   const labelInput=el('input',undefined,captureBox);labelInput.placeholder='Conversation title (optional)';labelInput.setAttribute('aria-label','Conversation title');
   const note=el('textarea',undefined,captureBox);note.placeholder='Why is this worth returning to? Optional personal annotation.';note.setAttribute('aria-label','Personal annotation');
   const actions=el('div',undefined,captureBox);actions.className='row';
@@ -277,11 +277,11 @@
       if(!entries.some(e=>e.source===id && e.note===text))entries.push({source:id,note:text});
     }
     if(labelInput.value.trim()){const r=region({title:labelInput.value,messages:selected.map(p=>p.url),topics:[topic],note:text,verified:true});if(next.conversations.some(x=>x.id===r.id)&&!confirm('Replace existing conversation label?'))return;upsert(next,r);}
-    await save(next,'capture');sourceInput.value='';note.value='';labelInput.value='';picked=null;packet=[];status('Saved '+selected.length+' source(s) in '+topic);
+    await save(next,'capture');sourceInput.value='';note.value='';labelInput.value='';picked=null;packet=[];packetOrigin='';status('Saved '+selected.length+' source(s) in '+topic);
   },true);
   btn(actions,'Use visible messages',async()=>{
     const rows=visibleRows();if(!rows.length)throw Error('No visible messages recognized. Copy report to diagnose.');
-    stage(rows.slice(0,30));
+    stage(rows.slice(0,30),'visible');
   });
   btn(actions,'Copy conversation',async()=>{
     if(!packet.length)throw Error('Select text spanning the messages you want to explore first.');
@@ -291,14 +291,14 @@
     record('conversation-copied',String(packet.length));
   });
   async function copyForLabels(){
-    if(!packet.length){const rows=visibleRows(true);if(!rows.length)throw Error('No loaded channel messages recognized');const bounded=[];let chars=0;for(const p of rows){if(bounded.length>=100||chars+p.text.length>60000)break;bounded.push(p);chars+=p.text.length;}stage(bounded);record('loaded-window',String(rows.length));}
+    if(!packet.length||packetOrigin==='loaded'||packetOrigin==='visible'){const rows=visibleRows(true);if(!rows.length)throw Error('No loaded channel messages recognized');const bounded=[];let chars=0;for(const p of rows){if(bounded.length>=100||chars+p.text.length>60000)break;bounded.push(p);chars+=p.text.length;}stage(bounded,'loaded');record('loaded-window',String(rows.length));}
     await write('dw-last-packet',packet.map(p=>p.source.url));
     await copy(JSON.stringify({instruction:'Propose concise specific conversation titles. Group related messages; ignore trivial chatter. Use only the supplied exact URLs. Return JSON: {"conversations":[{"title":"...","messages":["exact URL"],"topics":["..."],"note":"optional"}]}',messages:packet.map(packetJSON)},null,2),'text');
-    status('Copied '+packet.length+' messages. Paste into ChatGPT, then Import LLM labels.');record('label-packet',String(packet.length));
+    status('Copied '+packet.length+' messages. Paste into ChatGPT, then Import LLM labels.');record('label-packet',String(packet.length));packetOrigin='loaded';
   }
   const quick=el('div',undefined,panel);quick.className='row';panel.insertBefore(quick,captureBox);
   btn(quick,'Copy for AI labels',copyForLabels,true);
-  btn(quick,'Label visible',()=>{const rows=visibleRows();if(!rows.length)throw Error('No visible channel messages recognized');stage(rows.slice(0,30));captureBox.open=true;labelInput.focus()});
+  btn(quick,'Label visible',()=>{const rows=visibleRows();if(!rows.length)throw Error('No visible channel messages recognized');stage(rows.slice(0,30),'visible');captureBox.open=true;labelInput.focus()});
   const hint=el('div','Select messages, or use visible messages. Save a title to return later. AI copy uses selected messages or the loaded channel window, not the entire channel.',captureBox);hint.className='muted';
   const msg=el('div','',panel);msg.className='status';msg.setAttribute('role','status');
   function status(s){msg.textContent=s}
@@ -338,7 +338,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -397,9 +397,9 @@
     }
     return result;
   }
-  function stage(rows){
+  function stage(rows,origin='selection'){
     if(!rows.length||rows.length>100||rows.reduce((n,p)=>n+p.text.length,0)>60000)throw Error('Select up to 100 messages / 60,000 characters');
-    packet=rows;picked=rows[0].source;sourceInput.value=picked.url;
+    packet=rows;packetOrigin=origin;picked=rows[0].source;sourceInput.value=picked.url;
     record('source-staged',String(rows.length));setOpen(true);status(rows.length+' messages selected. Save a label or copy for AI.');
   }
   function renderIndex(){
@@ -475,14 +475,14 @@
       if(!rows.some(p=>keyOf(p.source)===keyOf(source)))rows.push(messagePacket(node,source));
     }
     if(!rows.length||rows.length>100||rows.reduce((n,p)=>n+p.text.length,0)>60000){
-      picked=null;packet=[];sourceInput.value='';setOpen(true);status('Select a smaller group (up to 100 messages / 60,000 characters).');return;
+      picked=null;packet=[];packetOrigin='';sourceInput.value='';setOpen(true);status('Select a smaller group (up to 100 messages / 60,000 characters).');return;
     }
     metrics.selection.resolved++;stage(rows);captureBox.open=true;
   }
   document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;packet=[];picked=null;sourceInput.value='';labelInput.value='';note.value='';await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
