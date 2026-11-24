@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.4.2
+// @version      0.5.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,11 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.4.2', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.5.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
+  const metrics={scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:12px!important;right:12px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -47,7 +48,7 @@
     return {schema:1,version:VERSION,started,exported:new Date().toISOString(),phase:bootStep,
       browser:{viewport:[innerWidth,innerHeight],touchPoints:navigator.maxTouchPoints,readyState:document.readyState,body:!!document.body,shadowDOM:typeof Element.prototype.attachShadow==='function',clipboard:typeof navigator.clipboard?.writeText==='function'},
       storage:{legacyRead:typeof GM_getValue==='function',legacyWrite:typeof GM_setValue==='function',modernRead:typeof GM!=='undefined'&&typeof GM.getValue==='function',modernWrite:typeof GM!=='undefined'&&typeof GM.setValue==='function'},
-      page:{channelRoute:location.pathname.startsWith('/channels/'),messageContents:count('[id^="message-content-"]'),messageRows:count('[id^="chat-messages-"]'),reactions:count('[class*="reactions_"]'),focusClass:document.documentElement.classList.contains('dw-focus'),overlayPresent:!!document.getElementById(ROOT)},app,failures,journal};
+      page:{channelRoute:location.pathname.startsWith('/channels/'),messageContents:count('[id^="message-content-"]'),messageRows:count('[id^="chat-messages-"]'),reactions:count('[class*="reactions_"]'),focusClass:document.documentElement.classList.contains('dw-focus'),overlayPresent:!!document.getElementById(ROOT)},app,metrics,failures,journal};
   }
   function refreshReport(){area.value=JSON.stringify(snapshot(),null,2);diagStatus.textContent='Phase: '+bootStep+' · '+failures.length+' errors';}
   function showReport(){diagPanel.hidden=false;refreshReport()}
@@ -69,19 +70,23 @@
   const storage=gmLegacy?'legacy GM':gmModern?'modern GM':'session only';
   const volatile=new Map();
   async function read(key,def){
+    metrics.storageReads++;
     if(gmLegacy)return (await GM_getValue(key,def))??def;
     if(gmModern)return (await GM.getValue(key,def))??def;
     return volatile.has(key)?volatile.get(key):def;
   }
   async function write(key,value){
+    metrics.storageWrites++;
     if(gmLegacy)return await GM_setValue(key,value);
     if(gmModern)return await GM.setValue(key,value);
     volatile.set(key,value);
   }
   async function copy(text){
-    if(typeof GM_setClipboard==='function'){await GM_setClipboard(text,'text');return;}
-    if(typeof GM!=='undefined'&&typeof GM.setClipboard==='function'){await GM.setClipboard(text,'text');return;}
-    try{await navigator.clipboard.writeText(text);return;}catch{}
+    metrics.clipboard.attempts++;
+    if(typeof GM_setClipboard==='function'){await GM_setClipboard(text,'text');metrics.clipboard.success++;return;}
+    if(typeof GM!=='undefined'&&typeof GM.setClipboard==='function'){await GM.setClipboard(text,'text');metrics.clipboard.success++;return;}
+    try{await navigator.clipboard.writeText(text);metrics.clipboard.success++;return;}catch{}
+    metrics.clipboard.fallback++;
     const t=document.createElement('textarea');t.value=text;t.style.cssText='position:fixed;inset:12% 5%;width:90%;height:70%;z-index:2147483647;background:white;color:black;font:14px monospace';
     const close=document.createElement('button');close.textContent='Close copy box';close.style.cssText='position:fixed;top:4%;right:5%;z-index:2147483647;background:white;color:black;padding:10px';
     close.onclick=()=>{t.remove();close.remove()};document.body.append(t,close);t.focus();t.select();
@@ -163,7 +168,10 @@
   }
   async function save(next, event) {
     if (warning && event !== 'import') throw Error(warning);
-    await write(KEY,next); data = next; warning = ''; record(event); render();
+    await write(KEY,next);
+    const check=normalize(await read(KEY,fresh()));
+    if(JSON.stringify(check)!==JSON.stringify(normalize(next))){metrics.storageMismatch++;throw Error('Saved workspace readback differs from requested state');}
+    metrics.storageVerified++;data=check; warning = ''; record(event); render();
   }
   async function merge(incoming) {
     const next = warning ? fresh() : await latest();
@@ -189,7 +197,7 @@
     :host{all:initial;position:fixed!important;right:12px!important;top:52px!important;bottom:auto!important;z-index:2147483646!important;font:13px system-ui,sans-serif;color:#1e293b}
     *{box-sizing:border-box} button,input,textarea,select{font:inherit} button{cursor:pointer;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#1e293b;padding:6px 9px}
     button:hover{background:#eaf0ff} button:focus-visible,a:focus-visible{outline:2px solid #5265c9} .primary{background:#4256bb;color:white;border-color:#4256bb}
-    .panel{width:min(410px,calc(100vw - 24px));max-height:80vh;overflow:auto;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:12px;box-shadow:0 8px 28px #0004}
+    .panel{width:min(410px,calc(100vw - 24px));max-height:calc(100vh - 112px);max-height:calc(100dvh - 112px);overflow:auto;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:12px;box-shadow:0 8px 28px #0004}
     .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:7px 0} .grow{flex:1;min-width:0} input,textarea,select{border:1px solid #cbd5e1;background:white;color:#1e293b;padding:7px;border-radius:5px;width:100%}
     textarea{min-height:65px;resize:vertical} .muted{font-size:11px;color:#64748b} .status{margin:7px 0;overflow-wrap:anywhere} .entry{background:white;padding:8px;border:1px solid #e2e8f0;border-radius:6px;margin:6px 0;overflow-wrap:anywhere;white-space:pre-wrap}
     a{color:#384da5} h3{margin:0;font-size:14px} .scroll{max-height:34vh;overflow:auto} [hidden]{display:none!important}
@@ -222,7 +230,7 @@
   focusToggle.title='Toggle distraction reduction; no messages are removed';
   function applyFocus(){
     document.documentElement.classList.toggle('dw-focus',focus);
-    focusToggle.textContent=focus?'Focus on':'Focus off';
+    focusToggle.textContent=focus?'Reading: on':'Reading: off';
     focusToggle.setAttribute('aria-pressed',String(focus));
   }
   focusToggle.addEventListener('click',async()=>{
@@ -230,26 +238,27 @@
     try{await write('dw-focus',focus);record('focus',String(focus))}catch(e){record('focus-save-failed');fail('save-focus',e)}
   });
   applyFocus();
-  const toggle=el('button','Wiki',launcher); toggle.className='primary';
+  const toggle=el('button','Contents',launcher); toggle.className='primary';
   const panel=el('section',undefined,shadow); panel.className='panel'; panel.hidden=true;
   const titleRow=el('div',undefined,panel); titleRow.className='row';
-  const title=el('h3','Discord Wiki · Explore',titleRow); title.className='grow';
+  const title=el('h3','Conversation contents',titleRow); title.className='grow';
   function btn(parent,label,fn,primary=false) {
     const b=el('button',label,parent); if(primary)b.className='primary';
-    b.addEventListener('click',async()=>{try{await fn()}catch(e){status('Error: '+e.message);record('action-failed',label);fail('action:'+label,e);showReport()}}); return b;
+    b.addEventListener('click',async()=>{const m=metrics.actions[label]||=( {attempts:0,completed:0,failed:0} );m.attempts++;if(b.disabled)return;b.disabled=true;try{await fn();m.completed++}catch(e){m.failed++;status('Error: '+e.message);record('action-failed',label);fail('action:'+label,e);showReport()}finally{b.disabled=false}}); return b;
   }
   btn(titleRow,'Hide',()=>setOpen(false));
   const stats=el('div','',panel); stats.className='muted';
-  const row=el('div',undefined,panel); row.className='row';
+  const captureBox=el('details',undefined,panel);el('summary','Label a conversation',captureBox);
+  const row=el('div',undefined,captureBox); row.className='row';
   const topics=el('select',undefined,row); topics.className='grow'; topics.setAttribute('aria-label','Current topic');
   topics.addEventListener('change',()=>{topic=topics.value;render()});
   btn(row,'New topic',async()=>{const n=prompt('Topic name (e.g. MEMS / Fabrication)');if(n===null)return;const t=topicName(n);const next=await latest();next.topics[t] ||= [];topic=t;await save(next,'topic-created')});
-  const sourceInput=el('input',undefined,panel);sourceInput.placeholder='Paste Discord message link';sourceInput.setAttribute('aria-label','Source message link');
+  const sourceInput=el('input',undefined,captureBox);sourceInput.placeholder='Paste Discord message link';sourceInput.setAttribute('aria-label','Source message link');
   sourceInput.addEventListener('input',()=>{picked=null;packet=[]});
-  const labelInput=el('input',undefined,panel);labelInput.placeholder='Conversation title (optional)';labelInput.setAttribute('aria-label','Conversation title');
-  const note=el('textarea',undefined,panel);note.placeholder='Why is this worth returning to? Optional personal annotation.';note.setAttribute('aria-label','Personal annotation');
-  const actions=el('div',undefined,panel);actions.className='row';
-  btn(actions,'Capture',async()=>{
+  const labelInput=el('input',undefined,captureBox);labelInput.placeholder='Conversation title (optional)';labelInput.setAttribute('aria-label','Conversation title');
+  const note=el('textarea',undefined,captureBox);note.placeholder='Why is this worth returning to? Optional personal annotation.';note.setAttribute('aria-label','Personal annotation');
+  const actions=el('div',undefined,captureBox);actions.className='row';
+  btn(actions,'Save',async()=>{
     const source=parseLink(sourceInput.value.trim()) || (!sourceInput.value.trim() ? picked : null);
     if(!source)throw Error('Select a message in its original channel or paste its Copy Message Link URL.');
     const selected = picked && source.url === picked.url && packet.length ? packet.map(p=>p.source) : [source];
@@ -258,10 +267,10 @@
       const id=keyOf(src);next.sources[id]=src;
       if(!entries.some(e=>e.source===id && e.note===text))entries.push({source:id,note:text});
     }
-    if(labelInput.value.trim())upsert(next,{title:labelInput.value,messages:selected.map(p=>p.url),topics:[topic],note:text,verified:true});
+    if(labelInput.value.trim()){const r=region({title:labelInput.value,messages:selected.map(p=>p.url),topics:[topic],note:text,verified:true});if(next.conversations.some(x=>x.id===r.id)&&!confirm('Replace existing conversation label?'))return;upsert(next,r);}
     await save(next,'capture');sourceInput.value='';note.value='';labelInput.value='';picked=null;packet=[];status('Saved '+selected.length+' source(s) in '+topic);
   },true);
-  btn(actions,'Stage visible',async()=>{
+  btn(actions,'Use visible messages',async()=>{
     const rows=visibleRows();if(!rows.length)throw Error('No visible messages recognized. Copy report to diagnose.');
     stage(rows.slice(0,30));
   });
@@ -272,17 +281,20 @@
     status('Copied '+packet.length+' selected message(s) for LLM exploration. Review before sharing.');
     record('conversation-copied',String(packet.length));
   });
-  btn(actions,'Copy for labeling',async()=>{
-    if(!packet.length)throw Error('Stage visible messages or select a conversation first.');
+  async function copyForLabels(){
+    if(!packet.length){const rows=visibleRows();if(!rows.length)throw Error('No visible channel messages recognized');stage(rows.slice(0,30));}
     await write('dw-last-packet',packet.map(p=>p.source.url));
     await copy(JSON.stringify({instruction:'Propose concise specific conversation titles. Group related messages; ignore trivial chatter. Use only the supplied exact URLs. Return JSON: {"conversations":[{"title":"...","messages":["exact URL"],"topics":["..."],"note":"optional"}]}',messages:packet.map(p=>({url:p.source.url,text:p.text}))},null,2),'text');
-    status('Paste packet into ChatGPT, then Import LLM labels.');record('label-packet',String(packet.length));
-  });
-  const hint=el('div','Select one or several messages in the channel, then Copy conversation or Capture. A pasted message link also works. Use Discord search to reach earlier discussions.',panel);hint.className='muted';
+    status('Paste into ChatGPT, then Import LLM labels.');record('label-packet',String(packet.length));
+  }
+  const quick=el('div',undefined,panel);quick.className='row';panel.insertBefore(quick,captureBox);
+  btn(quick,'Copy for AI labels',copyForLabels,true);
+  btn(quick,'Label visible',()=>{const rows=visibleRows();if(!rows.length)throw Error('No visible channel messages recognized');stage(rows.slice(0,30));captureBox.open=true;labelInput.focus()});
+  const hint=el('div','Select messages, or use visible messages. Save a title to return later.',captureBox);hint.className='muted';
   const msg=el('div','',panel);msg.className='status';msg.setAttribute('role','status');
   function status(s){msg.textContent=s}
   const indexHeader=el('div',undefined,panel);indexHeader.className='row';
-  const indexLabel=el('h3','Conversation contents',indexHeader);indexLabel.className='grow';
+  const indexLabel=el('h3','Saved conversations',indexHeader);indexLabel.className='grow';
   const scope=el('select',undefined,indexHeader);scope.style.width='auto';
   for(const [value,label] of [['channel','This channel'],['all','All channels']]){const o=el('option',label,scope);o.value=value;}
   scope.addEventListener('change',()=>renderIndex());
@@ -312,33 +324,60 @@
   });
   const legacy=el('details',undefined,panel);el('summary','Individual bookmarks',legacy);
   const list=el('div',undefined,legacy);list.className='scroll';
-  const footer=el('div',undefined,panel);footer.className='row';
+  const tools=el('details',undefined,panel);el('summary','Backup / restore',tools);
+  const footer=el('div',undefined,tools);footer.className='row';
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
-  btn(footer,'Diagnostics',showReport);
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,storageWarning:!!warning,focus,lowSignal:count('[data-dw-low]'),inlineLabels:count('[data-dw-label]'),emoji:count('[id^="message-content-"] img.emoji')});
+  // Diagnostics already has an independent persistent launcher.
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
-  function sourceFor(node){
+  function classifySource(node){
     const route=channelRoute();
-    if(!route||node.closest('[class*="searchResult"],[class*="searchResults"],[class*="searchResultGroup"]'))return null;
-    const match=node.closest('[id^="chat-messages-"]')?.id.match(/^chat-messages-(\d{15,22})-(\d{15,22})$/);
+    if(!route)return {reason:'no-server-channel'};
+    if(node.closest('[class*="searchResult"],[class*="searchResults"],[class*="searchResultGroup"]'))return {reason:'search-result'};
+    const row=node.closest('[id^="chat-messages-"]');
+    if(!row)return {reason:'no-row'};
+    const match=row.id.match(/^chat-messages-(\d{15,22})-(\d{15,22})$/);
+    if(!match)return {reason:'row-id-shape'};
     const mid=node.id.slice('message-content-'.length);
-    if(!match||match[1]!==route[2]||match[2]!==mid)return null;
-    return parseLink('https://discord.com/channels/'+route[1]+'/'+route[2]+'/'+mid);
+    if(match[1]!==route[2])return {reason:'channel-mismatch'};
+    if(match[2]!==mid)return {reason:'message-mismatch'};
+    const source=parseLink('https://discord.com/channels/'+route[1]+'/'+route[2]+'/'+mid);
+    return source?{reason:'recognized',source}:{reason:'link-invalid'};
+  }
+  function sourceFor(node){return classifySource(node).source||null;}
+  function recognitionReport(){
+    const reasons={},visibleReasons={},unique=new Set();let duplicate=0;
+    for(const node of document.querySelectorAll('[id^="message-content-"]')){
+      const r=classifySource(node),box=node.getBoundingClientRect();
+      reasons[r.reason]=(reasons[r.reason]||0)+1;
+      if(box.bottom>0&&box.top<innerHeight&&box.width>0&&box.height>0)visibleReasons[r.reason]=(visibleReasons[r.reason]||0)+1;
+      if(r.source){const id=keyOf(r.source);if(unique.has(id))duplicate++;unique.add(id);}
+    }
+    return {reasons,visibleReasons,uniqueRecognized:unique.size,duplicates:duplicate};
+  }
+  function effectReport(selector){
+    const nodes=[...document.querySelectorAll(selector)],out={matched:nodes.length,hidden:0,faded:0,grayscale:0};
+    for(const n of nodes){const c=getComputedStyle(n);if(c.display==='none'||c.visibility==='hidden')out.hidden++;if(Number(c.opacity)<.95)out.faded++;if(c.filter.includes('grayscale'))out.grayscale++;}
+    return out;
+  }
+  function geometryReport(){
+    const box=node=>{const r=node.getBoundingClientRect();return {x:Math.round(r.x),y:Math.round(r.y),w:Math.round(r.width),h:Math.round(r.height),overflowBottom:Math.max(0,Math.round(r.bottom-innerHeight)),scrollHeight:node.scrollHeight,clientHeight:node.clientHeight}};
+    return {opened,panel:box(panel),launcher:box(launcher),visualViewport:window.visualViewport?[Math.round(visualViewport.width),Math.round(visualViewport.height)]:null};
   }
   function visibleRows(){
-    const result=[];
+    const result=[],seen=new Set();
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
       const r=node.getBoundingClientRect();if(r.bottom<=0||r.top>=innerHeight||r.width===0||r.height===0)continue;
-      const source=sourceFor(node);if(source)result.push({source,text:node.innerText||node.textContent||''});
+      const source=sourceFor(node);if(source&&!seen.has(keyOf(source))){seen.add(keyOf(source));result.push({source,text:node.innerText||node.textContent||''});}
     }
     return result;
   }
   function stage(rows){
     if(!rows.length||rows.length>30||rows.reduce((n,p)=>n+p.text.length,0)>60000)throw Error('Select up to 30 messages / 60,000 characters');
     packet=rows;picked=rows[0].source;sourceInput.value=picked.url;
-    record('source-staged',String(rows.length));setOpen(true);status(rows.length+' rendered message(s) staged.');
+    record('source-staged',String(rows.length));setOpen(true);status(rows.length+' messages selected. Save a label or copy for AI.');
   }
   function renderIndex(){
     const route=channelRoute(),q=filter.value.toLowerCase();
@@ -361,6 +400,7 @@
     return /^(?:lol+|lmao+|lmfao+|rofl|ha(?:ha)+|he(?:he)+|nice+|bruh+|xd)[.!\s]*$/i.test(text.trim());
   }
   function annotateDOM(){
+    const t=performance.now();metrics.scans++;
     const labels=new Map(data.conversations.map(r=>[r.id,r.title]));
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
       const source=sourceFor(node),row=node.closest('[id^="chat-messages-"]');
@@ -370,10 +410,11 @@
       const label=source&&labels.get(keyOf(source));
       if(label)node.dataset.dwLabel=label;else delete node.dataset.dwLabel;
     }
+    metrics.scanMs=Math.round((performance.now()-t)*10)/10;metrics.maxScanMs=Math.max(metrics.maxScanMs,metrics.scanMs);
   }
   function render(){
     renderIndex();annotateDOM();
-    stats.textContent=Object.keys(data.sources).length+' sources · '+Object.keys(data.topics).length+' topics · '+data.visits.length+' visits · '+data.conversations.length+' conversations';
+    stats.textContent=data.conversations.length+' saved conversations';
     topics.replaceChildren();
     const names=[...new Set([topic,...Object.keys(data.topics)])].sort();
     for(const name of names){const option=el('option',name,topics);option.value=name}
@@ -397,13 +438,13 @@
   window.addEventListener('focus',refresh);
   function setOpen(v){opened=v;panel.hidden=!v;toggle.hidden=v;if(v)refresh()}
   toggle.addEventListener('click',()=>setOpen(true));
-  document.addEventListener('mouseup',()=>{
+  function captureSelection(){
     const sel=window.getSelection();if(!sel||sel.isCollapsed||sel.rangeCount!==1)return;
     const element=n=>n?.nodeType===1?n:n?.parentElement;
     const a=element(sel.anchorNode)?.closest('[id^="message-content-"]');
     const b=element(sel.focusNode)?.closest('[id^="message-content-"]');
-    if(!a||!b)return;
-    if(!sourceFor(a)||!sourceFor(b)){record('selection-unresolved');return}
+    if(!a||!b)return;metrics.selection.attempts++;
+    if(!sourceFor(a)||!sourceFor(b)){metrics.selection.rejected++;record('selection-unresolved');return}
     const range=sel.getRangeAt(0), rows=[];
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
       if(!range.intersectsNode(node))continue;
@@ -413,11 +454,12 @@
     if(!rows.length||rows.length>30||rows.reduce((n,p)=>n+p.text.length,0)>60000){
       picked=null;packet=[];sourceInput.value='';setOpen(true);status('Select a smaller group (up to 30 messages / 60,000 characters).');return;
     }
-    stage(rows);
-  });
+    metrics.selection.resolved++;stage(rows);captureBox.open=true;
+  }
+  document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){lastPath=location.pathname;packet=[];picked=null;sourceInput.value='';labelInput.value='';note.value='';await refresh();record('channel-changed')}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;packet=[];picked=null;sourceInput.value='';labelInput.value='';note.value='';await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
