@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.3.0
+// @version      0.4.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/channels/*
 // @run-at       document-idle
@@ -12,9 +12,9 @@
 
 (function () {
   'use strict';
-  const VERSION = '0.3.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.4.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if (document.getElementById(ROOT)) return;
-  const fresh = () => ({schema:1, sources:{}, topics:{}, visits:[]});
+  const fresh = () => ({schema:1, sources:{}, topics:{}, visits:[], conversations:[]});
   let data, topic = 'General', opened = false, picked = null, packet = [], warning = '';
   const log = [];
   function record(event, detail = '') {
@@ -39,6 +39,20 @@
     if (!s || s.length > 120 || (s === 'prototype' || Object.hasOwn(Object.prototype,s))) throw Error('Invalid topic name');
     return s;
   }
+  function region(raw) {
+    const title=String(raw?.title||'').trim().slice(0,180);
+    if(!title||!Array.isArray(raw.messages)||!raw.messages.length||raw.messages.length>100)throw Error('Expected title and 1–100 message links');
+    const links=[...new Set(raw.messages.map(u=>{const p=parseLink(u);if(!p)throw Error('Invalid message link');return p.url}))];
+    const first=parseLink(links[0]);
+    if(links.some(u=>{const p=parseLink(u);return p.guild!==first.guild||p.channel!==first.channel}))throw Error('A conversation must belong to one channel');
+    links.sort((a,b)=>{const x=BigInt(parseLink(a).message),y=BigInt(parseLink(b).message);return x<y?-1:x>y?1:0});
+    return {id:keyOf(parseLink(links[0])),title,messages:links,topics:[...new Set((Array.isArray(raw.topics)?raw.topics:[]).map(topicName))].slice(0,20),note:String(raw.note||'').slice(0,4000),verified:raw.verified===true};
+  }
+  function upsert(next,raw){
+    const r=region(raw),i=next.conversations.findIndex(x=>x.id===r.id);
+    if(i<0)next.conversations.push(r);else next.conversations[i]=r;
+    return r;
+  }
   function normalize(input) {
     if (!input || input.schema !== 1 || !input.sources || !input.topics) throw Error('Expected Sparse Explorer schema 1');
     const out = fresh();
@@ -61,6 +75,10 @@
     if (Array.isArray(input.visits)) out.visits = input.visits.filter(v =>
       v && isId(v.guild) && isId(v.channel) && typeof v.at === 'string'
     ).map(v => ({guild:v.guild,channel:v.channel,at:v.at})).slice(-500);
+    if(input.conversations!==undefined){
+      if(!Array.isArray(input.conversations))throw Error('Invalid conversations');
+      for(const r of input.conversations)upsert(out,r);
+    }
     return out;
   }
   try { data = normalize(GM_getValue(KEY,fresh())); }
@@ -83,6 +101,7 @@
     const seen = new Set(next.visits.map(v=>JSON.stringify(v)));
     for (const v of incoming.visits) if (!seen.has(JSON.stringify(v))) { next.visits.push(v); seen.add(JSON.stringify(v)); }
     next.visits = next.visits.slice(-500);
+    for(const r of incoming.conversations)if(!next.conversations.some(x=>x.id===r.id))next.conversations.push(r);
     save(next,'import');
   }
   function el(tag, text, parent) {
@@ -110,6 +129,9 @@
     html.dw-focus [class*="avatarDecoration_"],
     html.dw-focus [class*="profileEffects_"],
     html.dw-focus :is([role="button"],button):is([aria-label="Send a gift"],[aria-label="Open sticker picker"],[aria-label="Open GIF picker"],[aria-label="Select emoji"]) {display:none!important}
+    html.dw-focus [data-dw-low="1"] {opacity:.48!important}
+    html.dw-focus [data-dw-low="1"]:hover,html.dw-focus [data-dw-low="1"]:focus-within {opacity:1!important}
+    html.dw-focus [data-dw-label]::before {content:attr(data-dw-label);display:block;color:var(--text-normal,#64748b);font-size:12px;font-weight:600;padding:5px 0 3px;border-top:1px solid var(--background-modifier-accent,#9ca3af);white-space:normal;pointer-events:none}
     html.dw-focus [id^="message-content-"] img.emoji {filter:grayscale(1);opacity:.68}
     html.dw-focus [id^="message-content-"] img.emoji:hover {filter:none;opacity:1}
     html.dw-focus [id^="message-content-"] img.emoji[class*="jumboable"] {width:1.3em!important;height:1.3em!important;object-fit:contain}
@@ -149,6 +171,7 @@
   btn(row,'New topic',()=>{const n=prompt('Topic name (e.g. MEMS / Fabrication)');if(n===null)return;const t=topicName(n);const next=latest();next.topics[t] ||= [];topic=t;save(next,'topic-created')});
   const sourceInput=el('input',undefined,panel);sourceInput.placeholder='Paste Discord message link';sourceInput.setAttribute('aria-label','Source message link');
   sourceInput.addEventListener('input',()=>{picked=null;packet=[]});
+  const labelInput=el('input',undefined,panel);labelInput.placeholder='Conversation title (optional)';labelInput.setAttribute('aria-label','Conversation title');
   const note=el('textarea',undefined,panel);note.placeholder='Why is this worth returning to? Optional personal annotation.';note.setAttribute('aria-label','Personal annotation');
   const actions=el('div',undefined,panel);actions.className='row';
   btn(actions,'Capture',()=>{
@@ -160,28 +183,124 @@
       const id=keyOf(src);next.sources[id]=src;
       if(!entries.some(e=>e.source===id && e.note===text))entries.push({source:id,note:text});
     }
-    save(next,'capture');sourceInput.value='';note.value='';picked=null;packet=[];status('Saved '+selected.length+' source(s) in '+topic);
+    if(labelInput.value.trim())upsert(next,{title:labelInput.value,messages:selected.map(p=>p.url),topics:[topic],note:text,verified:true});
+    save(next,'capture');sourceInput.value='';note.value='';labelInput.value='';picked=null;packet=[];status('Saved '+selected.length+' source(s) in '+topic);
   },true);
+  btn(actions,'Stage visible',()=>{
+    const rows=visibleRows();if(!rows.length)throw Error('No visible messages recognized. Copy report to diagnose.');
+    stage(rows.slice(0,30));
+  });
   btn(actions,'Copy conversation',()=>{
     if(!packet.length)throw Error('Select text spanning the messages you want to explore first.');
+    GM_setValue('dw-last-packet',packet.map(p=>p.source.url));
     GM_setClipboard(JSON.stringify({topic,messages:packet.map(p=>({url:p.source.url,text:p.text}))},null,2),'text');
     status('Copied '+packet.length+' selected message(s) for LLM exploration. Review before sharing.');
     record('conversation-copied',String(packet.length));
   });
+  btn(actions,'Copy for labeling',()=>{
+    if(!packet.length)throw Error('Stage visible messages or select a conversation first.');
+    GM_setValue('dw-last-packet',packet.map(p=>p.source.url));
+    GM_setClipboard(JSON.stringify({instruction:'Propose concise specific conversation titles. Group related messages; ignore trivial chatter. Use only the supplied exact URLs. Return JSON: {"conversations":[{"title":"...","messages":["exact URL"],"topics":["..."],"note":"optional"}]}',messages:packet.map(p=>({url:p.source.url,text:p.text}))},null,2),'text');
+    status('Paste packet into ChatGPT, then Import LLM labels.');record('label-packet',String(packet.length));
+  });
   const hint=el('div','Select one or several messages in the channel, then Copy conversation or Capture. A pasted message link also works. Use Discord search to reach earlier discussions.',panel);hint.className='muted';
   const msg=el('div','',panel);msg.className='status';msg.setAttribute('role','status');
   function status(s){msg.textContent=s}
-  const list=el('div',undefined,panel);list.className='scroll';
+  const indexHeader=el('div',undefined,panel);indexHeader.className='row';
+  const indexLabel=el('h3','Conversation contents',indexHeader);indexLabel.className='grow';
+  const scope=el('select',undefined,indexHeader);scope.style.width='auto';
+  for(const [value,label] of [['channel','This channel'],['all','All channels']]){const o=el('option',label,scope);o.value=value;}
+  scope.addEventListener('change',()=>renderIndex());
+  const filter=el('input',undefined,panel);filter.placeholder='Find conversation or topic';filter.addEventListener('input',()=>renderIndex());
+  const index=el('div',undefined,panel);index.className='scroll';
+  const proposalBox=el('details',undefined,panel);el('summary','Import LLM labels',proposalBox);
+  const proposalInput=el('textarea',undefined,proposalBox);proposalInput.placeholder='Paste JSON returned by ChatGPT';
+  const preview=el('div',undefined,proposalBox);
+  btn(proposalBox,'Review',()=>{
+    const raw=JSON.parse(proposalInput.value.trim().replace(/^\x60\x60\x60(?:json)?\s*/i,'').replace(/\s*\x60\x60\x60$/,''));
+    if(!Array.isArray(raw.conversations)||raw.conversations.length>50)throw Error('Expected up to 50 conversations');
+    const allow=new Set(GM_getValue('dw-last-packet',[]));
+    if(!allow.size)throw Error('Copy a labeling packet first.');
+    const candidates=raw.conversations.map(x=>region({...x,verified:false}));
+    if(candidates.some(r=>r.messages.some(u=>!allow.has(u))))throw Error('Proposal contains URLs not in last copied packet');
+    preview.replaceChildren();
+    for(const r of candidates){
+      const item=el('div',undefined,preview);item.className='entry';
+      const label=el('input',undefined,item);label.value=r.title;
+      el('div',r.messages.length+' messages · '+r.topics.join(' / '),item).className='muted';
+      if(r.note)el('div',r.note,item);
+      const a=el('a','Open source',item);a.href=r.messages[0];a.target='_blank';a.rel='noopener';
+      btn(item,'Accept',()=>{const next=latest();const existing=next.conversations.find(x=>x.id===r.id);if(existing&&!confirm('Replace existing label: '+existing.title+'?'))return;upsert(next,{...r,title:label.value,verified:true});save(next,'label-accepted');item.remove();status('Label accepted');});
+      btn(item,'Ignore',()=>item.remove());
+    }
+    status(candidates.length+' proposals ready.');
+  });
+  const legacy=el('details',undefined,panel);el('summary','Individual bookmarks',legacy);
+  const list=el('div',undefined,legacy);list.className='scroll';
   const footer=el('div',undefined,panel);footer.className='row';
   btn(footer,'Copy JSON',()=>{GM_setClipboard(JSON.stringify(latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   btn(footer,'Copy report',()=>{
     const report={version:VERSION,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,visits:data.visits.length,
-      messageContentElements:document.querySelectorAll('[id^="message-content-"]').length,staged:!!picked,storageWarning:!!warning,focus,focusMatches:{reactions:document.querySelectorAll('[id^="chat-messages-"] [class*="reactions_"]').length,inlineEmoji:document.querySelectorAll('[id^="message-content-"] img.emoji').length,avatarDecorations:document.querySelectorAll('[class*="avatarDecoration_"]').length},events:log};
+      messageContentElements:document.querySelectorAll('[id^="message-content-"]').length,staged:!!picked,storageWarning:!!warning,focus,conversations:data.conversations.length,lowSignal:document.querySelectorAll('[data-dw-low]').length,inlineLabels:document.querySelectorAll('[data-dw-label]').length,focusMatches:{reactions:document.querySelectorAll('[id^="chat-messages-"] [class*="reactions_"]').length,inlineEmoji:document.querySelectorAll('[id^="message-content-"] img.emoji').length,avatarDecorations:document.querySelectorAll('[class*="avatarDecoration_"]').length},events:log};
     GM_setClipboard(JSON.stringify(report,null,2),'text');status('Diagnostics copied (no source links or message content).');
   });
+  function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
+  function sourceFor(node){
+    const route=channelRoute();
+    if(!route||node.closest('[class*="searchResult"],[class*="searchResults"],[class*="searchResultGroup"]'))return null;
+    const match=node.closest('[id^="chat-messages-"]')?.id.match(/^chat-messages-(\d{15,22})-(\d{15,22})$/);
+    const mid=node.id.slice('message-content-'.length);
+    if(!match||match[1]!==route[2]||match[2]!==mid)return null;
+    return parseLink('https://discord.com/channels/'+route[1]+'/'+route[2]+'/'+mid);
+  }
+  function visibleRows(){
+    const result=[];
+    for(const node of document.querySelectorAll('[id^="message-content-"]')){
+      const r=node.getBoundingClientRect();if(r.bottom<=0||r.top>=innerHeight||r.width===0||r.height===0)continue;
+      const source=sourceFor(node);if(source)result.push({source,text:node.innerText||node.textContent||''});
+    }
+    return result;
+  }
+  function stage(rows){
+    if(!rows.length||rows.length>30||rows.reduce((n,p)=>n+p.text.length,0)>60000)throw Error('Select up to 30 messages / 60,000 characters');
+    packet=rows;picked=rows[0].source;sourceInput.value=picked.url;
+    record('source-staged',String(rows.length));setOpen(true);status(rows.length+' rendered message(s) staged.');
+  }
+  function renderIndex(){
+    const route=channelRoute(),q=filter.value.toLowerCase();
+    index.replaceChildren();
+    const regions=data.conversations.filter(r=>(scope.value==='all'||(route&&r.id.startsWith(route[1]+'/'+route[2]+'/')))&&[r.title,...r.topics,r.note].join(' ').toLowerCase().includes(q));
+    regions.sort((a,b)=>{const x=BigInt(parseLink(a.messages[0]).message),y=BigInt(parseLink(b.messages[0]).message);return x>y?-1:x<y?1:0});
+    for(const r of regions){
+      const item=el('div',undefined,index);item.className='entry';
+      const a=el('a',r.title,item);a.href=r.messages[0];
+      const day=new Date(Number(BigInt(parseLink(r.messages[0]).message)>>22n)+1420070400000);
+      el('div',(Number.isFinite(day.getTime())?day.toISOString().slice(0,10):'Unknown date')+' · '+r.messages.length+' messages · '+r.topics.join(' / '),item).className='muted';
+      if(r.note)el('div',r.note,item);
+      const controls=el('div',undefined,item);controls.className='row';
+      btn(controls,'Edit',()=>{const title=prompt('Conversation title',r.title);if(title===null)return;const tags=prompt('Topics (comma separated)',r.topics.join(', '));if(tags===null)return;const next=latest();upsert(next,{...r,title,topics:tags.split(',').map(x=>x.trim()).filter(Boolean),verified:true});save(next,'label-edited')});
+      btn(controls,'Remove',()=>{if(!confirm('Remove conversation label?'))return;const next=latest();next.conversations=next.conversations.filter(x=>x.id!==r.id);save(next,'label-removed')});
+    }
+    if(!regions.length)el('div','No indexed conversations here yet.',index).className='muted';
+  }
+  function lowSignal(text){
+    return /^(?:lol+|lmao+|lmfao+|rofl|ha(?:ha)+|he(?:he)+|nice+|bruh+|xd)[.!\s]*$/i.test(text.trim());
+  }
+  function annotateDOM(){
+    const labels=new Map(data.conversations.map(r=>[r.id,r.title]));
+    for(const node of document.querySelectorAll('[id^="message-content-"]')){
+      const source=sourceFor(node),row=node.closest('[id^="chat-messages-"]');
+      const text=(node.innerText||node.textContent||'').trim();
+      const protectedContent=node.querySelector('a,code,pre,img:not(.emoji),video')||row?.querySelector('[class*="attachment"],[class*="repliedMessage"],[class*="sticker"],[class*="embed"]');
+      if(source&&!protectedContent&&(lowSignal(text)||(!text&&node.querySelector('img.emoji'))))node.dataset.dwLow='1';else delete node.dataset.dwLow;
+      const label=source&&labels.get(keyOf(source));
+      if(label)node.dataset.dwLabel=label;else delete node.dataset.dwLabel;
+    }
+  }
   function render(){
-    stats.textContent=Object.keys(data.sources).length+' sources · '+Object.keys(data.topics).length+' topics · '+data.visits.length+' visits';
+    renderIndex();annotateDOM();
+    stats.textContent=Object.keys(data.sources).length+' sources · '+Object.keys(data.topics).length+' topics · '+data.visits.length+' visits · '+data.conversations.length+' conversations';
     topics.replaceChildren();
     const names=[...new Set([topic,...Object.keys(data.topics)])].sort();
     for(const name of names){const option=el('option',name,topics);option.value=name}
@@ -211,14 +330,6 @@
     const a=element(sel.anchorNode)?.closest('[id^="message-content-"]');
     const b=element(sel.focusNode)?.closest('[id^="message-content-"]');
     if(!a||!b)return;
-    const route=location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);
-    const sourceFor=node=>{
-      if(!route||node.closest('[class*="searchResult"],[class*="searchResults"],[class*="searchResultGroup"]'))return null;
-      const match=node.closest('[id^="chat-messages-"]')?.id.match(/^chat-messages-(\d{15,22})-(\d{15,22})$/);
-      const mid=node.id.slice('message-content-'.length);
-      if(!match||match[1]!==route[2]||match[2]!==mid)return null;
-      return parseLink('https://discord.com/channels/'+route[1]+'/'+route[2]+'/'+mid);
-    };
     if(!sourceFor(a)||!sourceFor(b)){record('selection-unresolved');return}
     const range=sel.getRangeAt(0), rows=[];
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
@@ -229,9 +340,14 @@
     if(!rows.length||rows.length>30||rows.reduce((n,p)=>n+p.text.length,0)>60000){
       picked=null;packet=[];sourceInput.value='';setOpen(true);status('Select a smaller group (up to 30 messages / 60,000 characters).');return;
     }
-    packet=rows;picked=rows[0].source;sourceInput.value=picked.url;
-    record('source-staged',String(rows.length));setOpen(true);
-    status(rows.length+' rendered message(s) staged. Copy conversation or Capture.');
+    stage(rows);
   });
+  let lastPath=location.pathname,queued=false;
+  function scheduleScan(){if(queued)return;queued=true;setTimeout(()=>{queued=false;try{
+    if(lastPath!==location.pathname){lastPath=location.pathname;packet=[];picked=null;sourceInput.value='';labelInput.value='';note.value='';refresh();record('channel-changed')}
+    annotateDOM();
+  }catch(e){record('scan-failed')}},200)}
+  new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
+  setInterval(()=>{if(lastPath!==location.pathname)scheduleScan()},1000);
   record('ready');render();
 })();
