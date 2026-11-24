@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.4.1
+// @version      0.4.2
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,14 +17,51 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.4.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.4.2', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
-  const boot=document.createElement('button');
-  boot.id='dw-boot';boot.textContent='Wiki 0.4.1 · starting';
-  boot.style.cssText='position:fixed!important;top:88px!important;right:12px!important;z-index:2147483647!important;background:#fff!important;color:#222!important;padding:8px 12px!important;border:1px solid #777!important;border-radius:8px!important;font:13px system-ui!important';
-  (document.body||document.documentElement).append(boot);
-  let bootStep='storage';
-  boot.onclick=()=>{prompt('Discord Wiki startup status',JSON.stringify({version:VERSION,step:bootStep,legacyStorage:typeof GM_getValue==='function',modernStorage:typeof GM!=='undefined'&&typeof GM.getValue==='function',body:!!document.body}));};
+  // Independent diagnostics: mount before the storage/application layer.
+  const started=new Date().toISOString(),journal=[],failures=[];
+  let bootStep='storage',extraReport=()=>({});
+  const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
+  diagnostic.style.cssText='all:initial!important;position:fixed!important;top:12px!important;right:12px!important;z-index:2147483647!important;display:block!important';
+  const ds=diagnostic.attachShadow({mode:'open'});
+  const st=document.createElement('style');st.textContent=':host{color:#222;font:13px system-ui}button{font:13px system-ui;background:white;color:#222;border:1px solid #94a3b8;border-radius:6px;padding:7px 10px;cursor:pointer}section{position:fixed;top:52px;right:12px;width:min(560px,calc(100vw - 24px));max-height:85vh;overflow:auto;background:#fff;color:#222;border:1px solid #94a3b8;border-radius:10px;padding:12px;box-sizing:border-box;box-shadow:0 6px 28px #0005;font:13px system-ui}textarea{width:100%;height:min(50vh,360px);box-sizing:border-box;resize:vertical;font:12px monospace;color:#111;background:#f8fafc}header{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:8px}strong{flex:1}p{margin:7px 0} [hidden]{display:none!important}';ds.append(st);
+  const boot=document.createElement('button');boot.textContent='Wiki · starting';ds.append(boot);
+  const diagPanel=document.createElement('section');diagPanel.hidden=true;ds.append(diagPanel);
+  const header=document.createElement('header');diagPanel.append(header);
+  const heading=document.createElement('strong');heading.textContent='Discord Wiki · Diagnostics';header.append(heading);
+  function db(label,fn){const btn=document.createElement('button');btn.textContent=label;btn.onclick=fn;header.append(btn);return btn}
+  const diagStatus=document.createElement('p');diagPanel.append(diagStatus);
+  const area=document.createElement('textarea');area.readOnly=true;area.setAttribute('aria-label','Diagnostic report');diagPanel.append(area);
+  const privacy=document.createElement('p');privacy.textContent='No conversation text, links, account credentials or raw console logs.';diagPanel.append(privacy);
+  function safeError(e){
+    const allowed=new Set(['Error','TypeError','ReferenceError','SyntaxError','RangeError','NotAllowedError','SecurityError','QuotaExceededError','InvalidStateError','AbortError','DataCloneError']);
+    const name=allowed.has(e?.name)?e.name:'UnknownError';
+    const msg=String(e?.message||'');
+    const structural=/^(?:[A-Za-z_$][\w$]* is not defined|Cannot access '[\w$]+' before initialization|Cannot read properties of (?:null|undefined) \(reading '[\w$]+'\)|[\w.$]+ is not a function)$/;
+    return {name,detail:structural.test(msg)?msg:undefined};
+  }
+  function fail(stage,e){failures.push({at:new Date().toISOString(),stage,...safeError(e)});if(failures.length>30)failures.shift();boot.textContent='Wiki · errors '+failures.length}
+  function count(selector){try{return document.querySelectorAll(selector).length}catch{return null}}
+  function snapshot(){let app={};try{app=extraReport()}catch(e){app={snapshotError:safeError(e)}}
+    return {schema:1,version:VERSION,started,exported:new Date().toISOString(),phase:bootStep,
+      browser:{viewport:[innerWidth,innerHeight],touchPoints:navigator.maxTouchPoints,readyState:document.readyState,body:!!document.body,shadowDOM:typeof Element.prototype.attachShadow==='function',clipboard:typeof navigator.clipboard?.writeText==='function'},
+      storage:{legacyRead:typeof GM_getValue==='function',legacyWrite:typeof GM_setValue==='function',modernRead:typeof GM!=='undefined'&&typeof GM.getValue==='function',modernWrite:typeof GM!=='undefined'&&typeof GM.setValue==='function'},
+      page:{channelRoute:location.pathname.startsWith('/channels/'),messageContents:count('[id^="message-content-"]'),messageRows:count('[id^="chat-messages-"]'),reactions:count('[class*="reactions_"]'),focusClass:document.documentElement.classList.contains('dw-focus'),overlayPresent:!!document.getElementById(ROOT)},app,failures,journal};
+  }
+  function refreshReport(){area.value=JSON.stringify(snapshot(),null,2);diagStatus.textContent='Phase: '+bootStep+' · '+failures.length+' errors';}
+  function showReport(){diagPanel.hidden=false;refreshReport()}
+  db('Refresh',refreshReport);
+  db('Copy report',async()=>{refreshReport();try{
+    if(typeof GM_setClipboard==='function')await GM_setClipboard(area.value,'text');
+    else if(typeof GM!=='undefined'&&typeof GM.setClipboard==='function')await GM.setClipboard(area.value,'text');
+    else await navigator.clipboard.writeText(area.value);
+    diagStatus.textContent='Report copied — paste into ChatGPT.';
+  }catch(e){fail('report-copy',e);refreshReport();area.focus();area.select();diagStatus.textContent='Clipboard unavailable. Long-press and copy the selected report.'}});
+  db('Select all',()=>{area.focus();area.select();area.setSelectionRange(0,area.value.length)});
+  db('Close',()=>{diagPanel.hidden=true});
+  boot.onclick=()=>{if(diagPanel.hidden)showReport();else diagPanel.hidden=true};
+  (document.body||document.documentElement).append(diagnostic);
   try {
   if(!document.body)await new Promise(resolve=>document.addEventListener('DOMContentLoaded',resolve,{once:true}));
   const gmLegacy=typeof GM_getValue==='function'&&typeof GM_setValue==='function';
@@ -56,6 +93,7 @@
   function record(event, detail = '') {
     log.push({at:new Date().toISOString(), event, detail});
     if (log.length > 60) log.shift();
+    journal.push({at:new Date().toISOString(),event,detail});if(journal.length>60)journal.shift();
     console.info('[DW]', event, detail);
   }
   const isId = s => typeof s === 'string' && /^\d{15,22}$/.test(s);
@@ -118,7 +156,7 @@
     return out;
   }
   try { data = normalize(await read(KEY,fresh())); }
-  catch(e) { data = fresh(); warning = 'Saved data could not be loaded; changes blocked until reload or valid import.'; record('load-failed'); }
+  catch(e) { data = fresh(); warning = 'Saved data could not be loaded; changes blocked until reload or valid import.'; record('load-failed');fail('load-storage',e); }
   async function latest() {
     if (warning) throw Error(warning);
     return normalize(await read(KEY,fresh()));
@@ -148,7 +186,7 @@
   const host=el('div'); host.id=ROOT; document.body.append(host);
   const shadow=host.attachShadow({mode:'open'});
   const css=el('style',`
-    :host{all:initial;position:fixed!important;right:12px!important;top:88px!important;bottom:auto!important;z-index:2147483646!important;font:13px system-ui,sans-serif;color:#1e293b}
+    :host{all:initial;position:fixed!important;right:12px!important;top:52px!important;bottom:auto!important;z-index:2147483646!important;font:13px system-ui,sans-serif;color:#1e293b}
     *{box-sizing:border-box} button,input,textarea,select{font:inherit} button{cursor:pointer;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#1e293b;padding:6px 9px}
     button:hover{background:#eaf0ff} button:focus-visible,a:focus-visible{outline:2px solid #5265c9} .primary{background:#4256bb;color:white;border-color:#4256bb}
     .panel{width:min(410px,calc(100vw - 24px));max-height:80vh;overflow:auto;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:12px;box-shadow:0 8px 28px #0004}
@@ -178,7 +216,7 @@
     html.dw-focus [id^="chat-messages-"] [class*="avatar_"]:hover {filter:none;opacity:1}
     html.dw-focus [id^="chat-messages-"] [class*="username_"] {color:var(--text-normal,inherit)!important}
   `,document.head);
-  let focus=true;try{focus=(await read('dw-focus',true))!==false}catch(e){record('focus-load-failed')}
+  let focus=true;try{focus=(await read('dw-focus',true))!==false}catch(e){record('focus-load-failed');fail('load-focus',e)}
   const launcher=el('div',undefined,shadow);launcher.className='row';launcher.style.margin='0';
   const focusToggle=el('button','',launcher);
   focusToggle.title='Toggle distraction reduction; no messages are removed';
@@ -189,7 +227,7 @@
   }
   focusToggle.addEventListener('click',async()=>{
     focus=!focus;applyFocus();
-    try{await write('dw-focus',focus);record('focus',String(focus))}catch(e){record('focus-save-failed')}
+    try{await write('dw-focus',focus);record('focus',String(focus))}catch(e){record('focus-save-failed');fail('save-focus',e)}
   });
   applyFocus();
   const toggle=el('button','Wiki',launcher); toggle.className='primary';
@@ -198,7 +236,7 @@
   const title=el('h3','Discord Wiki · Explore',titleRow); title.className='grow';
   function btn(parent,label,fn,primary=false) {
     const b=el('button',label,parent); if(primary)b.className='primary';
-    b.addEventListener('click',async()=>{try{await fn()}catch(e){status('Error: '+e.message);record('action-failed',label)}}); return b;
+    b.addEventListener('click',async()=>{try{await fn()}catch(e){status('Error: '+e.message);record('action-failed',label);fail('action:'+label,e);showReport()}}); return b;
   }
   btn(titleRow,'Hide',()=>setOpen(false));
   const stats=el('div','',panel); stats.className='muted';
@@ -277,11 +315,9 @@
   const footer=el('div',undefined,panel);footer.className='row';
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
-  btn(footer,'Copy report',async()=>{
-    const report={version:VERSION,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,visits:data.visits.length,
-      messageContentElements:document.querySelectorAll('[id^="message-content-"]').length,staged:!!picked,storageWarning:!!warning,focus,conversations:data.conversations.length,lowSignal:document.querySelectorAll('[data-dw-low]').length,inlineLabels:document.querySelectorAll('[data-dw-label]').length,focusMatches:{reactions:document.querySelectorAll('[id^="chat-messages-"] [class*="reactions_"]').length,inlineEmoji:document.querySelectorAll('[id^="message-content-"] img.emoji').length,avatarDecorations:document.querySelectorAll('[class*="avatarDecoration_"]').length},events:log};
-    await copy(JSON.stringify(report,null,2),'text');status('Diagnostics copied (no source links or message content).');
-  });
+  btn(footer,'Diagnostics',showReport);
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,storageWarning:!!warning,focus,lowSignal:count('[data-dw-low]'),inlineLabels:count('[data-dw-label]'),emoji:count('[id^="message-content-"] img.emoji')});
+
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function sourceFor(node){
     const route=channelRoute();
@@ -357,7 +393,7 @@
     if(!list.children.length)el('div','No sources in this topic yet.',list).className='muted';
     if(warning)status(warning);
   }
-  async function refresh(){ if(warning)return;try{data=await latest();render()}catch(e){status('Refresh failed: '+e.message);record('refresh-failed')} }
+  async function refresh(){ if(warning)return;try{data=await latest();render()}catch(e){status('Refresh failed: '+e.message);record('refresh-failed');fail('refresh',e)} }
   window.addEventListener('focus',refresh);
   function setOpen(v){opened=v;panel.hidden=!v;toggle.hidden=v;if(v)refresh()}
   toggle.addEventListener('click',()=>setOpen(true));
@@ -383,11 +419,11 @@
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
     if(lastPath!==location.pathname){lastPath=location.pathname;packet=[];picked=null;sourceInput.value='';labelInput.value='';note.value='';await refresh();record('channel-changed')}
     annotateDOM();
-  }catch(e){record('scan-failed')}},200)}
+  }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
   setInterval(()=>{if(lastPath!==location.pathname)scheduleScan()},1000);
   record('ready',storage);render();
   if(storage==='session only')status('No userscript storage API available; export JSON before closing.');
-  boot.remove();
-  } catch(e){bootStep='failed: '+String(e?.message||e);boot.textContent='Wiki startup failed · tap';console.error('[DW] startup failed',e);}
+  bootStep='ready';boot.textContent=failures.length?'Wiki · errors '+failures.length:'Diagnostics';
+  } catch(e){bootStep='startup failed';fail('startup',e);boot.textContent='Wiki startup failed';showReport();console.error('[DW] startup failed',e);}
 })();
