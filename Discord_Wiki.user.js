@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.15.8
+// @version      0.15.9
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.15.8', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.15.9', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyTraversals:0,historyPrefetches:0,historyDirectionHandoffs:0,forumBatches:0,forumAdded:0,softNavigations:0,softNavigationUnavailable:0,historyRecoveryAttempts:0,historyRecoveryProgress:0,historyDirectionChanges:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyTraversals:0,historyPrefetches:0,historyDirectionHandoffs:0,forumBatches:0,forumAdded:0,softNavigations:0,softNavigationUnavailable:0,historyRecoveryAttempts:0,historyRecoveryProgress:0,historyDirectionChanges:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0,cardScrollRebinds:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -1494,6 +1494,8 @@
       const bar=el('div',undefined,card);bar.className='canvas-markbar';addMarkControls(bar,{source:item.source,text:item.title+'\n'+item.text});
       const overflow=el('span','↓ More',card);overflow.className='card-overflow';overflow.hidden=true;
       const measure=()=>{const max=preview.scrollHeight-preview.clientHeight;overflow.hidden=max<=2||preview.scrollTop>=max-2;preview.dataset.scrollable=max>2?'1':'0'};
+      preview.scrollTop=cardScrollOffsets.get(item.source.url)||0;
+      preview.addEventListener('scroll',()=>cardScrollOffsets.set(item.source.url,preview.scrollTop),{passive:true});
       preview.addEventListener('scroll',measure,{passive:true});requestAnimationFrame(measure);
       const activate=()=>{if(Date.now()<suppressUntil)return;navigateDiscord(item.openURL,{postId:item.id})};
       card.addEventListener('click',activate);card.addEventListener('keydown',e=>{if(e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();activate()}});
@@ -1938,9 +1940,19 @@
     return dy>0?top>1:dy<0?top+client<height-1:false;
   }
   function cardForGesture(target){
-    if(canvasMode==='servers'||target?.closest?.('button'))return null;
+    if(canvasMode==='servers'||target?.closest?.('.canvas-markbar'))return null;
     const preview=target?.closest?.('.canvas-card')?.querySelector('.canvas-preview');
     return preview&&preview.scrollHeight>preview.clientHeight+1?preview:null;
+  }
+  function liveCardPreview(p){
+    if(p.preview?.isConnected)return p.preview;
+    if(!p.previewUrl)return null;
+    const next=[...world.querySelectorAll('.canvas-preview')].find(n=>n.dataset.cardUrl===p.previewUrl);
+    if(next){p.preview=next;metrics.canvas.cardScrollRebinds++}
+    return next||null;
+  }
+  function chooseCardGesture(preview,dx,dy){
+    return !!preview&&Math.abs(dy)>Math.abs(dx)*1.15&&canScrollCard(preview.scrollTop,preview.scrollHeight,preview.clientHeight,dy);
   }
   function scrollCard(preview,delta){
     const before=preview.scrollTop;preview.scrollTop+=delta;
@@ -1952,23 +1964,29 @@
   canvasView.addEventListener('pointerdown',e=>{
     if(e.pointerType==='mouse'&&e.button!==0)return;
     stopInertia();lastMotion=performance.now();edgeDirection='';edgeTravel=0;
-    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false,preview:cardForGesture(e.target),gesture:null});
+    const preview=cardForGesture(e.target);
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false,preview,previewUrl:preview?.dataset.cardUrl||'',gesture:null});
     if(pointers.size===2){delete canvasView.dataset.cardScroll;for(const p of pointers.values())p.gesture='canvas';const m=midpoint();pinch={d:m.d,z:camera.z,wx:(m.x-camera.x)/camera.z,wy:(m.y-camera.y)/camera.z};dragged=true;metrics.canvas.pinches++}
   });
   window.addEventListener('pointermove',e=>{
     if(!canvasOpen)return;const p=pointers.get(e.pointerId);if(!p)return;
     const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
     const now=performance.now(),dt=Math.max(8,Math.min(70,now-lastMotion));lastMotion=now;
-    if(Math.hypot(p.x-p.sx,p.y-p.sy)>6&&!p.moved){p.moved=true;if(!pinch&&p.preview&&Math.abs(p.y-p.sy)>Math.abs(p.x-p.sx)*1.15&&canScrollCard(p.preview.scrollTop,p.preview.scrollHeight,p.preview.clientHeight,p.y-p.sy)){p.gesture='card';metrics.canvas.cardScrolls++}else{p.gesture='canvas';metrics.canvas.pans++;if(p.preview)metrics.canvas.cardEdgePans++}}
+    if(Math.hypot(p.x-p.sx,p.y-p.sy)>6&&!p.moved){p.moved=true;if(!pinch&&chooseCardGesture(liveCardPreview(p),p.x-p.sx,p.y-p.sy)){p.gesture='card';metrics.canvas.cardScrolls++}else{p.gesture='canvas';metrics.canvas.pans++;if(p.preview)metrics.canvas.cardEdgePans++}}
     if(pointers.size>=2&&pinch){const m=midpoint();camera.z=clampScale(pinch.z*Math.pow(m.d/pinch.d,PINCH_GAIN));camera.x=m.x-pinch.wx*camera.z;camera.y=m.y-pinch.wy*camera.z;dragged=true}
-    else if(p.moved&&p.gesture==='card'){if(canScrollCard(p.preview.scrollTop,p.preview.scrollHeight,p.preview.clientHeight,dy)){scrollCard(p.preview,-dy/camera.z);dragged=true;canvasView.dataset.cardScroll='1';return}p.gesture='canvas';delete canvasView.dataset.cardScroll;metrics.canvas.cardEdgePans++}
+    else if(p.moved&&p.gesture==='card'){
+      // Keep ownership until release, including reversals and boundaries.
+      // A fresh outward swipe at the boundary can still pan the canvas.
+      const preview=liveCardPreview(p);if(preview&&dy)scrollCard(preview,-dy/camera.z);
+      dragged=true;canvasView.dataset.cardScroll='1';return;
+    }
     else if(p.moved){trackHistoryEdge(dy*PAN_GAIN);camera.x+=dx*PAN_GAIN;camera.y+=dy*PAN_GAIN;dragged=true;const cap=v=>Math.max(-5,Math.min(5,v));velocity.x=.35*velocity.x+.65*cap(dx*PAN_GAIN/dt);velocity.y=.35*velocity.y+.65*cap(dy*PAN_GAIN/dt);metrics.canvas.peakVelocity=Math.max(metrics.canvas.peakVelocity,Math.round(Math.hypot(velocity.x,velocity.y)*100)/100)}
     else return;
     canvasView.classList.add('dragging');constrainCamera();scheduleCamera();
   });
   function endCanvasPointer(e){
     const p=pointers.get(e.pointerId);if(!p)return;const wasPinch=!!pinch;pointers.delete(e.pointerId);pinch=null;
-    if(wasPinch){velocity={x:0,y:0};for(const other of pointers.values()){other.sx=other.x;other.sy=other.y;other.moved=false;other.gesture=null;other.preview=null}}
+    if(wasPinch){velocity={x:0,y:0};for(const other of pointers.values()){other.sx=other.x;other.sy=other.y;other.moved=false;other.gesture=null;other.preview=null;other.previewUrl=''}}
     if(dragged||p.moved)suppressUntil=Date.now()+300;
     if(e.type==='pointercancel'){metrics.canvas.cancels++;record('canvas-pointer-cancel',e.pointerType||'unknown')}
     if(pointers.size===0){dragged=false;delete canvasView.dataset.cardScroll;canvasView.classList.remove('dragging');if(p.gesture==='card'){stopInertia();return}if(e.type==='pointerup'&&!wasPinch&&consumeHistoryEdge()){stopInertia()}else if(e.type==='pointerup'&&!wasPinch&&p.moved&&performance.now()-lastMotion<90)startInertia();else stopInertia()}
