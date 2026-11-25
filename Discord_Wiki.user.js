@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.15.4
+// @version      0.15.5
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.15.4', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.15.5', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -1050,6 +1050,24 @@
   function messageMonth(id){
     const d=new Date(Number(BigInt(id)>>22n)+1420070400000);return d.getUTCFullYear()*12+d.getUTCMonth();
   }
+  // Coverage follows the same timestamp axis as the gold engagement ticks.
+  // A cell reports observed IDs only, never a claim about unobserved messages.
+  function coverageCells(ids,seen,start,end,resolution=12){
+    const from=Date.UTC(Math.floor(start/12),start%12,1),next=end+1,to=Date.UTC(Math.floor(next/12),next%12,1);
+    const cells=Array.from({length:resolution},()=>({known:0,seen:0}));
+    for(const id of ids){
+      const t=Number(BigInt(id)>>22n)+1420070400000;
+      if(t<from||t>=to)continue;
+      const i=Math.min(resolution-1,Math.floor(resolution*(t-from)/(to-from)));
+      cells[i].known++;if(seen.has(id))cells[i].seen++;
+    }
+    return cells;
+  }
+  function coverageColor(cell){
+    if(!cell.known)return '#f0ede7';
+    const ratio=cell.seen/cell.known,unseen=[220,224,239],seen=[168,188,176];
+    return 'rgb('+unseen.map((v,i)=>Math.round(v+(seen[i]-v)*ratio)).join(',')+')';
+  }
   function historyBins(known,seen){
     const groups=new Map();let lo=Infinity,hi=-Infinity;
     for(const id of known){const m=messageMonth(id);if(!Number.isFinite(m))continue;lo=Math.min(lo,m);hi=Math.max(hi,m);if(!groups.has(m))groups.set(m,[]);groups.get(m).push(id)}
@@ -1058,7 +1076,7 @@
     for(let start=lo;start<=hi;start+=step){
       const end=Math.min(hi,start+step-1),ids=[];for(let m=start;m<=end;m++)for(const id of groups.get(m)||[])ids.push(id);
       const unseen=ids.filter(id=>!seen.has(id)),latest=arr=>arr.reduce((a,id)=>a===null||BigInt(id)>BigInt(a)?id:a,null);
-      bins.push({start,end,total:ids.length,seen:ids.length-unseen.length,target:latest(unseen)||latest(ids)});
+      bins.push({start,end,total:ids.length,seen:ids.length-unseen.length,target:latest(unseen)||latest(ids),cells:coverageCells(ids,seen,start,end)});
     }return bins;
   }
   function monthLabel(m){return new Date(Date.UTC(Math.floor(m/12),m%12,1)).toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'})}
@@ -1079,12 +1097,12 @@
     const marks=engagementMarks(data.marks,exploration.route),sig=exploration.route+'|'+e.known.size+'|'+e.seen.size+'|'+marks.map(m=>m.id+':'+Number(m.favorite)+Number(m.note)).sort().join(',');
     if(sig===overviewSignature){overview.hidden=!overviewBins.length;return}
     overviewSignature=sig;overview.replaceChildren();overviewBins=historyBins(new Set([...e.known,...marks.map(m=>m.id)]),e.seen);overview.hidden=!overviewBins.length;if(overview.hidden)return;
-    const legend=el('div',undefined,overview);legend.className='overview-legend';legend.textContent='Older → newer';const key=el('div','Green seen · lilac unseen · gold marks',legend);key.style.fontSize='10px';key.title='Only among observed messages, not complete channel coverage. Dashed intervals have no recorded messages.';
+    const legend=el('div',undefined,overview);legend.className='overview-legend';legend.textContent='Older → newer';const key=el('div','Green seen · lilac unseen · gold marks',legend);key.style.fontSize='10px';key.title='Only among observed messages, not complete channel coverage. Colors follow actual dates; mixed colors mean mixed seen status, pale grey means no recorded messages. Gold marks share the same time axis.';
     const track=el('div',undefined,overview);track.className='overview-track';
     for(const b of overviewBins){
       const button=el('button',undefined,track);button.type='button';button.className='overview-bin';button.disabled=!b.total;b.node=button;
       const label=monthLabel(b.start)+(b.end!==b.start?'–'+monthLabel(b.end):'');button.title=label+' · '+(b.total?b.seen+' seen / '+b.total+' observed (not total coverage)':'No recorded messages; coverage unknown');button.setAttribute('aria-label',button.title);
-      const bar=el('span',undefined,button);bar.className='overview-bar';el('i',undefined,bar).style.width=(b.total?100*b.seen/b.total:0)+'%';const ticks=engagementTicks(marks,b.start,b.end);for(const t of ticks){const tick=el('span',undefined,bar);tick.className='overview-mark';tick.style.left=t.position+'%';if(t.note)tick.dataset.note='1';if(t.note&&t.favorite)tick.dataset.both='1'}button.title+=' · '+ticks.filter(t=>t.favorite).length+' favorites · '+ticks.filter(t=>t.note).length+' notes';button.setAttribute('aria-label',button.title);el('span',label,button).className='overview-label';
+      const bar=el('span',undefined,button);bar.className='overview-bar';if(b.total)for(const cell of b.cells){const segment=el('i',undefined,bar);segment.style.flex='1 1 0';segment.style.background=coverageColor(cell)}const ticks=engagementTicks(marks,b.start,b.end);for(const t of ticks){const tick=el('span',undefined,bar);tick.className='overview-mark';tick.style.left=t.position+'%';if(t.note)tick.dataset.note='1';if(t.note&&t.favorite)tick.dataset.both='1'}button.title+=' · '+ticks.filter(t=>t.favorite).length+' favorites · '+ticks.filter(t=>t.note).length+' notes';button.setAttribute('aria-label',button.title);el('span',label,button).className='overview-label';
       if(b.target)button.addEventListener('click',()=>{if(!canvasOpen||canvasMode!=='messages'||exploration?.route!==routeKey())return;const local=canvasRows.filter(p=>messageMonth(p.source.message)>=b.start&&messageMonth(p.source.message)<=b.end&&!e.seen.has(p.source.message)).at(-1);const target=local?.source.message||b.target;if(!focusMessageCard(target))location.assign('https://discord.com/channels/'+exploration.route+'/'+target)});
     }updateOverviewCursor();
   }
@@ -1165,7 +1183,8 @@
       const preview=el('div',undefined,card);preview.className='canvas-preview';preview.dataset.cardUrl=p.source.url;
       const media=p.media||{images:[],embeds:[]};
       if(media.images.length){const thumb=el('button',undefined,preview);thumb.className='media-thumb';thumb.type='button';thumb.setAttribute('aria-label','Expand message images');const img=el('img',undefined,thumb);img.alt=media.images[0].alt;img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';img.src=media.images[0].url;el('span',media.images.length>1?'+'+(media.images.length-1)+' images':'Expand',thumb);img.addEventListener('error',()=>{img.remove();thumb.textContent='Image · open'},{once:true});thumb.addEventListener('click',e=>{e.stopPropagation();if(Date.now()>=suppressUntil)inspectCanvas(p)})}
-      if(p.text)preview.append(document.createTextNode(p.text));else if(!p.attachments&&!media.images.length&&!media.embeds.length)preview.append(document.createTextNode('(No text · open original)'));
+      const redundantLink=media.embeds.length>0&&/^https?:\/\/\S+$/i.test(p.text.trim());
+      if(p.text&&!redundantLink)preview.append(document.createTextNode(p.text));else if(!p.text&&!p.attachments&&!media.images.length&&!media.embeds.length)preview.append(document.createTextNode('(No text · open original)'));
       for(const e of media.embeds){if(e.title)el('span',e.title,preview).className='embed-preview';if(e.description)el('span',e.description,preview).className='embed-description'}
       if(media.pendingImages||media.unavailableImages)el('span','Image · open original if preview unavailable',preview).className='embed-description';
       else if(p.attachments&&!media.images.length&&!media.embeds.length)el('span','Attachment · open message',preview).className='embed-preview';
