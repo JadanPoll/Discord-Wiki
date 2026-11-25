@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.15.6
+// @version      0.15.7
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.15.6', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.15.7', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyTraversals:0,historyPrefetches:0,historyRecoveryAttempts:0,historyRecoveryProgress:0,historyDirectionChanges:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyTraversals:0,historyPrefetches:0,historyDirectionHandoffs:0,forumBatches:0,forumAdded:0,softNavigations:0,softNavigationUnavailable:0,historyRecoveryAttempts:0,historyRecoveryProgress:0,historyDirectionChanges:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -704,13 +704,14 @@
   // Snapshot the currently rendered window; no automatic history requests.
   let canvasOpen=false,canvasMode='messages',canvasRows=[],serverRows=[],canvasSize={w:0,h:0},canvasFrame=0;
   let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,lastHistoryDirection='',historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};
-  let prefetchIntent='',prefetchFrontiers={older:'',newer:''};const HISTORY_LIMIT=1200,HISTORY_BATCH=300,HISTORY_BATCH_CYCLES=30,HISTORY_BATCH_MS=30000;
+  let prefetchIntent='',prefetchFrontiers={older:'',newer:''},queuedHistoryDirection='',historyHandoff=false;const HISTORY_LIMIT=1200,HISTORY_BATCH=300,HISTORY_BATCH_CYCLES=30,HISTORY_BATCH_MS=30000;
   let canvasChannel='',retainedCanvas=null,historyObserved=null,lateHistory=null,lastTrustedActivity=null;
   const historyEvidence=[],nativeWindowEvidence=[],nativeScrollEvidence=[];
   const scrollIdentities=new WeakMap();let scrollIdentityCounter=0,lastNativeWindow='',lastNativeScrollAt=-Infinity;
   const routeKey=()=>channelRoute()?.slice(1,3).join('/')||'';
   let exploration=null,explorationLoading='',explorationTimer=0,explorationWriteTimer=0,explorationWriteQueue=Promise.resolve(),collapsedSeen=0,showPreviouslySeen=false;
   let forumRows=[],forumSignature='',entryDecision='none',entryRoute='',entryContextRun=0;
+  const forumCache=new Map();let forumBusy=false,forumStatus='',forumNavRun=0;
   const explorationCache=new Map();
   let inertiaFrame=0,velocity={x:0,y:0},lastMotion=0;const PAN_GAIN=1.85,PINCH_GAIN=1.65,FRICTION_MS=245;
   const encountered=new Map();let encounteredChannel='';
@@ -729,6 +730,9 @@
   const world=el('div',undefined,canvasView);world.className='canvas-world';
   const historyBoundary=el('div',undefined,canvasView);historyBoundary.setAttribute('role','status');historyBoundary.hidden=true;historyBoundary.style.cssText='position:absolute;z-index:2;left:50%;transform:translateX(-50%);top:8px;max-width:90%;padding:5px 10px;border:1px solid #d9dce3;border-radius:6px;background:#fffdfa;color:#657487;font:12px system-ui;white-space:normal;text-align:center;pointer-events:none';
   const detail=el('section',undefined,canvas);detail.className='canvas-detail';detail.hidden=true;
+  const navigationFallback=el('a','Open with reload',canvasHead);navigationFallback.hidden=true;navigationFallback.style.cssText='font-size:12px;color:#4663b5';navigationFallback.title='Native navigation unavailable; reload only if you choose';
+  window.addEventListener('click',e=>{if(!canvasOpen||detail.hidden||e.composedPath().includes(detail)||e.composedPath().includes(noteEditor))return;detail.hidden=true},true);
+  forumBack.addEventListener('click',e=>{e.preventDefault();navigateDiscord(forumBack.href)});
   // The two human actions share one message identity and one local record.
   // A real document textarea, not a shadow-retargeted event target. Discord's
   // global type-to-chat handling must see that the user is editing an input.
@@ -1000,7 +1004,7 @@
     if(plan.kind==='jump'){
       try{sessionStorage.setItem(ENTRY_KEY,JSON.stringify({route,id:plan.id,at:Date.now()}));if(readEntryJump()?.id!==plan.id)throw Error('entry guard unavailable')}
       catch{entryDecision='older';loadEntryFrontier(route);return}
-      metrics.canvas.explorationEntryJumps++;location.replace('https://discord.com/channels/'+route+'/'+plan.id);return;
+      metrics.canvas.explorationEntryJumps++;navigateDiscord('https://discord.com/channels/'+route+'/'+plan.id,{automatic:true}).then(ok=>{if(!ok&&canvasOpen&&canvasMode==='messages'&&routeKey()===route){entryDecision='older';loadEntryFrontier(route)}});return;
     }
     if(plan.kind==='older')loadEntryFrontier(route);
   }
@@ -1011,7 +1015,7 @@
     if(focusMessageCard(id)){metrics.canvas.explorationResumes++;return;}
     // Use the real Discord message permalink for an anchor not in the live window.
     // No synthetic request or assertion that unseen history has been downloaded.
-    location.assign('https://discord.com/channels/'+exploration.route+'/'+id);
+    navigateDiscord('https://discord.com/channels/'+exploration.route+'/'+id);
   }
   resumeLink.addEventListener('click',e=>{e.preventDefault();resumeExploration()});
   function updateResume(){
@@ -1104,7 +1108,7 @@
       const button=el('button',undefined,track);button.type='button';button.className='overview-bin';button.disabled=!b.total;b.node=button;
       const label=monthLabel(b.start)+(b.end!==b.start?'–'+monthLabel(b.end):'');button.title=label+' · '+(b.total?b.seen+' seen / '+b.total+' observed (not total coverage)':'No recorded messages; coverage unknown');button.setAttribute('aria-label',button.title);
       const bar=el('span',undefined,button);bar.className='overview-bar';b.cursor=el('span',undefined,bar);b.cursor.className='overview-position';b.cursor.hidden=true;if(b.total)for(const cell of b.cells){const segment=el('i',undefined,bar);segment.style.flex='1 1 0';segment.style.background=coverageColor(cell)}const ticks=engagementTicks(marks,b.start,b.end);for(const t of ticks){const tick=el('span',undefined,bar);tick.className='overview-mark';tick.style.left=t.position+'%';if(t.note)tick.dataset.note='1';if(t.note&&t.favorite)tick.dataset.both='1'}button.title+=' · '+ticks.filter(t=>t.favorite).length+' favorites · '+ticks.filter(t=>t.note).length+' notes';button.setAttribute('aria-label',button.title);el('span',label,button).className='overview-label';
-      if(b.target)button.addEventListener('click',()=>{if(!canvasOpen||canvasMode!=='messages'||exploration?.route!==routeKey())return;const local=canvasRows.filter(p=>messageMonth(p.source.message)>=b.start&&messageMonth(p.source.message)<=b.end&&!e.seen.has(p.source.message)).at(-1);const target=local?.source.message||b.target;if(!focusMessageCard(target))location.assign('https://discord.com/channels/'+exploration.route+'/'+target)});
+      if(b.target)button.addEventListener('click',()=>{if(!canvasOpen||canvasMode!=='messages'||exploration?.route!==routeKey())return;const local=canvasRows.filter(p=>messageMonth(p.source.message)>=b.start&&messageMonth(p.source.message)<=b.end&&!e.seen.has(p.source.message)).at(-1);const target=local?.source.message||b.target;if(!focusMessageCard(target))navigateDiscord('https://discord.com/channels/'+exploration.route+'/'+target)});
     }updateOverviewCursor();
   }
   function overviewPosition(slots,hidden,camera,w,h){
@@ -1142,14 +1146,14 @@
   }
   function applyCamera(){
     canvasFrame=0;world.style.transform='translate('+camera.x+'px,'+camera.y+'px) scale('+camera.z+')';
-    canvasCount.textContent=(canvasMode==='servers'?serverRows.length+' navigation entries':canvasMode==='posts'?forumRows.length+' loaded posts · Timeline for more':canvasRows.length+' encountered messages')+' · '+Math.round(camera.z*100)+'%'+(canvasMode==='messages'&&historyStatus?' · '+historyStatus:'');
-    canvasCount.title=canvasMode==='servers'?'Native server and folder entries; select a folder to expand it.':canvasMode==='posts'?'Currently rendered forum posts; use Timeline to load additional posts.':'Initially up to 100 encountered messages, extended by native history loading; chronological gaps may exist.';
+    canvasCount.textContent=(canvasMode==='servers'?serverRows.length+' navigation entries':canvasMode==='posts'?forumRows.length+' encountered posts · '+forumStatus:canvasRows.length+' encountered messages')+' · '+Math.round(camera.z*100)+'%'+(canvasMode==='messages'&&historyStatus?' · '+historyStatus:'');
+    canvasCount.title=canvasMode==='servers'?'Native server and folder entries; select a folder to expand it.':canvasMode==='posts'?'Posts retained across native list windows; scroll toward the bottom to discover more.':'Initially up to 100 encountered messages, extended by native history loading; chronological gaps may exist.';
     const extent=canvasSize.h*camera.z,top=extent<=canvasView.clientHeight?(canvasView.clientHeight-extent)/2:0;
     const atTop=canvasMode==='messages'&&camera.y>=top-30;
     const boundary=historyEnds.older?'Beginning of channel':historyBusy?historyStatus:lateHistory&&historyStatus.includes('Discord still loading')?'Discord still loading · watching for messages':historyStalls.older&&lastHistoryDirection==='older'?(historyStatus||'Older history paused · drag again to retry'):'';
     historyBoundary.hidden=!(atTop&&boundary);historyBoundary.textContent=boundary;updateOverviewCursor();
     const thread=forumThreadRoute();forumBack.hidden=!(canvasMode==='messages'&&thread);if(thread)forumBack.href='https://discord.com/channels/'+thread[1]+'/'+thread[2];
-    updateResume();if(canvasMode==='messages'){scheduleExploration();maybePrefetchHistory()}
+    updateResume();if(canvasMode==='messages'){scheduleExploration();maybePrefetchHistory()}else if(canvasMode==='posts'&&prefetchIntent==='newer'){prefetchIntent='';if(!forumBusy&&nearHistoryEdge('newer',camera.y,canvasSize.h*camera.z,canvasView.clientHeight))loadForumMore(30)}
   }
   function scheduleCamera(){if(!canvasFrame)canvasFrame=requestAnimationFrame(applyCamera)}
   function clampScale(z){return Math.max(.025,Math.min(3.5,z))}
@@ -1180,7 +1184,7 @@
     if(media.pendingImages||media.unavailableImages)el('div','Some images are not available as previews yet. Open original to view.',detail).className='muted';
     if(p.attachments)el('div','Open original for other attachments, video or unavailable previews.',detail).className='muted';
     const actions=el('div',undefined,detail);actions.className='row';
-    const link=el('a','Open original',actions);link.href=p.source.url;link.addEventListener('click',()=>{metrics.canvas.sourceJumps++;chooseReadingView('timeline').catch(e=>fail('reading-view',e))});
+    const link=el('a','Open original',actions);link.href=p.source.url;link.addEventListener('click',async e=>{e.preventDefault();metrics.canvas.sourceJumps++;const ok=await navigateDiscord(p.source.url);if(ok)await chooseReadingView('timeline')});
     addMarkControls(actions,p);
   }
   const cardScrollOffsets=new Map();
@@ -1344,8 +1348,9 @@
     if(canvasOpen)closeCanvas();
     canvasMode=mode;canvasOpen=true;canvas.hidden=false;canvasCopy.hidden=mode!=='messages';updateViewButtons();resetComposerIntent('canvas');
     positionCanvas();
+    navigationFallback.hidden=true;
     if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='servers')fitCanvas()})}
-    else if(mode==='posts'){renderForumPosts();metrics.canvas.forumOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='posts')fitReadingWidth()})}
+    else if(mode==='posts'){forumStatus='Swipe down for more posts';renderForumPosts(mergeForumPosts(readForumPosts()));metrics.canvas.forumOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='posts'){fitReadingWidth();loadForumMore(30)}})}
     else{
       canvasChannel=routeKey();
       if(retainedCanvas&&retainedCanvas.channel===canvasChannel&&retainedCanvas.rows.length){
@@ -1367,8 +1372,65 @@
     if(explorationTimer){clearTimeout(explorationTimer);explorationTimer=0}saveExploration();
     if(layoutFrame){cancelAnimationFrame(layoutFrame);layoutFrame=0}layoutObserver?.disconnect();layoutTargets=[];lastCanvasGeometry=null;
     if(canvasMode==='messages'&&canvasRows.length)retainedCanvas={channel:canvasChannel,rows:canvasRows,slots:canvasSlots,camera:{...camera},ends:{...historyEnds},stalls:{...historyStalls},status:historyBusy?'Drag past an edge for more':historyStatus};
-    historyGeneration++;historyBusy=false;historyObserved=null;lateHistory=null;edgeDirection='';edgeTravel=0;prefetchIntent='';prefetchFrontiers={older:'',newer:''};stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;delete canvasView.dataset.cardScroll;
+    historyGeneration++;historyBusy=false;historyObserved=null;lateHistory=null;edgeDirection='';edgeTravel=0;prefetchIntent='';prefetchFrontiers={older:'',newer:''};queuedHistoryDirection='';historyHandoff=false;forumBusy=false;forumNavRun++;navigationFallback.hidden=true;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;delete canvasView.dataset.cardScroll;
     canvasView.classList.remove('dragging');updateViewButtons();syncComposerGuard();metrics.canvas.closes++;record('canvas-close');
+  }
+  const navWait=ms=>new Promise(r=>setTimeout(r,ms));
+  let routerFn=null,routerChecked=false;
+  // Vencord identifies the loaded navigation export by this distinctive
+  // function signature. No auth stores, API calls or new module execution.
+  function discordRouter(){
+    if(routerChecked)return routerFn;routerChecked=true;
+    try{
+      const chunks=window.webpackChunkdiscord_app;if(!Array.isArray(chunks))return null;
+      let req;const marker='dw-router-'+Math.random().toString(36).slice(2);
+      chunks.push([[marker],{},r=>{req=r}]);if(!req?.c)return null;
+      for(const module of Object.values(req.c)){
+        const exports=module?.exports;if(!exports)continue;
+        const values=[exports];for(const k of Object.keys(exports)){try{values.push(exports[k])}catch{}}
+        for(const fn of values)if(typeof fn==='function'&&Function.prototype.toString.call(fn).includes('transitionTo - Transitioning to')){routerFn=fn;return fn}
+      }
+    }catch(e){record('router-unavailable',e?.name||'error')}
+    return null;
+  }
+  function validDiscordPath(raw){
+    try{const u=new URL(raw,location.origin);return u.origin===location.origin&&/^\/channels\/\d{15,22}(?:\/\d{15,22}(?:\/(?:threads\/)?\d{15,22})?)?\/?$/.test(u.pathname)?u.pathname.replace(/\/$/,''):null}catch{return null}
+  }
+  function nativePostTarget(id){
+    const list=forumList();if(!list)return null;
+    const parent=forumThreadRoute()?.[2]||channelRoute()?.[2];
+    const n=list.querySelector('[data-list-item-id="forum-channel-list-'+parent+'___'+id+'"]');
+    const wrapper=n?.closest('[class*="mainCard_"]')||n?.parentElement;
+    return wrapper?.querySelector('[class*="postTitleText_"],h3')||wrapper||null;
+  }
+  async function navigateDiscord(raw,{automatic=false,postId=null}={}){
+    const path=validDiscordPath(raw);if(!path)return false;
+    const start=location.pathname,run=++forumNavRun;
+    const current=()=>run===forumNavRun||location.pathname!==start;
+    const arrived=()=>location.pathname.replace(/\/$/,'')===path||(postId&&channelRoute()?.[2]===postId);
+    if(arrived()){const id=path.split('/')[4];if(id&&id!=='threads')document.getElementById('message-content-'+id)?.scrollIntoView({block:'center'});return true}
+    navigationFallback.hidden=true;
+    if(postId){
+      // The canvas retains posts after native virtualization unmounts them.
+      // Seek a missing native target using the same scroller, not a reload.
+      const live=nativePostTarget(postId);
+      if(live){live.click();for(let i=0;i<10&&!arrived()&&current();i++)await navWait(100);if(arrived()){metrics.canvas.softNavigations++;record('navigate','native-post');return true}}
+    }else{
+      const anchor=[...document.querySelectorAll('a[href]')].find(n=>validDiscordPath(n.getAttribute('href'))===path&&n.getClientRects().length&&!n.closest('#dw-sparse-explorer'));
+      if(anchor){anchor.click();for(let i=0;i<8&&!arrived()&&current();i++)await navWait(100);if(arrived()){metrics.canvas.softNavigations++;record('navigate','native-link');return true}}
+    }
+    if(!current()||location.pathname!==start)return arrived();
+    const router=discordRouter();
+    if(router){try{router(path);for(let i=0;i<15&&!arrived()&&current();i++)await navWait(100);if(arrived()){metrics.canvas.softNavigations++;record('navigate','router');return true}}catch(e){record('router-failed',e?.name||'error')}}
+    if(!current()||location.pathname!==start)return arrived();
+    if(postId&&canvasMode==='posts'){
+      const found=await seekForumPost(postId,run);
+      if(found){found.click();for(let i=0;i<10&&!arrived()&&current();i++)await navWait(100);if(arrived()){metrics.canvas.softNavigations++;record('navigate','native-post-seek');return true}}
+    }
+    if(!current()||location.pathname!==start)return arrived();
+    metrics.canvas.softNavigationUnavailable++;record('navigate-unavailable',automatic?'automatic':'explicit');
+    if(!automatic){navigationFallback.href=location.origin+path;navigationFallback.hidden=false}
+    return false;
   }
   function readForumPosts(){
     const route=channelRoute(),list=forumList();if(!route||!list)return [];
@@ -1400,7 +1462,7 @@
   }
   function nativeForumIndex(){return !forumThreadRoute()&&!!forumList()}
   function forumRowsSignature(rows){return routeKey()+'|'+rows.map(x=>[x.id,x.title,x.text,x.count,x.tags.join(','),x.media.images.map(y=>y.url).join(',')].join(':')).join('|')}
-  function renderForumPosts(rows=readForumPosts()){
+  function renderForumPosts(rows=mergeForumPosts(readForumPosts())){
     forumRows=rows;forumSignature=forumRowsSignature(rows);
     world.replaceChildren();detail.hidden=true;
     const cols=5,sx=316,sy=190;messageCols=cols;collapsedSeen=0;
@@ -1421,11 +1483,67 @@
       const overflow=el('span','↓ More',card);overflow.className='card-overflow';overflow.hidden=true;
       const measure=()=>{const max=preview.scrollHeight-preview.clientHeight;overflow.hidden=max<=2||preview.scrollTop>=max-2;preview.dataset.scrollable=max>2?'1':'0'};
       preview.addEventListener('scroll',measure,{passive:true});requestAnimationFrame(measure);
-      const activate=()=>{if(Date.now()<suppressUntil)return;location.assign(item.openURL)};
+      const activate=()=>{if(Date.now()<suppressUntil)return;navigateDiscord(item.openURL,{postId:item.id})};
       card.addEventListener('click',activate);card.addEventListener('keydown',e=>{if(e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();activate()}});
     }
     canvasSize={w:1584,h:Math.max(194,Math.ceil(rows.length/5)*sy+4)};world.style.width=canvasSize.w+'px';world.style.height=canvasSize.h+'px';
     scheduleCamera();
+  }
+  function mergePostWindows(old,window,limit=300){
+    const out=[...old],index=new Map(out.map((x,i)=>[x.id,i]));
+    for(let j=0;j<window.length;j++){
+      const p=window[j],i=index.get(p.id);if(i!==undefined){out[i]=p;continue}
+      if(out.length>=limit)continue;
+      const next=window.slice(j+1).find(x=>index.has(x.id)),at=next?index.get(next.id):out.length;
+      out.splice(at,0,p);index.clear();out.forEach((x,k)=>index.set(x.id,k));
+    }
+    return out;
+  }
+  function mergeForumPosts(rows){
+    const key=routeKey(),old=forumCache.get(key)||[],merged=mergePostWindows(old,rows);
+    forumCache.set(key,merged);return merged;
+  }
+  function forumScroller(){
+    const list=forumList();for(let n=list;n&&n!==document.body;n=n.parentElement){
+      if(/auto|scroll|overlay/.test(getComputedStyle(n).overflowY)&&n.clientHeight>0&&n.scrollHeight>n.clientHeight+2)return n;
+    }return null;
+  }
+  function syncForumWindow(){
+    const rows=mergeForumPosts(readForumPosts());if(forumSignature!==forumRowsSignature(rows)){renderForumPosts(rows);constrainCamera();scheduleCamera()}return rows;
+  }
+  async function loadForumMore(target=30){
+    if(forumBusy||!canvasOpen||canvasMode!=='posts'||forumRows.length>=300)return;
+    forumBusy=true;const route=routeKey(),gen=historyGeneration,initial=forumRows.length;
+    const active=()=>gen===historyGeneration&&canvasOpen&&canvasMode==='posts'&&routeKey()===route;
+    let stagnant=0;forumStatus='Loading posts…';scheduleCamera();metrics.canvas.forumBatches++;
+    try{
+      for(let i=0;i<60&&active()&&forumRows.length-initial<target&&forumRows.length<300;i++){
+        const n=forumScroller();if(!n){forumStatus='Native forum scroller unavailable';break}
+        const before=n.scrollTop,height=n.scrollHeight,count=forumRows.length;
+        n.scrollTop=Math.min(n.scrollHeight-n.clientHeight,before+Math.max(80,n.clientHeight*.75));
+        await navWait(200);if(!active())return;syncForumWindow();
+        if(forumRows.length>count||Math.abs(n.scrollTop-before)>2||n.scrollHeight!==height){stagnant=0;continue}
+        if(++stagnant>=4){forumStatus='No more posts returned · swipe to retry';break}
+      }
+      if(active()){const added=forumRows.length-initial;metrics.canvas.forumAdded+=added;if(added)forumStatus='+'+added+' posts · swipe down for more';else if(forumStatus==='Loading posts…')forumStatus='Swipe down for more posts';if(forumRows.length>=300)forumStatus='300-post session limit'}
+    }finally{if(active()){forumBusy=false;scheduleCamera()}}
+  }
+  async function seekForumPost(id,run){
+    const route=routeKey(),gen=historyGeneration,active=()=>run===forumNavRun&&gen===historyGeneration&&canvasOpen&&canvasMode==='posts'&&routeKey()===route;
+    // Avoid fighting an active native scan. Wait briefly, then let its
+    // bounded operation finish before seeking.
+    for(let i=0;i<20&&forumBusy&&active();i++)await navWait(200);
+    if(!active()||forumBusy)return null;
+    forumBusy=true;
+    try{for(let i=0;i<60&&active();i++){
+      const target=nativePostTarget(id);if(target)return target;
+      const n=forumScroller();if(!n)break;
+      const cached=forumCache.get(route)||[],wanted=cached.findIndex(p=>p.id===id),live=readForumPosts(),first=cached.findIndex(p=>p.id===live[0]?.id);
+      const before=n.scrollTop,dir=wanted>=0&&first>=0&&wanted<first?-1:1;
+      n.scrollTop=Math.max(0,Math.min(n.scrollHeight-n.clientHeight,before+dir*Math.max(80,n.clientHeight*.75)));
+      await navWait(180);if(!active())return null;syncForumWindow();
+      if(Math.abs(n.scrollTop-before)<2&&!nativePostTarget(id))break;
+    }return nativePostTarget(id)}finally{if(active())forumBusy=false}
   }
   function restoreReading(){
     if(!focus||readingView==='timeline'||!channelRoute()){closeCanvas();updateViewButtons();return}
@@ -1443,7 +1561,7 @@
     return {dir:'',travel:0};
   }
   function trackHistoryEdge(dy){
-    if(!canvasOpen||canvasMode!=='messages'||historyBusy||!dy){edgeTravel=0;edgeDirection='';prefetchIntent='';return}
+    if(!canvasOpen||!['messages','posts'].includes(canvasMode)||!dy){edgeTravel=0;edgeDirection='';prefetchIntent='';return}
     if(Math.abs(dy)>=1)prefetchIntent=dy>0?'older':'newer';
     const {dir,travel}=edgeIntent(camera.y,dy,canvasView.clientHeight,canvasSize.h*camera.z);
     if(!dir){edgeTravel=0;edgeDirection='';return}
@@ -1451,8 +1569,12 @@
     edgeTravel+=travel;
   }
   function consumeHistoryEdge(){
-    if(edgeTravel<=65||!edgeDirection||historyBusy)return false;
-    const dir=edgeDirection;edgeTravel=0;edgeDirection='';prefetchIntent='';loadHistory(dir);return true;
+    if(edgeTravel<=65||!edgeDirection)return false;
+    const dir=edgeDirection;edgeTravel=0;edgeDirection='';prefetchIntent='';
+    if(canvasMode==='posts'){if(dir==='newer'&&!forumBusy){loadForumMore(30);return true}return false}
+    if(dir==='newer'&&collapsedSeen){showPreviouslySeen=true;renderCanvas();constrainCamera();scheduleCamera();return true}
+    if(historyBusy){if(dir!==lastHistoryDirection){queuedHistoryDirection=dir;historyHandoff=true;metrics.canvas.historyDirectionHandoffs++}return false}
+    loadHistory(dir);return true;
   }
   function nearHistoryEdge(dir,y,extent,height){
     if(!height||extent<=height)return false;
@@ -1461,6 +1583,7 @@
   }
   function maybePrefetchHistory(){
     const dir=prefetchIntent;prefetchIntent='';
+    if(lateHistory&&performance.now()>lateHistory.until)lateHistory=null;
     if(!dir||!canvasOpen||canvasMode!=='messages'||historyBusy||lateHistory||!canvasRows.length||!detail.hidden||!noteEditor.hidden||pinch||historyEnds[dir]||historyStalls[dir]||canvasRows.length>=HISTORY_LIMIT)return;
     // A real pan toward an edge authorizes at most one speculative batch
     // per distinct frontier. Never chain loads while the user is stationary.
@@ -1705,7 +1828,7 @@
     const route=channelRoute()?.slice(1,3).join('/');
     if(historyTrace){historyEvidence.push(summarizeHistoryTrace(historyTrace));if(historyEvidence.length>6)historyEvidence.shift()}
     historyTrace={channel:channelRoute()?.[2],started:performance.now(),direction:dir,scrollEvents:0,scrollSamples:[],driverSteps:[],scrollerCandidates:nativeScrollCandidates().map(scrollSnapshot),canvasBefore:dateRange(canvasRows),before:{top:Math.round(scroller.scrollTop),height:scroller.clientHeight,scrollHeight:scroller.scrollHeight,...historyRange(visibleRows(true)),...nativeHistoryState(scroller)},samples:[],activity:[],resources:[],lastActivity:lastTrustedActivity,visible:document.visibilityState,rearmed:false};
-    const active=()=>gen===historyGeneration&&canvasOpen&&canvasMode==='messages'&&route===channelRoute()?.slice(1,3).join('/');
+    const active=()=>gen===historyGeneration&&canvasOpen&&canvasMode==='messages'&&route===channelRoute()?.slice(1,3).join('/')&&!historyHandoff;
     const batch={target:Math.min(target,HISTORY_LIMIT-canvasRows.length),added:0,pages:[],stop:null,trigger,recoveryAttempts:0};
     historyTrace.batch=batch;
     const deadline=performance.now()+HISTORY_BATCH_MS;
@@ -1779,7 +1902,7 @@
       }
       finish(remaining()===0?'batch-target':'cycle-budget',remaining()===0?(canvasRows.length>=HISTORY_LIMIT?'1200-message session limit':''):'drag for more');
     }catch(e){if(active()){fail('history-load',e);finish('error','History load failed')}}
-    finally{if(gen===historyGeneration){historyBusy=false;historyObserved=null;edgeDirection='';edgeTravel=0;historyTrace.canvasAfter=dateRange(canvasRows);prefetchIntent='';traceHistoryResources(historyTrace);scheduleCamera()}}
+    finally{if(gen===historyGeneration){historyBusy=false;historyObserved=null;edgeDirection='';edgeTravel=0;historyTrace.canvasAfter=dateRange(canvasRows);prefetchIntent='';traceHistoryResources(historyTrace);const next=queuedHistoryDirection;queuedHistoryDirection='';if(historyHandoff){historyHandoff=false;historyTrace.outcome='direction-handoff';historyStatus='Switching history direction…'}scheduleCamera();if(next&&canvasOpen&&canvasMode==='messages')loadHistory(next)}}
   }
   // Route a gesture by target, direction and actual text overflow, never zoom.
   function canScrollCard(top,height,client,dy){
@@ -1809,7 +1932,7 @@
     const now=performance.now(),dt=Math.max(8,Math.min(70,now-lastMotion));lastMotion=now;
     if(Math.hypot(p.x-p.sx,p.y-p.sy)>6&&!p.moved){p.moved=true;if(!pinch&&p.preview&&Math.abs(p.y-p.sy)>Math.abs(p.x-p.sx)*1.15&&canScrollCard(p.preview.scrollTop,p.preview.scrollHeight,p.preview.clientHeight,p.y-p.sy)){p.gesture='card';metrics.canvas.cardScrolls++}else{p.gesture='canvas';metrics.canvas.pans++;if(p.preview)metrics.canvas.cardEdgePans++}}
     if(pointers.size>=2&&pinch){const m=midpoint();camera.z=clampScale(pinch.z*Math.pow(m.d/pinch.d,PINCH_GAIN));camera.x=m.x-pinch.wx*camera.z;camera.y=m.y-pinch.wy*camera.z;dragged=true}
-    else if(p.moved&&p.gesture==='card'){scrollCard(p.preview,-dy/camera.z);dragged=true;canvasView.dataset.cardScroll='1';return}
+    else if(p.moved&&p.gesture==='card'){if(canScrollCard(p.preview.scrollTop,p.preview.scrollHeight,p.preview.clientHeight,dy)){scrollCard(p.preview,-dy/camera.z);dragged=true;canvasView.dataset.cardScroll='1';return}p.gesture='canvas';delete canvasView.dataset.cardScroll;metrics.canvas.cardEdgePans++}
     else if(p.moved){trackHistoryEdge(dy*PAN_GAIN);camera.x+=dx*PAN_GAIN;camera.y+=dy*PAN_GAIN;dragged=true;const cap=v=>Math.max(-5,Math.min(5,v));velocity.x=.35*velocity.x+.65*cap(dx*PAN_GAIN/dt);velocity.y=.35*velocity.y+.65*cap(dy*PAN_GAIN/dt);metrics.canvas.peakVelocity=Math.max(metrics.canvas.peakVelocity,Math.round(Math.hypot(velocity.x,velocity.y)*100)/100)}
     else return;
     canvasView.classList.add('dragging');constrainCamera();scheduleCamera();
@@ -1840,7 +1963,7 @@
       const item=el('div',undefined,index);item.className='entry saved-mark';
       const name=(m.favorite?'★ ':'')+(m.text||m.note||'Saved '+src.kind).slice(0,150);
       if(src.kind==='folder')btn(item,name,()=>{if(!canvasOpen||canvasMode!=='servers')openCanvas('servers');const target=[...world.querySelectorAll('[data-dw-mark-url]')].find(b=>b.dataset.dwMarkUrl===url)?.closest('.server-card');if(target){stopInertia();camera.x=canvasView.clientWidth/2-(target.offsetLeft+target.offsetWidth/2)*camera.z;camera.y=canvasView.clientHeight/2-(target.offsetTop+target.offsetHeight/2)*camera.z;constrainCamera();scheduleCamera()}});
-      const a=src.kind==='folder'?null:el('a',name,item);if(a)a.href=url;
+      const a=src.kind==='folder'?null:el('a',name,item);if(a){a.href=url;if(src.kind!=='server')a.addEventListener('click',e=>{e.preventDefault();navigateDiscord(url)})}
       el('div',src.kind,item).className='muted';
       if(src.kind==='server')a.addEventListener('click',e=>{const match=readServers().find(x=>!x.folder&&x.id===src.guild);if(match){e.preventDefault();match.node.click()}});
       if(m.note)el('div',m.note,item);
@@ -1850,7 +1973,7 @@
     regions.sort((a,b)=>{const x=BigInt(parseLink(a.messages[0]).message),y=BigInt(parseLink(b.messages[0]).message);return x>y?-1:x<y?1:0});
     for(const r of regions){
       const item=el('div',undefined,index);item.className='entry';
-      const a=el('a',r.title,item);a.href=r.messages[0];
+      const a=el('a',r.title,item);a.href=r.messages[0];a.addEventListener('click',e=>{e.preventDefault();navigateDiscord(a.href)});
       const day=new Date(Number(BigInt(parseLink(r.messages[0]).message)>>22n)+1420070400000);
       el('div',(Number.isFinite(day.getTime())?day.toISOString().slice(0,10):'Unknown date')+' · '+r.messages.length+' messages · '+r.topics.join(' / '),item).className='muted';
       if(r.note)el('div',r.note,item);
@@ -1918,7 +2041,7 @@
       const label=source&&labels.get(keyOf(source));
       if(label)node.dataset.dwLabel=label;else delete node.dataset.dwLabel;
     }
-    rememberWindow(encounteredRows);observeNativeWindow(encounteredRows);syncMarks();if(nativeForumIndex()&&focus&&readingView==='canvas'&&(!canvasOpen||canvasMode==='messages'||canvasMode==='posts')){const posts=readForumPosts();if(posts.length){if(!canvasOpen||canvasMode!=='posts')openCanvas('posts');else if(forumSignature!==forumRowsSignature(posts)){renderForumPosts(posts);constrainCamera();scheduleCamera()}}else if(canvasOpen)closeCanvas()}else if(canvasOpen&&canvasMode==='posts'&&forumThreadRoute()){openCanvas('messages')}else if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
+    rememberWindow(encounteredRows);observeNativeWindow(encounteredRows);syncMarks();if(nativeForumIndex()&&focus&&readingView==='canvas'&&(!canvasOpen||canvasMode==='messages'||canvasMode==='posts')){const posts=readForumPosts();if(posts.length){if(!canvasOpen||canvasMode!=='posts')openCanvas('posts');else syncForumWindow()}else if(canvasOpen&&canvasMode!=='posts')closeCanvas()}else if(canvasOpen&&canvasMode==='posts'&&forumThreadRoute()){openCanvas('messages')}else if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
     if(canvasOpen&&canvasMode==='messages'&&entryRoute!==routeKey()&&canvasRows.length&&!historyBusy){const id=location.pathname.split('/')[4];if(id&&encounteredRows.some(p=>p.source.message===id)){if(!canvasRows.some(p=>p.source.message===id)){canvasRows=chronological(encounteredRows);canvasSlots=[...canvasRows];renderCanvas();fitReadingWidth()}landOnExploration(routeKey())}}
     if(lateHistory)collectLateHistory(encounteredRows);
     refreshCanvasMedia(encounteredRows);
