@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.13.7
+// @version      0.13.8
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.13.7', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.13.8', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -514,7 +514,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -576,7 +576,7 @@
   // Stable chronological grid, adapted from RSM_Tree_Viewer's atlas camera.
   // Snapshot the currently rendered window; no automatic history requests.
   let canvasOpen=false,canvasMode='messages',canvasRows=[],serverRows=[],canvasSize={w:0,h:0},canvasFrame=0;
-  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};const HISTORY_LIMIT=400;
+  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};const HISTORY_LIMIT=400,HISTORY_BATCH=100,HISTORY_BATCH_CYCLES=8,HISTORY_BATCH_MS=15000;
   let canvasChannel='',retainedCanvas=null,historyObserved=null,lateHistory=null,lastTrustedActivity=null;
   const historyEvidence=[],nativeWindowEvidence=[],nativeScrollEvidence=[];
   const scrollIdentities=new WeakMap();let scrollIdentityCounter=0,lastNativeWindow='',lastNativeScrollAt=-Infinity;
@@ -765,7 +765,7 @@
     canvasCount.textContent=(canvasMode==='servers'?serverRows.length+' navigation entries':canvasRows.length+' encountered messages')+' · '+Math.round(camera.z*100)+'%'+(canvasMode==='messages'&&historyStatus?' · '+historyStatus:'');
     canvasCount.title=canvasMode==='servers'?'Native server and folder entries; select a folder to expand it.':'Initially up to 100 encountered messages, extended by native history loading; chronological gaps may exist.';
     const atTop=canvasMode==='messages'&&camera.y>=Math.min(0,(canvasView.clientHeight-canvasSize.h*camera.z)/2)-30&&camera.y>=-30;
-    const boundary=historyEnds.older?'Beginning of channel':historyBusy?'Loading messages…':lateHistory&&historyStatus.startsWith('Discord still loading')?'Discord still loading · watching for messages':historyStalls.older?'No older messages returned · drag again to retry':'';
+    const boundary=historyEnds.older?'Beginning of channel':historyBusy?historyStatus:lateHistory&&historyStatus.includes('Discord still loading')?'Discord still loading · watching for messages':historyStalls.older?'No older messages returned · drag again to retry':'';
     historyBoundary.hidden=!(atTop&&boundary);historyBoundary.textContent=boundary;
   }
   function scheduleCamera(){if(!canvasFrame)canvasFrame=requestAnimationFrame(applyCamera)}
@@ -1017,7 +1017,7 @@
     const step=Math.max(60,Math.round(height*.8));
     return Math.max(0,Math.min(max,top+(dir==='older'?-step:step)));
   }
-  async function driveNativeHistory(dir,active,trace){
+  async function driveNativeHistory(dir,active,trace,deadline=Infinity){
     // Move in overlapping viewport-sized steps rather than skipping an entire
     // virtualized list. Stop on evidence of progress or native loading.
     const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -1035,6 +1035,7 @@
     }
     for(let i=0;i<10;i++){
       if(!active())return 'cancelled';
+      if(performance.now()>=deadline)return 'time-budget';
       n=nativeScroller();if(!n)return 'scroller-missing';
       if(nativeHistoryState(n).busy)return 'native-loading';
       max=Math.max(0,n.scrollHeight-n.clientHeight);edge=dir==='older'?0:max;
@@ -1079,8 +1080,8 @@
     }
     return best;
   }
-  function integrateHistory(rows,dir){
-    const room=HISTORY_LIMIT-canvasRows.length;if(room<=0)return 0;
+  function integrateHistory(rows,dir,limit=HISTORY_LIMIT){
+    const room=Math.min(limit,HISTORY_LIMIT-canvasRows.length);if(room<=0)return 0;
     const {older,gap,newer}=historyCandidates(rows,dir);
     // Prefer unseen messages on the requested edge, then fill internal holes.
     const old=older.slice(-room),recent=newer.slice(0,room-old.length),middle=gap.slice(0,room-old.length-recent.length);
@@ -1162,11 +1163,12 @@
     const pending=lateHistory;
     if(!pending||historyBusy||!canvasOpen||canvasMode!=='messages')return;
     if(pending.generation!==historyGeneration||pending.route!==routeKey()||performance.now()>pending.until){lateHistory=null;return}
-    const n=integrateHistory(rows,pending.dir);
+    const n=integrateHistory(rows,pending.dir,pending.remaining??HISTORY_BATCH);
     if(n){
       lateHistory=null;metrics.canvas.historyLateAdded+=n;metrics.canvas.historyAdded+=n;historyStalls[pending.dir]=0;
-      historyStatus='+'+n+' '+pending.dir+' messages (late arrival)';
-      if(historyTrace){historyTrace.late={added:n,elapsed:Math.round(performance.now()-historyTrace.started),activity:lastTrustedActivity,range:dateRange(canvasRows)};traceHistoryResources(historyTrace)}
+      const total=(pending.added||0)+n;
+      historyStatus='+'+total+' '+pending.dir+' messages (including late arrival)';
+      if(historyTrace){historyTrace.late={added:n,elapsed:Math.round(performance.now()-historyTrace.started),activity:lastTrustedActivity,range:dateRange(canvasRows)};if(historyTrace.batch)historyTrace.batch.totalWithLate=total;traceHistoryResources(historyTrace)}
       record('history-late',pending.dir+':'+n);scheduleCamera();
     }
   }
@@ -1191,41 +1193,72 @@
     if(historyTrace){historyEvidence.push(summarizeHistoryTrace(historyTrace));if(historyEvidence.length>6)historyEvidence.shift()}
     historyTrace={channel:channelRoute()?.[2],started:performance.now(),direction:dir,scrollEvents:0,scrollSamples:[],driverSteps:[],scrollerCandidates:nativeScrollCandidates().map(scrollSnapshot),canvasBefore:dateRange(canvasRows),before:{top:Math.round(scroller.scrollTop),height:scroller.clientHeight,scrollHeight:scroller.scrollHeight,...historyRange(visibleRows(true)),...nativeHistoryState(scroller)},samples:[],activity:[],resources:[],lastActivity:lastTrustedActivity,visible:document.visibilityState,rearmed:false};
     const active=()=>gen===historyGeneration&&canvasOpen&&canvasMode==='messages'&&route===channelRoute()?.slice(1,3).join('/');
+    const batch={target:Math.min(HISTORY_BATCH,HISTORY_LIMIT-canvasRows.length),added:0,pages:[],stop:null};
+    historyTrace.batch=batch;
+    const deadline=performance.now()+HISTORY_BATCH_MS;
+    const remaining=()=>batch.target-batch.added;
+    const progress=(n,via)=>{
+      if(!n)return false;
+      batch.added+=n;batch.pages.push({via,added:n,total:batch.added,elapsed:Math.round(performance.now()-historyTrace.started)});
+      metrics.canvas.historyAdded+=n;metrics.canvas.historyBatchPages++;historyStalls[dir]=0;
+      historyStatus='Loading '+dir+' · '+batch.added+'/'+batch.target+' messages';
+      record('history-added',dir+':'+n);scheduleCamera();return true;
+    };
+    function finish(reason,suffix=''){
+      batch.stop=reason;
+      historyTrace.outcome=reason;
+      const count=batch.added?'+'+batch.added+' '+dir+' messages':'';
+      historyStatus=[count,suffix].filter(Boolean).join(' · ');
+      if(batch.added>=batch.target)metrics.canvas.historyBatchesCompleted++;
+      else if(batch.added)metrics.canvas.historyBatchesPartial++;
+      record('history-batch',batch.added+'/'+batch.target+' '+reason);
+    }
     try{
-      // Only drive Discord's existing scroll surface on an explicit edge gesture.
-      // No fetch interception, private API, automatic paging loop or credentials.
+      // One explicit gesture authorizes one bounded logical batch. Every
+      // additional traversal follows observed progress; never retry a stall.
       const already=visibleRows(true);rememberWindow(already);
-      const existing=integrateHistory([...encountered.values()],dir);
-      if(existing){metrics.canvas.historyAdded+=existing;historyStalls[dir]=0;historyStatus='+'+existing+' '+dir+' messages';record('history-added',dir+':'+existing);return}
-      const driverResult=await driveNativeHistory(dir,active,historyTrace);
-      if(!active())return;
-      historyTrace.driverResult=driverResult;
-      const stepped=integrateHistory([...historyObserved.values()],dir);
-      if(stepped){metrics.canvas.historyAdded+=stepped;historyStalls[dir]=0;historyStatus='+'+stepped+' '+dir+' messages';historyTrace.outcome='canvas-added';record('history-added',dir+':'+stepped);return}
-      if(driverResult==='step-budget'){historyStatus='Moving through native history · drag again';historyTrace.outcome='driver-progress-without-new-window';scheduleCamera();return}
-      // A native loading skeleton is not an empty result. Wait for one
-      // operation, with a longer bounded deadline if the native UI is busy.
-      const waitStart=performance.now();let seenBusy=nativeHistoryState(nativeScroller()).busy;
-      for(const delay of [200,350,600,900,1000,1500,2000,2500,3000]){
-        await new Promise(resolve=>setTimeout(resolve,delay));
+      progress(integrateHistory([...encountered.values()],dir,remaining()),'cache');
+      for(let cycle=0;cycle<HISTORY_BATCH_CYCLES&&remaining()>0;cycle++){
         if(!active())return;
-        const current=visibleRows(true),native=nativeScroller();rememberWindow(current);
-        const observed=[...historyObserved.values()],range=historyRange(current),startMarker=nativeStartMarker(native),state=nativeHistoryState(native);
-        seenBusy=seenBusy||state.busy;traceHistoryResources(historyTrace);
-        const n=integrateHistory(observed,dir);metrics.canvas.historyObserved+=observed.length;historyTrace.samples.push({...range,observed:observed.length,added:n,top:native?Math.round(native.scrollTop):null,height:native?.clientHeight,scrollHeight:native?.scrollHeight,startMarker,...state,elapsed:Math.round(performance.now()-historyTrace.started),visible:document.visibilityState});
-        if(n){metrics.canvas.historyAdded+=n;historyStalls[dir]=0;historyStatus='+'+n+' '+dir+' messages';historyTrace.outcome='canvas-added';record('history-added',dir+':'+n);return}
-        if(dir==='older'&&startMarker&&current.length&&BigInt(chronological(current)[0].source.message)===BigInt(chronological(canvasRows)[0].source.message)){historyEnds.older=true;historyStalls.older=0;metrics.canvas.historyEndConfirmed++;historyStatus='Beginning of channel';record('history-end','older');return}
-        if(state.busy){historyStatus='Discord loading '+dir+' messages…';scheduleCamera()}
-        if(performance.now()-waitStart>=3000&&!seenBusy)break;
+        if(performance.now()>=deadline){finish('time-budget','drag for more');return}
+        historyStatus='Loading '+dir+' · '+batch.added+'/'+batch.target+' messages';scheduleCamera();
+        const driverResult=await driveNativeHistory(dir,active,historyTrace,deadline);
+        if(!active())return;
+        historyTrace.driverResult=driverResult;
+        if(progress(integrateHistory([...historyObserved.values()],dir,remaining()),driverResult))continue;
+        if(driverResult==='step-budget'||driverResult==='time-budget'){
+          finish(driverResult,'drag for more');return;
+        }
+        // Preserve the proven native loading wait for each incomplete window,
+        // but spend at most the remaining logical batch time.
+        const waitStart=performance.now();let seenBusy=nativeHistoryState(nativeScroller()).busy,advanced=false;
+        for(const delay of [200,350,600,900,1000,1500,2000,2500,3000]){
+          const left=deadline-performance.now();if(left<=0)break;
+          await new Promise(resolve=>setTimeout(resolve,Math.min(delay,left)));
+          if(!active())return;
+          const current=visibleRows(true),native=nativeScroller();rememberWindow(current);
+          const observed=[...historyObserved.values()],range=historyRange(current),startMarker=nativeStartMarker(native),state=nativeHistoryState(native);
+          seenBusy=seenBusy||state.busy;traceHistoryResources(historyTrace);
+          const n=integrateHistory(observed,dir,remaining());metrics.canvas.historyObserved+=observed.length;
+          boundedPush(historyTrace.samples,{...range,observed:observed.length,added:n,top:native?Math.round(native.scrollTop):null,height:native?.clientHeight,scrollHeight:native?.scrollHeight,startMarker,...state,elapsed:Math.round(performance.now()-historyTrace.started),visible:document.visibilityState},32);
+          if(progress(n,'native-wait')){advanced=true;break}
+          if(dir==='older'&&startMarker&&current.length&&BigInt(chronological(current)[0].source.message)===BigInt(chronological(canvasRows)[0].source.message)){
+            historyEnds.older=true;historyStalls.older=0;metrics.canvas.historyEndConfirmed++;finish('channel-beginning','Beginning of channel');record('history-end','older');return;
+          }
+          if(state.busy){historyStatus='Discord loading '+dir+' · '+batch.added+'/'+batch.target;scheduleCamera()}
+          if(performance.now()-waitStart>=3000&&!seenBusy)break;
+        }
+        if(advanced)continue;
+        // Do not repeat a native operation which yielded no new messages.
+        const pending=nativeHistoryState(nativeScroller()).busy;
+        metrics.canvas.historyEmpty++;metrics.canvas.historyStalled++;historyStalls[dir]++;
+        if(pending)metrics.canvas.historyPendingTimeouts++;
+        lateHistory={generation:gen,route:routeKey(),dir,until:performance.now()+30000,remaining:remaining(),added:batch.added};
+        finish(pending?'native-still-loading':driverResult==='scroll-not-moving'?'scroll-not-moving':historyTrace.scrollEvents===0?'no-native-scroll-event':seenBusy?'loading-ended-without-new-window':'native-scroll-without-new-window',pending?'Discord still loading · watching for messages':'No more '+dir+' messages returned · edge not confirmed');
+        record('history-empty',dir);return;
       }
-      metrics.canvas.historyEmpty++;metrics.canvas.historyStalled++;historyStalls[dir]++;
-      const pending=nativeHistoryState(nativeScroller()).busy;
-      if(pending)metrics.canvas.historyPendingTimeouts++;
-      historyStatus=pending?'Discord still loading · watching for messages':'No '+dir+' messages returned · edge not confirmed';
-      lateHistory={generation:gen,route:routeKey(),dir,until:performance.now()+30000};
-      historyTrace.outcome=pending?'native-still-loading':historyTrace.driverResult==='scroll-not-moving'?'scroll-not-moving':historyTrace.scrollEvents===0?'no-native-scroll-event':seenBusy?'loading-ended-without-new-window':'native-scroll-without-new-window';
-      record('history-empty',dir);
-    }catch(e){fail('history-load',e);historyStatus='History load failed'}
+      finish(remaining()===0?'batch-target':'cycle-budget',remaining()===0?(canvasRows.length>=HISTORY_LIMIT?'400-message session limit':''):'drag for more');
+    }catch(e){if(active()){fail('history-load',e);finish('error','History load failed')}}
     finally{if(gen===historyGeneration){historyBusy=false;historyObserved=null;edgeDirection='';edgeTravel=0;historyTrace.canvasAfter=dateRange(canvasRows);traceHistoryResources(historyTrace);scheduleCamera()}}
   }
   // Route a gesture by target, direction and actual text overflow, never zoom.
