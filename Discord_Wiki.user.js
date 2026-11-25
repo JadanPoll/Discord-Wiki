@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.13.8
+// @version      0.14.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.13.8', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.14.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -259,6 +259,9 @@
     .canvas-card[data-saved="1"]{border-left:4px solid #4663b5}
     .canvas-card[data-favorite="1"]{border-left:4px solid #c39b38}.canvas-markbar{display:flex;gap:4px;position:absolute;right:7px;bottom:5px;background:inherit;border-radius:5px}.canvas-markbar button,.mark-action{min-width:29px;min-height:26px;padding:2px 6px;border:1px solid transparent;background:transparent;color:#687689;font-size:16px;line-height:1}.canvas-markbar button[aria-pressed="true"],.mark-action[aria-pressed="true"]{color:#9a7018;background:#fff1c7}.canvas-preview{padding-bottom:18px}.note-editor{position:fixed;z-index:20;top:54px;right:12px;width:min(360px,calc(100vw - 24px));background:#fff6d9;border:1px solid #d9bf74;border-radius:8px;padding:12px;box-shadow:0 6px 25px #27364a33}.note-editor textarea{min-height:110px;background:#fffdf4}.saved-mark{border-left:3px solid #c39b38;padding-left:8px}
     .canvas-card:focus-visible{outline:3px solid #4663b5}
+    .card-overflow{position:absolute;right:8px;bottom:38px;font:650 11px system-ui;color:#526174;background:#fffdfa;border:1px solid #ccd1db;border-radius:4px;padding:2px 5px;pointer-events:none}
+    .explored-strip{position:absolute;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;background:#e9e7e1;border:1px solid #d5d1c8;border-radius:8px;color:#46546a;min-height:52px;font:600 15px system-ui;cursor:pointer}
+    .canvas-card[data-seen-before="1"] .canvas-meta{color:#687487}
     .canvas-meta{font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .canvas-label{font-size:12px;color:#4663b5;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .canvas-card:not(.server-card){padding-bottom:34px}.canvas-meta,.canvas-label{flex:none}.canvas-preview{font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere;display:block;flex:1;min-height:0;padding:0 3px 0 0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c6c7d1 transparent}.canvas-preview[data-scrollable="1"]{border-bottom:1px solid #d9dce3}.canvas-view[data-card-scroll="1"]{cursor:ns-resize}
@@ -395,6 +398,10 @@
     html.dw-focus #channels [data-dw-channel-row]{display:flex!important;align-items:center!important;min-width:0!important;gap:2px!important}html.dw-focus #channels [data-dw-channel-row]>a{flex:1 1 0!important;min-width:0!important;width:0!important;padding-right:3px!important;overflow:hidden!important}html.dw-focus #channels [data-dw-channel-row]>a [class*="name_"]{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}html.dw-focus #channels .dw-channel-marks{position:static!important;transform:none!important;display:flex!important;flex:0 0 44px!important;align-items:center;gap:0;background:inherit}html.dw-focus #channels .dw-channel-marks button{box-sizing:border-box;font:14px system-ui;width:22px;min-width:22px;height:28px;padding:0;border:0;background:transparent;color:#8792a1;cursor:pointer}html.dw-focus #channels .dw-channel-marks button[aria-pressed="true"]{color:#946d14;background:#fff1c7;border-radius:3px}html.dw-focus [data-dw-favorite-channel="1"]>a{box-shadow:inset 2px 0 #c39b38}html:not(.dw-focus) .dw-channel-marks{display:none!important}
     html.dw-focus [data-dw-low="1"]{opacity:.52!important}
     html.dw-focus [data-dw-low="1"]:hover,html.dw-focus [data-dw-low="1"]:focus-within{opacity:1!important}
+    html.dw-focus [class*="panels_"] [class*="container_"]:has(> [class*="avatarWrapper_"]){display:flex!important;align-items:center!important;gap:6px!important;min-width:0!important}
+    html.dw-focus [class*="panels_"] [class*="avatarWrapper_"]{flex:1 1 0!important;min-width:0!important;max-width:none!important;overflow:hidden!important;margin-right:3px!important}
+    html.dw-focus [class*="panels_"] [class*="avatarWrapper_"] [class*="avatar_"]{flex:none!important}
+    html.dw-focus [class*="panels_"] [class*="container_"]:has(> [class*="avatarWrapper_"]) > [class*="buttons_"]{display:flex!important;flex:0 0 auto!important;gap:3px!important;position:relative!important}
     html.dw-focus [class*="channelTextArea_"] [class*="scrollableContainer_"]{background:#f7f3ec!important;border:1px solid #e3ded5!important;border-radius:8px}
     html.dw-focus [data-dw-clean-name]{overflow:hidden;text-overflow:ellipsis}
     @media(min-width:901px){html.dw-focus.dw-contents-open [class*="page_"]:has([data-list-id="chat-messages"]){padding-inline-end:324px!important;box-sizing:border-box!important}}
@@ -514,7 +521,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,exploration:{seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -576,11 +583,13 @@
   // Stable chronological grid, adapted from RSM_Tree_Viewer's atlas camera.
   // Snapshot the currently rendered window; no automatic history requests.
   let canvasOpen=false,canvasMode='messages',canvasRows=[],serverRows=[],canvasSize={w:0,h:0},canvasFrame=0;
-  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};const HISTORY_LIMIT=400,HISTORY_BATCH=100,HISTORY_BATCH_CYCLES=8,HISTORY_BATCH_MS=15000;
+  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};const HISTORY_LIMIT=1200,HISTORY_BATCH=300,HISTORY_BATCH_CYCLES=30,HISTORY_BATCH_MS=30000;
   let canvasChannel='',retainedCanvas=null,historyObserved=null,lateHistory=null,lastTrustedActivity=null;
   const historyEvidence=[],nativeWindowEvidence=[],nativeScrollEvidence=[];
   const scrollIdentities=new WeakMap();let scrollIdentityCounter=0,lastNativeWindow='',lastNativeScrollAt=-Infinity;
   const routeKey=()=>channelRoute()?.slice(1,3).join('/')||'';
+  let exploration=null,explorationLoading='',explorationTimer=0,explorationWriteTimer=0,explorationWriteQueue=Promise.resolve(),collapsedSeen=0,showPreviouslySeen=false;
+  const explorationCache=new Map();
   let inertiaFrame=0,velocity={x:0,y:0},lastMotion=0;const PAN_GAIN=1.85,PINCH_GAIN=1.65,FRICTION_MS=245;
   const encountered=new Map();let encounteredChannel='';
   const camera={x:0,y:0,z:1},pointers=new Map();let pinch=null,dragged=false,suppressUntil=0;
@@ -591,6 +600,7 @@
   btn(canvasHead,'+',()=>zoomCanvas(camera.z*1.6));
   btn(canvasHead,'Fit',()=>canvasMode==='messages'?fitReadingWidth():fitCanvas());
   const canvasCopy=btn(canvasHead,'Copy for AI',()=>copyResearch(canvasFocusRows()));
+  const resumeLink=el('a','Resume exploration',canvasHead);resumeLink.hidden=true;resumeLink.style.cssText='font-size:12px;color:#4663b5;white-space:nowrap';
   const canvasView=el('div',undefined,canvas);canvasView.className='canvas-view';canvasView.setAttribute('aria-label','Drag to pan, pinch to zoom');
   const world=el('div',undefined,canvasView);world.className='canvas-world';
   const historyBoundary=el('div',undefined,canvasView);historyBoundary.setAttribute('role','status');historyBoundary.hidden=true;historyBoundary.style.cssText='position:absolute;z-index:2;left:50%;transform:translateX(-50%);top:8px;max-width:90%;padding:5px 10px;border:1px solid #d9dce3;border-radius:6px;background:#fffdfa;color:#657487;font:12px system-ui;white-space:normal;text-align:center;pointer-events:none';
@@ -671,7 +681,7 @@
   function canvasFocusRows(){
     const cx=(canvasView.clientWidth/2-camera.x)/camera.z,cy=(canvasView.clientHeight/2-camera.y)/camera.z;
     const cols=messageCols||1;
-    const ranked=canvasSlots.map((p,i)=>({p,d:Math.hypot(160+(i%cols)*316-cx,97+Math.floor(i/cols)*190-cy)})).filter(x=>x.p).sort((a,b)=>a.d-b.d).slice(0,100).map(x=>x.p);
+    const ranked=canvasSlots.slice(0,canvasSlots.length-collapsedSeen).map((p,i)=>({p,d:Math.hypot(160+(i%cols)*316-cx,97+Math.floor(i/cols)*190-cy)})).filter(x=>x.p).sort((a,b)=>a.d-b.d).slice(0,100).map(x=>x.p);
     return chronological(ranked);
   }
   async function copyResearch(rows=null){
@@ -760,13 +770,82 @@
     }
     inertiaFrame=requestAnimationFrame(tick);
   }
+  function explorationKey(route){return 'dw-exploration-v1:'+route}
+  function cleanExploration(value){
+    const ids=Array.isArray(value?.ids)?value.ids.filter(x=>typeof x==='string'&&/^\d{15,22}$/.test(x)).slice(-6000):[];
+    return new Set(ids);
+  }
+  function saveExploration(){
+    if(explorationWriteTimer){clearTimeout(explorationWriteTimer);explorationWriteTimer=0}
+    for(const [key,e] of explorationCache){
+      if(!e.dirty)continue;e.dirty=false;
+      const payload={ids:[...e.seen].slice(-6000)};
+      explorationWriteQueue=explorationWriteQueue.then(()=>write(explorationKey(key),payload)).then(()=>{metrics.canvas.explorationWrites++}).catch(err=>{e.dirty=true;fail('exploration-save',err)});
+    }
+  }
+  function scheduleExplorationSave(){if(!explorationWriteTimer)explorationWriteTimer=setTimeout(saveExploration,750)}
+  async function prepareExploration(route){
+    if(!route)return;
+    if(exploration?.route===route)return;
+    if(explorationLoading===route)return;
+    explorationLoading=route;
+    let e=explorationCache.get(route);
+    if(!e){
+      let seen=new Set();try{seen=cleanExploration(await read(explorationKey(route),{}))}catch(err){fail('exploration-read',err)}
+      e={route,seen,dirty:false};explorationCache.set(route,e);
+    }
+    if(explorationLoading!==route||routeKey()!==route)return;
+    explorationLoading='';exploration={route,seen:e.seen,prior:new Set(e.seen),entry:e};
+    showPreviouslySeen=false;
+    if(canvasOpen&&canvasMode==='messages'&&canvasChannel===route)fillMessageCanvas();
+  }
+  function oldestSeen(ids){
+    let oldest=null;for(const id of ids)if(oldest===null||BigInt(id)<BigInt(oldest))oldest=id;return oldest;
+  }
+  function resumeExploration(){
+    if(!exploration||exploration.route!==routeKey())return;
+    const id=oldestSeen(exploration.prior);
+    if(!id)return;
+    const i=canvasSlots.findIndex(p=>p?.source.message===id);
+    if(i>=0){
+      stopInertia();camera.y=12-Math.floor(i/5)*190*camera.z;constrainCamera();scheduleCamera();metrics.canvas.explorationResumes++;
+      return;
+    }
+    // Use the real Discord message permalink for an anchor not in the live window.
+    // No synthetic request or assertion that unseen history has been downloaded.
+    location.assign('https://discord.com/channels/'+exploration.route+'/'+id);
+  }
+  resumeLink.addEventListener('click',e=>{e.preventDefault();resumeExploration()});
+  function updateResume(){
+    const id=exploration?.route===routeKey()?oldestSeen(exploration.prior):null;
+    resumeLink.hidden=!(canvasMode==='messages'&&id);
+    if(id){const day=new Date(Number(BigInt(id)>>22n)+1420070400000).toISOString().slice(0,10);resumeLink.href='https://discord.com/channels/'+exploration.route+'/'+id;resumeLink.textContent='Resume · '+day;}
+  }
+  function markVisibleExploration(){
+    explorationTimer=0;
+    if(!canvasOpen||canvasMode!=='messages'||!exploration||exploration.route!==routeKey()||document.visibilityState!=='visible'||pointers.size||inertiaFrame||camera.z<.34||!detail.hidden||!noteEditor.hidden)return;
+    const w=canvasView.clientWidth,h=canvasView.clientHeight;if(!w||!h)return;
+    const count=canvasSlots.length-collapsedSeen;
+    let added=0;
+    for(let i=0;i<count;i++){
+      const p=canvasSlots[i];if(!p)continue;
+      const x=camera.x+(10+i%5*316)*camera.z,y=camera.y+(10+Math.floor(i/5)*190)*camera.z,cw=300*camera.z,ch=174*camera.z;
+      const area=Math.max(0,Math.min(w,x+cw)-Math.max(0,x))*Math.max(0,Math.min(h,y+ch)-Math.max(0,y));
+      if(area>=cw*ch*.65&&!exploration.seen.has(p.source.message)){exploration.seen.add(p.source.message);added++}
+    }
+    if(added){while(exploration.seen.size>6000)exploration.seen.delete(exploration.seen.values().next().value);exploration.entry.dirty=true;metrics.canvas.explorationSeen+=added;scheduleExplorationSave()}
+  }
+  function scheduleExploration(){if(explorationTimer)clearTimeout(explorationTimer);explorationTimer=setTimeout(markVisibleExploration,650)}
+  window.addEventListener('pagehide',saveExploration);
   function applyCamera(){
     canvasFrame=0;world.style.transform='translate('+camera.x+'px,'+camera.y+'px) scale('+camera.z+')';
     canvasCount.textContent=(canvasMode==='servers'?serverRows.length+' navigation entries':canvasRows.length+' encountered messages')+' · '+Math.round(camera.z*100)+'%'+(canvasMode==='messages'&&historyStatus?' · '+historyStatus:'');
     canvasCount.title=canvasMode==='servers'?'Native server and folder entries; select a folder to expand it.':'Initially up to 100 encountered messages, extended by native history loading; chronological gaps may exist.';
-    const atTop=canvasMode==='messages'&&camera.y>=Math.min(0,(canvasView.clientHeight-canvasSize.h*camera.z)/2)-30&&camera.y>=-30;
+    const extent=canvasSize.h*camera.z,top=extent<=canvasView.clientHeight?(canvasView.clientHeight-extent)/2:0;
+    const atTop=canvasMode==='messages'&&camera.y>=top-30;
     const boundary=historyEnds.older?'Beginning of channel':historyBusy?historyStatus:lateHistory&&historyStatus.includes('Discord still loading')?'Discord still loading · watching for messages':historyStalls.older?'No older messages returned · drag again to retry':'';
     historyBoundary.hidden=!(atTop&&boundary);historyBoundary.textContent=boundary;
+    updateResume();if(canvasMode==='messages')scheduleExploration();
   }
   function scheduleCamera(){if(!canvasFrame)canvasFrame=requestAnimationFrame(applyCamera)}
   function clampScale(z){return Math.max(.025,Math.min(3.5,z))}
@@ -799,11 +878,20 @@
   const cardScrollOffsets=new Map();
   function renderCanvas(){
     world.replaceChildren();
+    collapsedSeen=0;
+    if(!showPreviouslySeen&&exploration?.route===routeKey()){
+      // Only collapse a contiguous suffix of exact previously visible IDs;
+      // preserve the frontier card and never infer coverage from dates alone.
+      for(let i=canvasSlots.length-1;i>=0;i--){const p=canvasSlots[i];if(!p||!exploration.prior.has(p.source.message))break;collapsedSeen++}
+      collapsedSeen=Math.max(0,collapsedSeen-1);
+      if(collapsedSeen<5)collapsedSeen=0;
+    }
+    const shown=canvasSlots.slice(0,canvasSlots.length-collapsedSeen);
     const labels=new Map();for(const r of data.conversations)for(const url of r.messages){if(!labels.has(url))labels.set(url,r.title)}
     const strideX=316,strideY=190,margin=10;
     const cols=5;messageCols=cols;
     let row=0,col=0;
-    for(const p of canvasSlots){
+    for(const p of shown){
       if(!p){if(++col>=cols){col=0;row++}continue;}
       const day=p.timestamp?.slice(0,10)||'';
       const card=el('div',undefined,world);card.tabIndex=0;card.setAttribute('role','group');card.className='canvas-card';
@@ -815,17 +903,26 @@
       const preview=el('div',p.text||'(Attachment or no text)',card);preview.className='canvas-preview';preview.dataset.cardUrl=p.source.url;
       preview.scrollTop=cardScrollOffsets.get(p.source.url)||0;
       preview.addEventListener('scroll',()=>cardScrollOffsets.set(p.source.url,preview.scrollTop),{passive:true});
-      // A subtle scroll affordance only for text which actually overflows.
-      if(preview.scrollHeight>preview.clientHeight+1)preview.dataset.scrollable='1';
+      if(exploration?.prior.has(p.source.message))card.dataset.seenBefore='1';
       const n=p.text.length;card.dataset.density=n>=400?'3':n>=150?'2':n>=60?'1':'0';
       if(!p.attachments&&!p.reply&&lowSignal(p.text))card.dataset.low='1';
       const markbar=el('div',undefined,card);markbar.className='canvas-markbar';addMarkControls(markbar,p);
+      const overflow=el('span','↓ More',card);overflow.className='card-overflow';overflow.hidden=true;
+      const measure=()=>{const max=preview.scrollHeight-preview.clientHeight;overflow.hidden=max<=2||preview.scrollTop>=max-2;preview.dataset.scrollable=max>2?'1':'0';};
+      preview.addEventListener('scroll',measure,{passive:true});
       card.addEventListener('click',e=>{if(Date.now()<suppressUntil){e.preventDefault();return}inspectCanvas(p)});
       card.addEventListener('keydown',e=>{if(e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();inspectCanvas(p)}});
       if(++col>=cols){col=0;row++}
     }
-    canvasSize={w:margin*2+cols*strideX-16,h:margin*2+(row+(col?1:0))*strideY-16};
+    let rowsHeight=(row+(col?1:0))*strideY;
+    const priorCount=collapsedSeen;
+    if(priorCount||showPreviouslySeen&&exploration?.prior.size){
+      const strip=el('button',priorCount?'▸ '+priorCount+' previously seen messages':'▾ Collapse previously seen messages',world);strip.className='explored-strip';strip.style.left=margin+'px';strip.style.top=(margin+rowsHeight)+'px';strip.style.width=(cols*strideX-16)+'px';
+      strip.addEventListener('click',()=>{showPreviouslySeen=!showPreviouslySeen;renderCanvas();constrainCamera();scheduleCamera()});rowsHeight+=65;
+    }
+    canvasSize={w:margin*2+cols*strideX-16,h:margin*2+rowsHeight-16};
     world.style.width=canvasSize.w+'px';world.style.height=canvasSize.h+'px';
+    requestAnimationFrame(()=>{for(const preview of world.querySelectorAll('.canvas-preview')){const max=preview.scrollHeight-preview.clientHeight;const indicator=preview.parentElement.querySelector('.card-overflow');if(indicator)indicator.hidden=max<=2||preview.scrollTop>=max-2;preview.dataset.scrollable=max>2?'1':'0';}});
   }
   function gridColumns(n,sx,sy){
     const aspect=Math.max(.5,Math.min(3,(canvasView.clientWidth||800)/(canvasView.clientHeight||500)));
@@ -917,11 +1014,11 @@
     communities.textContent=canvasOpen&&canvasMode==='servers'?'Back':'Servers';
   }
   function fillMessageCanvas(){
-    if(!canvasOpen||canvasMode!=='messages'||canvasRows.length)return;
+    if(!canvasOpen||canvasMode!=='messages'||canvasRows.length||explorationLoading===routeKey())return;
     rememberWindow(visibleRows(true));const rows=chronological([...encountered.values()]);
     if(!rows.length){historyStatus='Waiting for channel messages';scheduleCamera();return}
     canvasRows=rows.slice(-100);canvasSlots=[...canvasRows];messageCols=5;historyStatus='Drag past an edge for more';
-    positionCanvas();renderCanvas();requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='messages')fitReadingWidth()});
+    positionCanvas();renderCanvas();requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='messages'){fitReadingWidth();const id=oldestSeen(exploration?.prior||[]);if(id&&canvasSlots.some(p=>p?.source.message===id))resumeExploration()}});
     record('canvas-filled',String(canvasRows.length));
   }
   function openCanvas(mode='messages'){
@@ -934,6 +1031,7 @@
     if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='servers')fitCanvas()})}
     else{
       canvasChannel=routeKey();
+      if(exploration?.route!==canvasChannel){exploration=null;prepareExploration(canvasChannel)}
       if(retainedCanvas&&retainedCanvas.channel===canvasChannel&&retainedCanvas.rows.length){
         const saved=retainedCanvas;canvasRows=saved.rows;canvasSlots=saved.slots;messageCols=5;
         historyEnds={...saved.ends};historyStalls={...saved.stalls};historyStatus=saved.status;
@@ -950,13 +1048,15 @@
   }
   function closeCanvas(){
     if(!canvasOpen)return;
+    if(explorationTimer){clearTimeout(explorationTimer);explorationTimer=0}saveExploration();
     if(layoutFrame){cancelAnimationFrame(layoutFrame);layoutFrame=0}layoutObserver?.disconnect();layoutTargets=[];lastCanvasGeometry=null;
     if(canvasMode==='messages'&&canvasRows.length)retainedCanvas={channel:canvasChannel,rows:canvasRows,slots:canvasSlots,camera:{...camera},ends:{...historyEnds},stalls:{...historyStalls},status:historyBusy?'Drag past an edge for more':historyStatus};
     historyGeneration++;historyBusy=false;historyObserved=null;lateHistory=null;edgeDirection='';edgeTravel=0;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;delete canvasView.dataset.cardScroll;
     canvasView.classList.remove('dragging');updateViewButtons();syncComposerGuard();metrics.canvas.closes++;record('canvas-close');
   }
+  function nativeForumIndex(){return !document.querySelector('[data-list-id="chat-messages"]')&&!!document.querySelector('[class*="forumOrMediaChannel_"],[class*="forumChannel_"],[class*="forumPosts_"],[class*="forumPostList_"]')}
   function restoreReading(){
-    if(!focus||readingView==='timeline'||!channelRoute()){closeCanvas();updateViewButtons();return}
+    if(!focus||readingView==='timeline'||!channelRoute()||nativeForumIndex()){closeCanvas();updateViewButtons();return}
     if(canvasOpen&&canvasMode==='messages')return;
     openCanvas('messages');
   }
@@ -1072,7 +1172,7 @@
   function viewportAnchor(){
     const cx=(canvasView.clientWidth/2-camera.x)/camera.z,cy=(canvasView.clientHeight/2-camera.y)/camera.z;
     let best=null;
-    for(let i=0;i<canvasSlots.length;i++){
+    for(let i=0;i<canvasSlots.length-collapsedSeen;i++){
       const p=canvasSlots[i];if(!p)continue;
       const x=(i%messageCols)*316,y=Math.floor(i/messageCols)*190;
       const d=Math.hypot(x+160-cx,y+97-cy);
@@ -1086,6 +1186,8 @@
     // Prefer unseen messages on the requested edge, then fill internal holes.
     const old=older.slice(-room),recent=newer.slice(0,room-old.length),middle=gap.slice(0,room-old.length-recent.length);
     const n=old.length+recent.length+middle.length;if(!n)return 0;
+    // Newer history belongs after the seen suffix: show it before reflowing.
+    if(recent.length&&collapsedSeen)showPreviouslySeen=true;
     if(middle.length){
       // Internal gaps require a compact reflow. Preserve the card closest to
       // the reading viewport, rather than jumping to an unrelated date.
@@ -1185,7 +1287,7 @@
   async function loadHistory(dir){
     if(!canvasOpen||canvasMode!=='messages'||historyBusy||!canvasRows.length||Date.now()-lastHistoryAt<600)return;
     if(historyEnds[dir]){historyStatus=dir==='older'?'Beginning of channel':'End of channel';scheduleCamera();return}
-    if(canvasRows.length>=HISTORY_LIMIT){historyStatus='400-message session limit';scheduleCamera();metrics.canvas.historyBlocked++;return}
+    if(canvasRows.length>=HISTORY_LIMIT){historyStatus='1200-message session limit';scheduleCamera();metrics.canvas.historyBlocked++;return}
     const scroller=nativeScroller();if(!scroller){historyStatus='Native history scroller not found';metrics.canvas.historyBlocked++;scheduleCamera();return}
     lateHistory=null;historyBusy=true;historyObserved=new Map();lastHistoryAt=Date.now();const gen=historyGeneration;metrics.canvas.historyAttempts++;
     historyStatus='Loading '+dir+' messages…';scheduleCamera();record('history-request',dir);
@@ -1257,7 +1359,7 @@
         finish(pending?'native-still-loading':driverResult==='scroll-not-moving'?'scroll-not-moving':historyTrace.scrollEvents===0?'no-native-scroll-event':seenBusy?'loading-ended-without-new-window':'native-scroll-without-new-window',pending?'Discord still loading · watching for messages':'No more '+dir+' messages returned · edge not confirmed');
         record('history-empty',dir);return;
       }
-      finish(remaining()===0?'batch-target':'cycle-budget',remaining()===0?(canvasRows.length>=HISTORY_LIMIT?'400-message session limit':''):'drag for more');
+      finish(remaining()===0?'batch-target':'cycle-budget',remaining()===0?(canvasRows.length>=HISTORY_LIMIT?'1200-message session limit':''):'drag for more');
     }catch(e){if(active()){fail('history-load',e);finish('error','History load failed')}}
     finally{if(gen===historyGeneration){historyBusy=false;historyObserved=null;edgeDirection='';edgeTravel=0;historyTrace.canvasAfter=dateRange(canvasRows);traceHistoryResources(historyTrace);scheduleCamera()}}
   }
@@ -1381,7 +1483,7 @@
       const label=source&&labels.get(keyOf(source));
       if(label)node.dataset.dwLabel=label;else delete node.dataset.dwLabel;
     }
-    rememberWindow(encounteredRows);observeNativeWindow(encounteredRows);syncMarks();if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
+    rememberWindow(encounteredRows);observeNativeWindow(encounteredRows);syncMarks();if(canvasOpen&&canvasMode==='messages'&&nativeForumIndex())closeCanvas();else if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
     if(lateHistory)collectLateHistory(encounteredRows);
     metrics.scanMs=Math.round((performance.now()-t)*10)/10;metrics.maxScanMs=Math.max(metrics.maxScanMs,metrics.scanMs);
   }
@@ -1536,7 +1638,7 @@
   document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;resetComposerIntent('route');closeCanvas();retainedCanvas=null;canvasChannel='';canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;resetComposerIntent('route');closeCanvas();retainedCanvas=null;canvasChannel='';exploration=null;explorationLoading='';showPreviouslySeen=false;canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
