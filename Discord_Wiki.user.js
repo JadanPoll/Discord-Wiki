@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.13.2
+// @version      0.13.3
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.13.2', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.13.3', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -267,6 +267,14 @@
     .canvas-detail .row{margin:4px 0}
     .canvas-day{position:absolute;font-size:12px;color:#687689;font-weight:650;white-space:nowrap}
     .server-card{width:224px;height:132px;justify-content:flex-start;padding:9px 12px 7px;background:#fffdfa;gap:4px}.server-name{font-size:16px;font-weight:650;line-height:1.2;overflow-wrap:anywhere;min-height:0;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}.server-card .canvas-markbar{position:static;flex:none;display:flex;justify-content:flex-end;align-items:center;min-height:27px;width:100%;gap:4px;margin-top:auto;background:transparent}.server-card .canvas-markbar button{flex:none}.server-card[data-saved="1"]{background:#e9eefc}
+    .server-card[data-folder-role="parent"]{background:var(--dw-folder-parent);border-color:var(--dw-folder-accent);border-top:4px solid var(--dw-folder-accent)}
+    .server-card[data-folder-role="child"]{background:var(--dw-folder-child);border-color:var(--dw-folder-border)}
+    .server-card[data-folder-role] .canvas-meta{color:#4e5969}
+    .server-card[data-saved="1"]{outline:2px solid #4663b5;outline-offset:-3px}
+    .server-card[data-favorite="1"]{border-left:4px solid #c39b38}
+    .folder-heading{display:flex;justify-content:space-between;align-items:center;gap:5px;flex:none;font-size:11px;font-weight:650;color:#394659}
+    .folder-heading span:last-child{font-size:15px;line-height:1}
+    .server-card[data-folder-role="parent"] .server-name{font-weight:750}
     @media(max-width:480px){.launcher{flex-wrap:wrap}}
     .panel details{border-top:1px solid #e1dce7;padding:9px 0}.panel summary{cursor:pointer;font-weight:500;color:#53647b}
     .panel .entry{background:#fffdfa;border-color:#e1dce7}
@@ -505,7 +513,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyEnds,historyStalls,historyTrace,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyEnds,historyStalls,historyTrace,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -820,6 +828,29 @@
     const aspect=Math.max(.5,Math.min(3,(canvasView.clientWidth||800)/(canvasView.clientHeight||500)));
     return Math.min(5,Math.max(1,n),Math.max(1,Math.round(Math.sqrt(n*aspect*sy/sx))));
   }
+  // The native folderGroup wrapper is the membership contract (observed in
+  // the captured Discord HTML). Never infer membership from a display name.
+  function nativeFolder(node){
+    const group=node.closest('[class*="folderGroup_"]');
+    if(!group)return null;
+    const header=[...group.querySelectorAll('[role="treeitem"][data-list-item-id^="guildsnav___"][aria-expanded]')].find(n=>n.closest('[class*="folderGroup_"]')===group);
+    return header?.getAttribute('data-list-item-id')?.slice('guildsnav___'.length)||null;
+  }
+  function folderPalette(ids){
+    // Stable for the same set of folders, regardless of expanded state or order.
+    // Resolve hue collisions so neighboring folders need not share a color.
+    const hues=[0,28,54,86,119,151,180,208,237,264,291,321,343,42,165,224];
+    const used=new Set(),out=new Map();
+    for(const id of [...new Set(ids)].sort()){
+      let h=2166136261;for(const c of id)h=Math.imul(h^c.charCodeAt(0),16777619);
+      let slot=(h>>>0)%hues.length,tries=0;
+      while(used.has(slot)&&tries<hues.length){slot=(slot+1)%hues.length;tries++}
+      used.add(slot);
+      const hue=tries===hues.length?(h>>>0)%360:hues[slot];
+      out.set(id,{parent:'hsl('+hue+', 58%, 79%)',child:'hsl('+hue+', 47%, 93%)',accent:'hsl('+hue+', 48%, 46%)',border:'hsl('+hue+', 32%, 77%)'});
+    }
+    return out;
+  }
   function readServers(){
     const rail=document.querySelector('nav[aria-label="Servers sidebar"]');if(!rail)return [];
     const result=[];
@@ -830,18 +861,29 @@
       if(!folder&&node.querySelector('[role="treeitem"][data-list-item-id^="guildsnav___"]'))continue;
       if(!raw||(!folder&&id!=='home'&&(!/^\d{15,22}$/.test(id)||!node.hasAttribute('aria-selected'))))continue;
       const name=raw.replace(/^(?:Unread messages,\s*|\d+\s+mentions?,\s*)+/i,'').replace(/,\s*(?:Voice call active|folder)$/i,'').trim();
-      result.push({id,name:name||raw,folder,expanded:node.getAttribute('aria-expanded')==='true',selected:node.getAttribute('aria-selected')==='true',node});
+      result.push({id,name:name||raw,folder,folderId:folder?id:nativeFolder(node),expanded:node.getAttribute('aria-expanded')==='true',selected:node.getAttribute('aria-selected')==='true',node});
     }
     return result;
   }
   function renderServers(refit=true){
     serverRows=readServers();world.replaceChildren();detail.hidden=true;
+    const palette=folderPalette(serverRows.filter(x=>x.folder).map(x=>x.id));
     const sx=236,sy=144,margin=10,cols=gridColumns(serverRows.length,sx,sy);
     for(const [i,item] of serverRows.entries()){
       const card=el('div',undefined,world);card.tabIndex=0;card.setAttribute('role','group');card.className='canvas-card server-card';
       card.style.left=(margin+(i%cols)*sx)+'px';card.style.top=(margin+Math.floor(i/cols)*sy)+'px';
+      card.dataset.serverId=item.id;
       if(item.selected)card.dataset.saved='1';
-      el('div',item.folder?(item.expanded?'Folder · expanded':'Folder · tap to expand'):(item.selected?'Current community':'Community'),card).className='canvas-meta';
+      const colors=palette.get(item.folderId);
+      if(colors){
+        card.dataset.folderRole=item.folder?'parent':'child';
+        for(const [key,value] of Object.entries(colors))card.style.setProperty('--dw-folder-'+key,value);
+      }
+      if(item.folder){
+        const heading=el('div',undefined,card);heading.className='folder-heading';
+        el('span','Folder',heading);el('span',item.expanded?'⌄':'›',heading);
+        card.setAttribute('aria-expanded',String(item.expanded));
+      }else el('div',item.selected?'Current community':'Community',card).className='canvas-meta';
       card.title=item.name;card.setAttribute('aria-label',item.name);el('div',item.name,card).className='server-name';
       const source=item.folder?markSource('dw-folder:'+item.id):isId(item.id)?markSource('https://discord.com/channels/'+item.id):null;
       if(source){const bar=el('div',undefined,card);bar.className='canvas-markbar';addMarkControls(bar,{source,text:item.name});}
@@ -851,7 +893,13 @@
         if(item.folder){
           metrics.canvas.folderToggles++;item.node.click();
           // Native React state owns folder expansion; re-read after the render settles.
-          setTimeout(()=>{if(canvasOpen&&canvasMode==='servers'){renderServers(false);constrainCamera();scheduleCamera()}},200);
+          const anchor={x:card.offsetLeft,y:card.offsetTop};
+          setTimeout(()=>{if(canvasOpen&&canvasMode==='servers'){
+            renderServers(false);
+            const next=[...world.querySelectorAll('.server-card')].find(n=>n.dataset.serverId===item.id);
+            if(next){camera.x+=(anchor.x-next.offsetLeft)*camera.z;camera.y+=(anchor.y-next.offsetTop)*camera.z}
+            constrainCamera();scheduleCamera()
+          }},200);
         }else{metrics.canvas.serverJumps++;const old=location.pathname;item.node.click();if(item.selected||location.pathname===old&&item.id===channelRoute()?.[1])restoreReading();else{historyStatus='Opening community…';scheduleCamera();}}
       };
       card.addEventListener('click',activate);card.addEventListener('keydown',e=>{if(e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();activate()}});
