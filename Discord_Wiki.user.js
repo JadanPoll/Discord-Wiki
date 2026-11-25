@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.8.1
+// @version      0.9.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.8.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.9.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -219,6 +219,7 @@
     .canvas-detail p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;margin:8px 0}
     .canvas-detail .row{margin:4px 0}
     .canvas-day{position:absolute;font-size:12px;color:#687689;font-weight:650;white-space:nowrap}
+    .server-card{width:224px;height:84px;justify-content:center;background:#fffdfa}.server-name{font-size:16px;font-weight:650;line-height:1.3;overflow-wrap:anywhere}.server-card[data-saved="1"]{background:#e9eefc}
     @media(max-width:480px){.launcher{flex-wrap:wrap}}
     .panel details{border-top:1px solid #e1dce7;padding:9px 0}.panel summary{cursor:pointer;font-weight:500;color:#53647b}
     .panel .entry{background:#fffdfa;border-color:#e1dce7}
@@ -344,10 +345,10 @@
   `,document.head);
   let focus=true;try{focus=(await read('dw-focus',true))!==false}catch(e){record('focus-load-failed');fail('load-focus',e)}
   const launcher=el('div',undefined,shadow);launcher.className='row launcher';launcher.style.margin='0';
-  const communities=el('button','Communities',launcher);communities.title='Show or hide Discord’s native community list';
+  const communities=el('button','Servers',launcher);communities.title='Browse communities spatially';
   let communitiesOpen=false;
-  function updateRouteStyle(){const root=document.documentElement;const onServer=!!channelRoute();root.classList.toggle('dw-server-channel',onServer);root.classList.toggle('dw-communities',communitiesOpen);communities.hidden=!focus||!onServer;communities.setAttribute('aria-expanded',String(communitiesOpen));}
-  communities.addEventListener('click',()=>{communitiesOpen=!communitiesOpen;updateRouteStyle();record('communities',String(communitiesOpen))});
+  function updateRouteStyle(){const root=document.documentElement;const onServer=!!channelRoute();root.classList.toggle('dw-server-channel',onServer);root.classList.toggle('dw-communities',communitiesOpen);communities.hidden=!focus;communities.setAttribute('aria-expanded',String(communitiesOpen));}
+  communities.addEventListener('click',()=>{try{openCanvas('servers')}catch(e){fail('server-map',e);showReport()}});
   const focusToggle=el('button','');
   focusToggle.title='Switch between notebook and original Discord';
   function applyFocus(){
@@ -370,7 +371,7 @@
     b.addEventListener('click',async()=>{const m=metrics.actions[label]||=( {attempts:0,completed:0,failed:0} );m.attempts++;if(b.disabled)return;b.disabled=true;try{await fn();m.completed++}catch(e){m.failed++;status('Error: '+e.message);record('action-failed',label);fail('action:'+label,e);showReport()}finally{b.disabled=false}}); return b;
   }
   btn(titleRow,'Hide',()=>setOpen(false));
-  const canvasToggle=btn(launcher,'Canvas',openCanvas);launcher.insertBefore(canvasToggle,toggle);
+  const canvasToggle=btn(launcher,'Canvas',()=>openCanvas('messages'));launcher.insertBefore(canvasToggle,toggle);
   const stats=el('div','',panel); stats.className='muted';
   const captureBox=el('details',undefined,panel);el('summary','Label a conversation',captureBox);
   const row=el('div',undefined,captureBox); row.className='row';
@@ -449,11 +450,12 @@
   const legacy=el('details',undefined,panel);el('summary','Individual bookmarks',legacy);
   const list=el('div',undefined,legacy);list.className='scroll';
   const tools=el('details',undefined,panel);el('summary','Settings / backup',tools);tools.append(focusToggle);
+  btn(tools,'Native server rail',()=>{communitiesOpen=!communitiesOpen;updateRouteStyle();record('communities',String(communitiesOpen));setOpen(false)});
   const footer=el('div',undefined,tools);footer.className='row';
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,messages:canvasRows.length,encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -514,17 +516,17 @@
   }
   // Stable chronological grid, adapted from RSM_Tree_Viewer's atlas camera.
   // Snapshot the currently rendered window; no automatic history requests.
-  let canvasOpen=false,canvasRows=[],canvasSize={w:0,h:0},canvasFrame=0;
+  let canvasOpen=false,canvasMode='messages',canvasRows=[],serverRows=[],canvasSize={w:0,h:0},canvasFrame=0;
+  let inertiaFrame=0,velocity={x:0,y:0},lastMotion=0;const PAN_GAIN=1.85,PINCH_GAIN=1.65,FRICTION_MS=245;
   const encountered=new Map();let encounteredChannel='';
   const camera={x:0,y:0,z:1},pointers=new Map();let pinch=null,dragged=false,suppressUntil=0;
   const canvas=el('section',undefined,shadow);canvas.className='canvas';canvas.hidden=true;canvas.setAttribute('aria-label','Conversation canvas');
   const canvasHead=el('div',undefined,canvas);canvasHead.className='canvas-head';
   const canvasCount=el('span','',canvasHead);canvasCount.className='canvas-count';
-  btn(canvasHead,'−',()=>zoomCanvas(camera.z/1.3));
-  btn(canvasHead,'+',()=>zoomCanvas(camera.z*1.3));
+  btn(canvasHead,'−',()=>zoomCanvas(camera.z/1.6));
+  btn(canvasHead,'+',()=>zoomCanvas(camera.z*1.6));
   btn(canvasHead,'Fit',fitCanvas);
-  btn(canvasHead,'Copy for AI',async()=>{if(!canvasRows.length)return;const rows=boundedRows(canvasRows);closeCanvas();stage(rows,'canvas');await copyForLabels();});
-  btn(canvasHead,'Timeline',closeCanvas);
+  const canvasCopy=btn(canvasHead,'Copy for AI',async()=>{if(!canvasRows.length)return;const rows=boundedRows(canvasRows);closeCanvas();stage(rows,'canvas');await copyForLabels();});
   const canvasView=el('div',undefined,canvas);canvasView.className='canvas-view';canvasView.setAttribute('aria-label','Drag to pan, pinch to zoom');
   const world=el('div',undefined,canvasView);world.className='canvas-world';
   const detail=el('section',undefined,canvas);detail.className='canvas-detail';detail.hidden=true;
@@ -544,20 +546,45 @@
     const top=r?Math.max(48,Math.round(r.top)+3):48;
     canvas.style.left=left+'px';canvas.style.top=top+'px';canvas.style.right='8px';canvas.style.bottom='8px';
   }
+  function stopInertia(){if(inertiaFrame){cancelAnimationFrame(inertiaFrame);inertiaFrame=0;metrics.canvas.flingStops++}velocity={x:0,y:0}}
+  function boundAxis(pos,extent,viewport){
+    if(extent<=viewport)return Math.max((viewport-extent)/2-64,Math.min((viewport-extent)/2+64,pos));
+    return Math.max(viewport-extent-64,Math.min(64,pos));
+  }
+  function constrainCamera(){
+    const w=canvasView.clientWidth,h=canvasView.clientHeight;if(!w||!h)return;
+    camera.x=boundAxis(camera.x,canvasSize.w*camera.z,w);camera.y=boundAxis(camera.y,canvasSize.h*camera.z,h);
+  }
+  function startInertia(){
+    if(Math.hypot(velocity.x,velocity.y)<.12)return;
+    metrics.canvas.flings++;let last=performance.now();
+    function tick(now){
+      inertiaFrame=0;if(!canvasOpen||pointers.size)return;
+      const dt=Math.min(40,Math.max(1,now-last));last=now;
+      const decay=Math.exp(-dt/FRICTION_MS),travel=FRICTION_MS*(1-decay);
+      const x=camera.x,y=camera.y;
+      camera.x+=velocity.x*travel;camera.y+=velocity.y*travel;constrainCamera();
+      velocity.x*=decay;velocity.y*=decay;
+      if(Math.abs(camera.x-x)<.01)velocity.x=0;if(Math.abs(camera.y-y)<.01)velocity.y=0;
+      scheduleCamera();
+      if(Math.hypot(velocity.x,velocity.y)>.025)inertiaFrame=requestAnimationFrame(tick);
+    }
+    inertiaFrame=requestAnimationFrame(tick);
+  }
   function applyCamera(){
     canvasFrame=0;world.style.transform='translate('+camera.x+'px,'+camera.y+'px) scale('+camera.z+')';
-    canvasCount.textContent=canvasRows.length+' encountered messages · '+Math.round(camera.z*100)+'%';
-    canvasCount.title='Up to 100 messages encountered in this channel in this page session; chronological gaps may exist.';
+    canvasCount.textContent=(canvasMode==='servers'?serverRows.length+' navigation entries':canvasRows.length+' encountered messages')+' · '+Math.round(camera.z*100)+'%';
+    canvasCount.title=canvasMode==='servers'?'Native server and folder entries; select a folder to expand it.':'Up to 100 messages encountered in this channel in this page session; chronological gaps may exist.';
   }
   function scheduleCamera(){if(!canvasFrame)canvasFrame=requestAnimationFrame(applyCamera)}
-  function clampScale(z){return Math.max(.12,Math.min(2.8,z))}
+  function clampScale(z){return Math.max(.025,Math.min(3.5,z))}
   function zoomCanvas(z,px=canvasView.clientWidth/2,py=canvasView.clientHeight/2){
-    const next=clampScale(z);const wx=(px-camera.x)/camera.z,wy=(py-camera.y)/camera.z;
-    camera.x=px-wx*next;camera.y=py-wy*next;camera.z=next;metrics.canvas.zooms++;scheduleCamera()
+    stopInertia();const next=clampScale(z);const wx=(px-camera.x)/camera.z,wy=(py-camera.y)/camera.z;
+    camera.x=px-wx*next;camera.y=py-wy*next;camera.z=next;constrainCamera();metrics.canvas.zooms++;scheduleCamera()
   }
   function fitCanvas(){
-    const w=canvasView.clientWidth,h=canvasView.clientHeight;if(!w||!h||!canvasSize.w||!canvasSize.h)return;
-    camera.z=clampScale(Math.min(1,(w-28)/canvasSize.w,(h-28)/canvasSize.h));
+    stopInertia();const w=canvasView.clientWidth,h=canvasView.clientHeight;if(!w||!h||!canvasSize.w||!canvasSize.h)return;
+    metrics.canvas.fitCount++;camera.z=clampScale(Math.min(1,(w-28)/canvasSize.w,(h-28)/canvasSize.h));
     camera.x=(w-canvasSize.w*camera.z)/2;camera.y=(h-canvasSize.h*camera.z)/2;scheduleCamera();
   }
   function inspectCanvas(p){
@@ -576,63 +603,110 @@
   function renderCanvas(){
     world.replaceChildren();detail.hidden=true;
     const labels=new Map();for(const r of data.conversations)for(const url of r.messages){if(!labels.has(url))labels.set(url,r.title)}
-    const cols=Math.min(5,Math.max(1,Math.ceil(Math.sqrt(canvasRows.length*1.5))));
     const strideX=316,strideY=190,margin=10;
-    let row=0,col=0,lastDay='';
+    const cols=gridColumns(canvasRows.length,strideX,strideY);
+    let row=0,col=0;
     for(const p of canvasRows){
       const day=p.timestamp?.slice(0,10)||'';
-      if(day!==lastDay){if(col){row++;col=0}const label=el('div',day||'Undated',world);label.className='canvas-day';label.style.left=margin+'px';label.style.top=(margin+row*strideY)+'px';lastDay=day;}
       const card=el('button',undefined,world);card.type='button';card.className='canvas-card';
-      card.style.left=(margin+col*strideX)+'px';card.style.top=(margin+row*strideY+18)+'px';
+      card.style.left=(margin+col*strideX)+'px';card.style.top=(margin+row*strideY)+'px';
       const title=labels.get(p.source.url);
       if(title){card.dataset.saved='1';el('div',title,card).className='canvas-label'}
       const time=p.timestamp?.slice(11,16)||'';
-      el('div',[p.author||'Message',time,p.attachments?p.attachments+' attachments':''].filter(Boolean).join(' · '),card).className='canvas-meta';
+      el('div',[p.author||'Message',day,time,p.attachments?p.attachments+' attachments':''].filter(Boolean).join(' · '),card).className='canvas-meta';
       el('div',p.text||'(Attachment or no text)',card).className='canvas-preview';
       const n=p.text.length;card.dataset.density=n>=400?'3':n>=150?'2':n>=60?'1':'0';
       if(!p.attachments&&!p.reply&&lowSignal(p.text))card.dataset.low='1';
       card.addEventListener('click',e=>{if(Date.now()<suppressUntil){e.preventDefault();return}inspectCanvas(p)});
       if(++col>=cols){col=0;row++}
     }
-    canvasSize={w:margin*2+cols*strideX-16,h:margin*2+(row+(col?1:0))*strideY+18};
+    canvasSize={w:margin*2+cols*strideX-16,h:margin*2+(row+(col?1:0))*strideY-16};
     world.style.width=canvasSize.w+'px';world.style.height=canvasSize.h+'px';
   }
-  function openCanvas(){
-    if(canvasOpen){closeCanvas();return}
-    rememberWindow(visibleRows(true));const rows=chronological([...encountered.values()]);if(!rows.length)throw Error('No loaded channel messages recognized');
-    // Freeze the snapshot while exploring; native virtual-list updates do not rearrange the canvas.
-    canvasRows=rows.slice(-100);setOpen(false);canvasOpen=true;canvas.hidden=false;canvasToggle.textContent='Timeline';
-    positionCanvas();renderCanvas();requestAnimationFrame(()=>{if(canvasOpen)fitCanvas()});metrics.canvas.opens++;record('canvas-open',String(canvasRows.length));
+  function gridColumns(n,sx,sy){
+    const aspect=Math.max(.5,Math.min(3,(canvasView.clientWidth||800)/(canvasView.clientHeight||500)));
+    return Math.min(Math.max(1,n),Math.max(1,Math.round(Math.sqrt(n*aspect*sy/sx))));
+  }
+  function readServers(){
+    const rail=document.querySelector('nav[aria-label="Servers sidebar"]');if(!rail)return [];
+    const result=[];
+    for(const node of rail.querySelectorAll('[role="treeitem"][data-list-item-id^="guildsnav___"]')){
+      const raw=node.querySelector('[class*="hiddenVisually_"]')?.textContent?.trim()||'';
+      const id=node.getAttribute('data-list-item-id')?.slice('guildsnav___'.length)||'';
+      const folder=node.hasAttribute('aria-expanded');
+      if(!raw||(!folder&&id!=='home'&&(!/^\d{15,22}$/.test(id)||!node.hasAttribute('aria-selected'))))continue;
+      const name=raw.replace(/^(?:Unread messages,\s*|\d+\s+mentions?,\s*)+/i,'').replace(/,\s*(?:Voice call active|folder)$/i,'').trim();
+      result.push({id,name:name||raw,folder,expanded:node.getAttribute('aria-expanded')==='true',selected:node.getAttribute('aria-selected')==='true',node});
+    }
+    return result;
+  }
+  function renderServers(refit=true){
+    serverRows=readServers();world.replaceChildren();detail.hidden=true;
+    const sx=236,sy=96,margin=10,cols=gridColumns(serverRows.length,sx,sy);
+    for(const [i,item] of serverRows.entries()){
+      const card=el('button',undefined,world);card.type='button';card.className='canvas-card server-card';
+      card.style.left=(margin+(i%cols)*sx)+'px';card.style.top=(margin+Math.floor(i/cols)*sy)+'px';
+      if(item.selected)card.dataset.saved='1';
+      el('div',item.folder?(item.expanded?'Folder · expanded':'Folder · tap to expand'):(item.selected?'Current community':'Community'),card).className='canvas-meta';
+      el('div',item.name,card).className='server-name';
+      card.addEventListener('click',()=>{
+        if(Date.now()<suppressUntil)return;
+        if(!item.node.isConnected){renderServers(false);return}
+        if(item.folder){
+          metrics.canvas.folderToggles++;item.node.click();
+          // Native React state owns folder expansion; re-read after the render settles.
+          setTimeout(()=>{if(canvasOpen&&canvasMode==='servers'){renderServers(false);constrainCamera();scheduleCamera()}},200);
+        }else{metrics.canvas.serverJumps++;closeCanvas();item.node.click()}
+      });
+    }
+    canvasSize={w:margin*2+cols*sx-12,h:margin*2+Math.ceil(serverRows.length/cols)*sy-12};
+    world.style.width=canvasSize.w+'px';world.style.height=canvasSize.h+'px';
+    if(refit)fitCanvas();else scheduleCamera();
+  }
+  function openCanvas(mode='messages'){
+    if(canvasOpen&&canvasMode===mode){closeCanvas();return}
+    if(mode==='messages'){
+      rememberWindow(visibleRows(true));const rows=chronological([...encountered.values()]);if(!rows.length)throw Error('No loaded channel messages recognized');
+      canvasRows=rows.slice(-100);
+    }else if(!readServers().length)throw Error('No native server entries recognized');
+    if(canvasOpen)closeCanvas();
+    setOpen(false);canvasMode=mode;canvasOpen=true;canvas.hidden=false;canvasCopy.hidden=mode!=='messages';
+    communities.textContent=mode==='servers'?'Back to chat':'Servers';canvasToggle.textContent=mode==='messages'?'Timeline':'Canvas';
+    positionCanvas();if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++}else renderCanvas();
+    requestAnimationFrame(()=>{if(canvasOpen&&canvasMode===mode)fitCanvas()});metrics.canvas.opens++;record('canvas-open',mode+':'+(mode==='servers'?serverRows.length:canvasRows.length));
   }
   function closeCanvas(){
-    if(!canvasOpen)return;canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;
-    canvasView.classList.remove('dragging');canvasToggle.textContent='Canvas';metrics.canvas.closes++;record('canvas-close');
+    if(!canvasOpen)return;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;
+    canvasView.classList.remove('dragging');canvasToggle.textContent='Canvas';communities.textContent='Servers';metrics.canvas.closes++;record('canvas-close');
   }
   function midpoint(){const [a,b]=[...pointers.values()];if(!a||!b)return null;const r=canvasView.getBoundingClientRect();return {x:(a.x+b.x)/2-r.left,y:(a.y+b.y)/2-r.top,d:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y))}}
   canvasView.addEventListener('touchmove',e=>{if(pointers.size&&e.cancelable)e.preventDefault()},{passive:false});
   canvasView.addEventListener('pointerdown',e=>{
     if(e.pointerType==='mouse'&&e.button!==0)return;
+    stopInertia();lastMotion=performance.now();
     pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false});
     if(pointers.size===2){const m=midpoint();pinch={d:m.d,z:camera.z,wx:(m.x-camera.x)/camera.z,wy:(m.y-camera.y)/camera.z};dragged=true;metrics.canvas.pinches++}
   });
   window.addEventListener('pointermove',e=>{
     if(!canvasOpen)return;const p=pointers.get(e.pointerId);if(!p)return;
     const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+    const now=performance.now(),dt=Math.max(8,Math.min(70,now-lastMotion));lastMotion=now;
     if(Math.hypot(p.x-p.sx,p.y-p.sy)>6&&!p.moved){p.moved=true;metrics.canvas.pans++}
-    if(pointers.size>=2&&pinch){const m=midpoint();camera.z=clampScale(pinch.z*m.d/pinch.d);camera.x=m.x-pinch.wx*camera.z;camera.y=m.y-pinch.wy*camera.z;dragged=true}
-    else if(p.moved){camera.x+=dx;camera.y+=dy;dragged=true}
+    if(pointers.size>=2&&pinch){const m=midpoint();camera.z=clampScale(pinch.z*Math.pow(m.d/pinch.d,PINCH_GAIN));camera.x=m.x-pinch.wx*camera.z;camera.y=m.y-pinch.wy*camera.z;dragged=true}
+    else if(p.moved){camera.x+=dx*PAN_GAIN;camera.y+=dy*PAN_GAIN;dragged=true;const cap=v=>Math.max(-5,Math.min(5,v));velocity.x=.35*velocity.x+.65*cap(dx*PAN_GAIN/dt);velocity.y=.35*velocity.y+.65*cap(dy*PAN_GAIN/dt);metrics.canvas.peakVelocity=Math.max(metrics.canvas.peakVelocity,Math.round(Math.hypot(velocity.x,velocity.y)*100)/100)}
     else return;
-    canvasView.classList.add('dragging');scheduleCamera();
+    canvasView.classList.add('dragging');constrainCamera();scheduleCamera();
   });
   function endCanvasPointer(e){
-    const p=pointers.get(e.pointerId);if(!p)return;pointers.delete(e.pointerId);pinch=null;
+    const p=pointers.get(e.pointerId);if(!p)return;const wasPinch=!!pinch;pointers.delete(e.pointerId);pinch=null;
+    if(wasPinch){velocity={x:0,y:0};for(const other of pointers.values()){other.sx=other.x;other.sy=other.y;other.moved=false}}
     if(dragged||p.moved)suppressUntil=Date.now()+300;
     if(e.type==='pointercancel'){metrics.canvas.cancels++;record('canvas-pointer-cancel',e.pointerType||'unknown')}
-    if(pointers.size===0){dragged=false;canvasView.classList.remove('dragging')}
+    if(pointers.size===0){dragged=false;canvasView.classList.remove('dragging');if(e.type==='pointerup'&&!wasPinch&&p.moved&&performance.now()-lastMotion<90)startInertia();else stopInertia()}
   }
   window.addEventListener('pointerup',endCanvasPointer);window.addEventListener('pointercancel',endCanvasPointer);
   canvasView.addEventListener('click',e=>{if(Date.now()<suppressUntil){e.preventDefault();e.stopPropagation()}},true);
-  canvasView.addEventListener('wheel',e=>{e.preventDefault();const r=canvasView.getBoundingClientRect();if(e.ctrlKey||e.metaKey)zoomCanvas(camera.z*Math.exp(-Math.max(-110,Math.min(110,e.deltaY))*.009),e.clientX-r.left,e.clientY-r.top);else{const unit=e.deltaMode===1?16:e.deltaMode===2?canvasView.clientHeight:1;camera.x-=e.deltaX*unit;camera.y-=e.deltaY*unit;metrics.canvas.pans++;scheduleCamera()}},{passive:false});
+  canvasView.addEventListener('wheel',e=>{e.preventDefault();const r=canvasView.getBoundingClientRect();if(e.ctrlKey||e.metaKey)zoomCanvas(camera.z*Math.exp(-Math.max(-110,Math.min(110,e.deltaY))*.015),e.clientX-r.left,e.clientY-r.top);else{const unit=e.deltaMode===1?16:e.deltaMode===2?canvasView.clientHeight:1;stopInertia();camera.x-=e.deltaX*unit*1.65;camera.y-=e.deltaY*unit*1.65;constrainCamera();metrics.canvas.pans++;scheduleCamera()}},{passive:false});
   window.addEventListener('resize',()=>{if(canvasOpen)positionCanvas()});
   window.addEventListener('keydown',e=>{if(e.key==='Escape'&&canvasOpen){if(!detail.hidden)detail.hidden=true;else closeCanvas()}});
   function stage(rows,origin='selection'){
