@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.15.3
+// @version      0.15.4
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.15.3', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.15.4', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -607,7 +607,14 @@
   // Diagnostics already has an independent persistent launcher.
   extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,forum:{nativeIndex:nativeForumIndex(),recognized:readForumPosts().length,displayed:canvasMode==='posts'?forumRows.length:0},world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,media:{cards:canvasRows.filter(p=>p.media?.images.length||p.media?.embeds.length).length},exploration:{entryDecision,known:exploration?.entry.known.size||0,overviewRegions:overviewBins.length,seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,loadedPreviouslySeen:canvasRows.filter(p=>exploration?.prior.has(p.source.message)).length,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,accountGeometry,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
-  function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
+  function forumThreadRoute(path=location.pathname){return path.match(/^\/channels\/(\d{15,22})\/(\d{15,22})\/threads\/(\d{15,22})(?:\/|$)/)}
+  function channelRoute(path=location.pathname){
+    const t=forumThreadRoute(path);
+    if(t)return [t[0],t[1],t[3]];
+    return path.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);
+  }
+  function effectiveRoute(path=location.pathname){return channelRoute(path)?.slice(1,3).join('/')||path.split('/').slice(0,4).join('/')}
+  function forumList(){const r=channelRoute();if(!r)return null;const t=forumThreadRoute();return document.querySelector('[data-list-id="forum-channel-list-'+(t?t[2]:r[2])+'"]')}
   function classifySource(node){
     const route=channelRoute();
     if(!route)return {reason:'no-server-channel'};
@@ -653,7 +660,7 @@
     const accessories=row.querySelector('[id^="message-accessories-"]')||row;
     const excluded=n=>n.closest('[class*="repliedMessage_"],[class*="spoiler"],[class*="Spoiler"]');
     const addImage=(url,alt)=>{if(!url||seen.has(url)||images.length>=6)return;seen.add(url);images.push({url,alt:(alt||'Message image').slice(0,150)})};
-    const selector='[class*="attachment_"],[class*="messageAttachment_"],[class*="imageWrapper_"],[class*="embedFull_"],[class*="embedImage_"],[class*="embedThumbnail_"],[class*="mediaAttachmentsContainer_"],[class*="imageContent_"],[class*="imageContainer_"],[class*="mosaic"],[class*="visualMedia"],[class*="embedMedia"],[class*="embedVideo"],[class*="clickableWrapper"]';
+    const selector='[class*="attachment_"],[class*="messageAttachment_"],[class*="imageWrapper_"],[class*="embedFull_"],[class*="embedImage_"],[class*="embedThumbnail_"],[class*="mediaAttachmentsContainer_"],[class*="imageContent_"],[class*="imageContainer_"],[class*="mosaic"],[class*="visualMedia"],[class*="embedMedia"],[class*="embedVideo"],[class*="clickableWrapper"],[class*="bodyMedia_"],[class*="thumbnailOverride_"]';
     // Each wrapper owns a sibling originalLink even when its lazy img is absent.
     for(const wrapper of accessories.querySelectorAll('[class*="imageWrapper_"]')){
       if(excluded(wrapper)||wrapper.closest('[class*="embedVideo_"],[class*="videoWrapper_"]'))continue;
@@ -714,6 +721,7 @@
   btn(canvasHead,'+',()=>zoomCanvas(camera.z*1.6));
   btn(canvasHead,'Fit',()=>canvasMode==='servers'?fitCanvas():fitReadingWidth());
   const canvasCopy=btn(canvasHead,'Copy for AI',()=>copyResearch(canvasFocusRows()));
+  const forumBack=el('a','← Forum',canvasHead);forumBack.hidden=true;forumBack.style.cssText='font-size:12px;color:#4663b5;white-space:nowrap';
   const resumeLink=el('a','Resume exploration',canvasHead);resumeLink.hidden=true;resumeLink.style.cssText='font-size:12px;color:#4663b5;white-space:nowrap';
   const overview=el('div',undefined,canvas);overview.className='history-overview';overview.hidden=true;let overviewBins=[],overviewSignature='';
   const canvasView=el('div',undefined,canvas);canvasView.className='canvas-view';canvasView.setAttribute('aria-label','Drag to pan, pinch to zoom');
@@ -845,7 +853,7 @@
   let layoutFrame=0,layoutTargets=[],lastCanvasGeometry=null;
   const layoutObserver=typeof ResizeObserver==='function'?new ResizeObserver(()=>scheduleLayout()):null;
   function layoutNodes(){
-    const main=document.querySelector('main[class*="chatContent_"]')||document.querySelector('[class*="messagesWrapper_"]');
+    const main=canvasMode==='posts'?forumList()?.parentElement:document.querySelector('main[class*="chatContent_"]')||document.querySelector('[class*="messagesWrapper_"]');
     const channels=document.querySelector('#channels');
     const sidebar=channels?.closest('[class*="sidebar_"]')||channels;
     return {main,sidebar};
@@ -1095,6 +1103,7 @@
     const atTop=canvasMode==='messages'&&camera.y>=top-30;
     const boundary=historyEnds.older?'Beginning of channel':historyBusy?historyStatus:lateHistory&&historyStatus.includes('Discord still loading')?'Discord still loading · watching for messages':historyStalls.older?'No older messages returned · drag again to retry':'';
     historyBoundary.hidden=!(atTop&&boundary);historyBoundary.textContent=boundary;updateOverviewCursor();
+    const thread=forumThreadRoute();forumBack.hidden=!(canvasMode==='messages'&&thread);if(thread)forumBack.href='https://discord.com/channels/'+thread[1]+'/'+thread[2];
     updateResume();if(canvasMode==='messages')scheduleExploration();
   }
   function scheduleCamera(){if(!canvasFrame)canvasFrame=requestAnimationFrame(applyCamera)}
@@ -1316,34 +1325,57 @@
     canvasView.classList.remove('dragging');updateViewButtons();syncComposerGuard();metrics.canvas.closes++;record('canvas-close');
   }
   function readForumPosts(){
-    const route=channelRoute();if(!route||document.querySelector('[data-list-id="chat-messages"]'))return [];
-    const rows=[],seen=new Set();
-    for(const node of document.querySelectorAll('[data-list-item-id^="forum-channel-list-"]')){
-      const id=node.getAttribute('data-list-item-id')?.match(/(\d{15,22})$/)?.[1];
-      if(!id||id===route[2]||seen.has(id)||!node.getClientRects().length)continue;
-      const heading=node.querySelector('h1,h2,h3,h4,[class*="postTitle_"],[class*="title_"],[class*="name_"]');
-      const raw=(node.innerText||node.textContent||'').trim();
-      const title=(heading?.textContent?.trim()||raw.split('\n')[0]||'').slice(0,200);
+    const route=channelRoute(),list=forumList();if(!route||!list)return [];
+    const rows=[],seen=new Set(),parent=forumThreadRoute()?.[2]||route[2];
+    const prefix='forum-channel-list-'+parent+'___';
+    for(const node of list.querySelectorAll('[data-list-item-id]')){
+      const identity=node.getAttribute('data-list-item-id')||'';
+      if(!identity.startsWith(prefix))continue;
+      const id=identity.slice(prefix.length);
+      if(!/^\d{15,22}$/.test(id)||id===parent||seen.has(id))continue;
+      // Actual DOM: the focusTarget is empty; its parent owns title and body.
+      const wrapper=node.closest('[class*="mainCard_"]')||node.parentElement;
+      if(!wrapper||!wrapper.getClientRects().length)continue;
+      const heading=wrapper.querySelector('[class*="postTitleText_"],h3');
+      if(!heading)continue;
+      const clean=heading.cloneNode(true);for(const badge of clean.querySelectorAll('[class*="newBadgeWrapper_"],[class*="newBadge_"]'))badge.remove();
+      const title=(clean.textContent||'').trim().slice(0,300);
       if(!title)continue;
-      const preview=raw.startsWith(title)?raw.slice(title.length).trim():raw;
+      const text=(wrapper.querySelector('[class*="messageFocusBlock_"] [class*="messageContent_"],[class*="messageContent_"]')?.textContent||'').trim().slice(0,6000);
+      const author=(wrapper.querySelector('[class*="author_"]')?.textContent||'').trim().slice(0,150);
+      const count=(wrapper.querySelector('[class*="messageCountText_"]')?.textContent||'').trim();
+      const tags=[...wrapper.querySelectorAll('[class*="tags_"] [class*="pill_"]')].map(n=>n.textContent.trim()).filter(Boolean);
+      const media=messageMedia(wrapper);
       const source=markSource('https://discord.com/channels/'+route[1]+'/'+id);
-      if(!source)continue;seen.add(id);rows.push({id,title,text:preview.slice(0,4000),source});
+      if(!source)continue;
+      seen.add(id);rows.push({id,title,text,author,count,tags,media,source,openURL:'https://discord.com/channels/'+route[1]+'/'+parent+'/threads/'+id});
     }
     return rows;
   }
-  function nativeForumIndex(){return !document.querySelector('[data-list-id="chat-messages"]')&&!!document.querySelector('[data-list-item-id^="forum-channel-list-"],[class*="forumOrMediaChannel_"],[class*="forumChannel_"],[class*="forumPosts_"],[class*="forumPostList_"]')}
+  function nativeForumIndex(){return !forumThreadRoute()&&!!forumList()}
+  function forumRowsSignature(rows){return routeKey()+'|'+rows.map(x=>[x.id,x.title,x.text,x.count,x.tags.join(','),x.media.images.map(y=>y.url).join(',')].join(':')).join('|')}
   function renderForumPosts(rows=readForumPosts()){
-    forumRows=rows;forumSignature=routeKey()+'|'+rows.map(x=>x.id+':'+x.text.length).join(',');
+    forumRows=rows;forumSignature=forumRowsSignature(rows);
     world.replaceChildren();detail.hidden=true;
-    const cols=5,sx=316,sy=190;
+    const cols=5,sx=316,sy=190;messageCols=cols;collapsedSeen=0;
     for(const [i,item] of rows.entries()){
       const card=el('div',undefined,world);card.className='canvas-card forum-card';card.tabIndex=0;card.setAttribute('role','group');card.style.left=(10+i%cols*sx)+'px';card.style.top=(10+Math.floor(i/cols)*sy)+'px';
-      card.dataset.density=item.text.length>=150?'2':'1';
-      el('div','Forum post · open discussion',card).className='canvas-meta';
-      const title=el('div',item.title,card);title.className='forum-title';
-      el('div',item.text||'Open post to read discussion',card).className='canvas-preview';
-      const bar=el('div',undefined,card);bar.className='canvas-markbar';addMarkControls(bar,{source:item.source,text:item.title});
-      const activate=()=>{if(Date.now()<suppressUntil)return;location.assign(item.source.url)};
+      card.dataset.density=item.text.length>=400?'3':item.text.length>=150?'2':'1';
+      el('div',['Post',item.author,item.count?item.count+' messages':''].filter(Boolean).join(' · '),card).className='canvas-meta';
+      el('div',item.title,card).className='forum-title';
+      const preview=el('div',undefined,card);preview.className='canvas-preview';preview.dataset.cardUrl=item.source.url;
+      if(item.media.images.length){
+        const thumb=el('span',undefined,preview);thumb.className='media-thumb';
+        const img=el('img',undefined,thumb);img.alt='Post thumbnail';img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';img.src=item.media.images[0].url;
+        img.addEventListener('error',()=>{thumb.textContent='Image · open post'},{once:true});
+      }
+      if(item.tags.length)el('div',item.tags.join(' · '),preview).className='embed-preview';
+      preview.append(document.createTextNode(item.text||'Open post to read discussion'));
+      const bar=el('div',undefined,card);bar.className='canvas-markbar';addMarkControls(bar,{source:item.source,text:item.title+'\n'+item.text});
+      const overflow=el('span','↓ More',card);overflow.className='card-overflow';overflow.hidden=true;
+      const measure=()=>{const max=preview.scrollHeight-preview.clientHeight;overflow.hidden=max<=2||preview.scrollTop>=max-2;preview.dataset.scrollable=max>2?'1':'0'};
+      preview.addEventListener('scroll',measure,{passive:true});requestAnimationFrame(measure);
+      const activate=()=>{if(Date.now()<suppressUntil)return;location.assign(item.openURL)};
       card.addEventListener('click',activate);card.addEventListener('keydown',e=>{if(e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();activate()}});
     }
     canvasSize={w:1584,h:Math.max(194,Math.ceil(rows.length/5)*sy+4)};world.style.width=canvasSize.w+'px';world.style.height=canvasSize.h+'px';
@@ -1813,7 +1845,7 @@
       const label=source&&labels.get(keyOf(source));
       if(label)node.dataset.dwLabel=label;else delete node.dataset.dwLabel;
     }
-    rememberWindow(encounteredRows);observeNativeWindow(encounteredRows);syncMarks();if(nativeForumIndex()&&focus&&readingView==='canvas'&&(!canvasOpen||canvasMode==='messages'||canvasMode==='posts')){const posts=readForumPosts();if(posts.length){if(!canvasOpen||canvasMode!=='posts')openCanvas('posts');else if(forumSignature!==routeKey()+'|'+posts.map(x=>x.id+':'+x.text.length).join(',')){renderForumPosts(posts);constrainCamera();scheduleCamera()}}else if(canvasOpen)closeCanvas()}else if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
+    rememberWindow(encounteredRows);observeNativeWindow(encounteredRows);syncMarks();if(nativeForumIndex()&&focus&&readingView==='canvas'&&(!canvasOpen||canvasMode==='messages'||canvasMode==='posts')){const posts=readForumPosts();if(posts.length){if(!canvasOpen||canvasMode!=='posts')openCanvas('posts');else if(forumSignature!==forumRowsSignature(posts)){renderForumPosts(posts);constrainCamera();scheduleCamera()}}else if(canvasOpen)closeCanvas()}else if(canvasOpen&&canvasMode==='posts'&&forumThreadRoute()){openCanvas('messages')}else if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
     if(canvasOpen&&canvasMode==='messages'&&entryRoute!==routeKey()&&canvasRows.length&&!historyBusy){const id=location.pathname.split('/')[4];if(id&&encounteredRows.some(p=>p.source.message===id)){if(!canvasRows.some(p=>p.source.message===id)){canvasRows=chronological(encounteredRows);canvasSlots=[...canvasRows];renderCanvas();fitReadingWidth()}landOnExploration(routeKey())}}
     if(lateHistory)collectLateHistory(encounteredRows);
     refreshCanvasMedia(encounteredRows);
@@ -1849,7 +1881,7 @@
   const guardedComposers=new Map();
   let composerGrant=null,tabGrant=null;
   function composerTarget(n){return n?.closest?.(COMPOSER)||null}
-  function composerRoute(){return location.pathname.split('/').slice(0,4).join('/')}
+  function composerRoute(){return effectiveRoute()}
   function composerAllowed(editor){
     return !focus||(!canvasOpen&&composerGrant?.editor===editor&&composerGrant.route===composerRoute());
   }
@@ -1971,7 +2003,7 @@
   document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;resetComposerIntent('route');closeCanvas();retainedCanvas=null;canvasChannel='';lastHistoryDirection='';lastHistoryAt=0;exploration=null;explorationLoading='';entryRoute='';entryDecision='none';showPreviouslySeen=false;canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;if(location.pathname.split('/')[4]&&canvasOpen&&canvasMode==='messages'){closeCanvas();retainedCanvas=null;entryRoute='';canvasRows=[];canvasSlots=[];encountered.clear();restoreReading()}record('message-jump')}}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;if(effectiveRoute(previous)!==effectiveRoute(lastPath)){metrics.navigation.channelChanges++;resetComposerIntent('route');closeCanvas();retainedCanvas=null;canvasChannel='';lastHistoryDirection='';lastHistoryAt=0;exploration=null;explorationLoading='';entryRoute='';entryDecision='none';showPreviouslySeen=false;canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;if(location.pathname.split('/')[4]&&canvasOpen&&canvasMode==='messages'){closeCanvas();retainedCanvas=null;entryRoute='';canvasRows=[];canvasSlots=[];encountered.clear();restoreReading()}record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
