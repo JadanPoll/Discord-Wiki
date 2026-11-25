@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.8.0
+// @version      0.8.1
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.8.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.8.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -408,7 +408,7 @@
   async function copyForLabels(){
     if(!packet.length||packetOrigin==='loaded'||packetOrigin==='visible'){const rows=visibleRows(true);if(!rows.length)throw Error('No loaded channel messages recognized');const bounded=[];let chars=0;for(const p of rows){if(bounded.length>=100||chars+p.text.length>60000)break;bounded.push(p);chars+=p.text.length;}stage(bounded,'loaded');record('loaded-window',String(rows.length));}
     await write('dw-last-packet',packet.map(p=>p.source.url));
-    await copy(JSON.stringify({instruction:'Propose concise specific conversation titles. Group related messages; ignore trivial chatter. Use only the supplied exact URLs. Return JSON: {"conversations":[{"title":"...","messages":["exact URL"],"topics":["..."],"note":"optional"}]}',messages:packet.map(packetJSON)},null,2),'text');
+    await copy(JSON.stringify({instruction:'Propose concise specific conversation titles. Group related messages; ignore trivial chatter. Windows may contain chronological gaps, so do not assume every adjacent record belongs to the same conversation. Use only the supplied exact URLs. Return JSON: {"conversations":[{"title":"...","messages":["exact URL"],"topics":["..."],"note":"optional"}]}',messages:packet.map(packetJSON)},null,2),'text');
     status('Copied '+packet.length+' messages. Paste into ChatGPT, then Import LLM labels.');record('label-packet',String(packet.length));packetOrigin='loaded';
   }
   const quick=el('div',undefined,panel);quick.className='row';panel.insertBefore(quick,captureBox);
@@ -453,7 +453,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,messages:canvasRows.length,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,messages:canvasRows.length,encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -507,7 +507,7 @@
   function visibleRows(loaded=false){
     const result=[],seen=new Set();
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
-      const r=node.getBoundingClientRect();if(!loaded&&(r.bottom<=0||r.top>=innerHeight||r.width===0||r.height===0))continue;
+      if(!loaded){const r=node.getBoundingClientRect();if(r.bottom<=0||r.top>=innerHeight||r.width===0||r.height===0)continue;}
       const source=sourceFor(node);if(source&&!seen.has(keyOf(source))){seen.add(keyOf(source));result.push(messagePacket(node,source));}
     }
     return result;
@@ -515,6 +515,7 @@
   // Stable chronological grid, adapted from RSM_Tree_Viewer's atlas camera.
   // Snapshot the currently rendered window; no automatic history requests.
   let canvasOpen=false,canvasRows=[],canvasSize={w:0,h:0},canvasFrame=0;
+  const encountered=new Map();let encounteredChannel='';
   const camera={x:0,y:0,z:1},pointers=new Map();let pinch=null,dragged=false,suppressUntil=0;
   const canvas=el('section',undefined,shadow);canvas.className='canvas';canvas.hidden=true;canvas.setAttribute('aria-label','Conversation canvas');
   const canvasHead=el('div',undefined,canvas);canvasHead.className='canvas-head';
@@ -528,6 +529,13 @@
   const world=el('div',undefined,canvasView);world.className='canvas-world';
   const detail=el('section',undefined,canvas);detail.className='canvas-detail';detail.hidden=true;
   function boundedRows(rows){const result=[];let chars=0;for(const r of rows){if(result.length>=100||chars+r.text.length>60000)break;result.push(r);chars+=r.text.length}return result}
+  function rememberWindow(rows){
+    const route=channelRoute(),key=route?route[1]+'/'+route[2]:'';
+    if(key!==encounteredChannel){encountered.clear();encounteredChannel=key}
+    if(!key)return;
+    for(const p of rows){const id=keyOf(p.source);if(p.source.guild+'/'+p.source.channel!==key)continue;encountered.delete(id);encountered.set(id,p)}
+    while(encountered.size>100)encountered.delete(encountered.keys().next().value);
+  }
   function chronological(rows){return [...rows].sort((a,b)=>{const x=BigInt(a.source.message),y=BigInt(b.source.message);return x<y?-1:x>y?1:0})}
   function positionCanvas(){
     const main=document.querySelector('main[class*="chatContent_"]')||document.querySelector('[class*="messagesWrapper_"]');
@@ -538,7 +546,8 @@
   }
   function applyCamera(){
     canvasFrame=0;world.style.transform='translate('+camera.x+'px,'+camera.y+'px) scale('+camera.z+')';
-    canvasCount.textContent=canvasRows.length+' loaded messages · '+Math.round(camera.z*100)+'%';
+    canvasCount.textContent=canvasRows.length+' encountered messages · '+Math.round(camera.z*100)+'%';
+    canvasCount.title='Up to 100 messages encountered in this channel in this page session; chronological gaps may exist.';
   }
   function scheduleCamera(){if(!canvasFrame)canvasFrame=requestAnimationFrame(applyCamera)}
   function clampScale(z){return Math.max(.12,Math.min(2.8,z))}
@@ -590,8 +599,8 @@
   }
   function openCanvas(){
     if(canvasOpen){closeCanvas();return}
-    const rows=chronological(visibleRows(true));if(!rows.length)throw Error('No loaded channel messages recognized');
-    // A single bounded snapshot, not a promise of 100 available messages.
+    rememberWindow(visibleRows(true));const rows=chronological([...encountered.values()]);if(!rows.length)throw Error('No loaded channel messages recognized');
+    // Freeze the snapshot while exploring; native virtual-list updates do not rearrange the canvas.
     canvasRows=rows.slice(-100);setOpen(false);canvasOpen=true;canvas.hidden=false;canvasToggle.textContent='Timeline';
     positionCanvas();renderCanvas();requestAnimationFrame(()=>{if(canvasOpen)fitCanvas()});metrics.canvas.opens++;record('canvas-open',String(canvasRows.length));
   }
@@ -667,12 +676,14 @@
     const t=performance.now();metrics.scans++;
     reconcileAppearance('scan');updateRouteStyle();annotateNavigation();
     const labels=new Map(data.conversations.map(r=>[r.id,r.title]));
+    const encounteredRows=[];
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
       const source=sourceFor(node),row=node.closest('li[id^="chat-messages-"]');
       const text=(node.innerText||node.textContent||'').trim();
       const protectedContent=node.querySelector('a,code,pre,img:not(.emoji),video')||row?.querySelector('[class*="attachment"],[class*="repliedMessage"],[class*="sticker"],[class*="embed"]');
       if(source&&!protectedContent&&(lowSignal(text)||(!text&&node.querySelector('img.emoji'))))node.dataset.dwLow='1';else delete node.dataset.dwLow;
       if(row&&source){
+        encounteredRows.push(messagePacket(node,source));
         const n=text.length;const level=n>=400?'3':n>=150?'2':n>=60?'1':'';
         const article=row.querySelector('[role="article"]');
         if(article){if(level)article.dataset.dwDensity=level;else delete article.dataset.dwDensity}
@@ -680,6 +691,7 @@
       const label=source&&labels.get(keyOf(source));
       if(label)node.dataset.dwLabel=label;else delete node.dataset.dwLabel;
     }
+    rememberWindow(encounteredRows);
     metrics.scanMs=Math.round((performance.now()-t)*10)/10;metrics.maxScanMs=Math.max(metrics.maxScanMs,metrics.scanMs);
   }
   function render(){
@@ -743,7 +755,7 @@
   document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;closeCanvas();canvasRows=[];packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;closeCanvas();canvasRows=[];encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
