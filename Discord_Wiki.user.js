@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.15.9
+// @version      0.15.10
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.15.9', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.15.10', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyTraversals:0,historyPrefetches:0,historyDirectionHandoffs:0,forumBatches:0,forumAdded:0,softNavigations:0,softNavigationUnavailable:0,historyRecoveryAttempts:0,historyRecoveryProgress:0,historyDirectionChanges:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0,cardScrollRebinds:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,sourceJumpLocal:0,sourceJumpFallback:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyTraversals:0,historyPrefetches:0,historyDirectionHandoffs:0,forumBatches:0,forumAdded:0,softNavigations:0,softNavigationUnavailable:0,historyRecoveryAttempts:0,historyRecoveryProgress:0,historyDirectionChanges:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0,cardScrollRebinds:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -50,15 +50,44 @@
       storage:{legacyRead:typeof GM_getValue==='function',legacyWrite:typeof GM_setValue==='function',modernRead:typeof GM!=='undefined'&&typeof GM.getValue==='function',modernWrite:typeof GM!=='undefined'&&typeof GM.setValue==='function'},
       page:{channelRoute:location.pathname.startsWith('/channels/'),messageContents:count('[id^="message-content-"]'),messageRows:count('[id^="chat-messages-"]'),reactions:count('[class*="reactions_"]'),focusClass:document.documentElement.classList.contains('dw-focus'),overlayPresent:!!document.getElementById(ROOT)},app,metrics,failures,journal};
   }
+  const diagnosticCopy={attempts:0,success:0,manual:0,last:null};let diagnosticCopyBusy=false;
   function refreshReport(){area.value=JSON.stringify(snapshot(),null,2);diagStatus.textContent='Phase: '+bootStep+' · '+failures.length+' errors';}
+  function selectDiagnosticText(){area.focus();area.select();area.setSelectionRange(0,area.value.length)}
+  async function boundedClipboardCall(fn,ms=2200){
+    let timer;try{return await Promise.race([Promise.resolve(fn()).then(()=> 'copied'),new Promise(resolve=>{timer=setTimeout(()=>resolve('timeout'),ms)})])}
+    finally{clearTimeout(timer)}
+  }
+  async function copyDiagnosticText(kind,produce){
+    if(diagnosticCopyBusy)return;
+    diagnosticCopyBusy=true;diagnosticCopy.attempts++;
+    diagnosticCopy.last={kind,state:'preparing',method:null,characters:0};
+    diagStatus.textContent='Preparing '+kind+'…';
+    try{
+      const text=produce();area.value=text;diagnosticCopy.last.characters=text.length;
+      diagStatus.textContent='Copying '+kind+'…';
+      // Start native clipboard access in the same trusted click, with no await
+      // before the call. Safari may deny it, so retain the GM alternative.
+      const methods=[];
+      if(typeof navigator.clipboard?.writeText==='function')methods.push(['native',()=>navigator.clipboard.writeText(text)]);
+      if(typeof GM_setClipboard==='function')methods.push(['legacy GM',()=>GM_setClipboard(text,'text')]);
+      if(typeof GM!=='undefined'&&typeof GM.setClipboard==='function')methods.push(['modern GM',()=>GM.setClipboard(text,'text')]);
+      for(const [method,fn] of methods){
+        diagnosticCopy.last.method=method;diagnosticCopy.last.state='copying';
+        try{
+          const result=await boundedClipboardCall(fn);
+          if(result==='copied'){diagnosticCopy.success++;diagnosticCopy.last.state='copied';diagStatus.textContent=kind+' copied · '+Math.round(text.length/1024)+' Ki characters. Paste into ChatGPT.';return}
+          // A hung write might still finish later; do not issue another write.
+          diagnosticCopy.last.state='timeout';break;
+        }catch(e){diagnosticCopy.last.error=safeError(e)}
+      }
+      diagnosticCopy.manual++;diagnosticCopy.last.state='manual';
+      selectDiagnosticText();diagStatus.textContent='Automatic copy unavailable. Report selected — long-press Copy, or use Select all.';
+    }catch(e){diagnosticCopy.last.state='error';diagnosticCopy.last.error=safeError(e);fail('diagnostic-copy',e);diagStatus.textContent='Could not prepare '+kind+' · '+safeError(e).name+'. Try Refresh.'}
+    finally{diagnosticCopyBusy=false}
+  }
   function showReport(){diagPanel.hidden=false;refreshReport()}
   db('Refresh',refreshReport);
-  db('Copy report',async()=>{refreshReport();try{
-    if(typeof GM_setClipboard==='function')await GM_setClipboard(area.value,'text');
-    else if(typeof GM!=='undefined'&&typeof GM.setClipboard==='function')await GM.setClipboard(area.value,'text');
-    else await navigator.clipboard.writeText(area.value);
-    diagStatus.textContent='Report copied — paste into ChatGPT.';
-  }catch(e){fail('report-copy',e);refreshReport();area.focus();area.select();diagStatus.textContent='Clipboard unavailable. Long-press and copy the selected report.'}});
+  db('Copy report',()=>copyDiagnosticText('Report',()=>JSON.stringify(snapshot(),null,2)));
   // A broad snapshot of the live rendered document, not a selector-based
   // sample. No script execution, request interception or automatic transfer.
   function captureURL(raw,base=location.origin){
@@ -118,13 +147,8 @@
       geometryColumns:['captureIndex','rect[x,y,w,h]','computed[display,position,flex,flexDirection,flexWrap,gap,margin,padding,overflowX,overflowY,minWidth,maxWidth,transform,fontSize,fontWeight,zIndex]','scrollHeight','clientHeight'],
       html:clone.outerHTML,geometry};
   }
-  db('Copy DOM',async()=>{
-    try{area.value=JSON.stringify(uiStructure());diagStatus.textContent='DOM captured · '+Math.round(area.value.length/1024)+' Ki characters · includes rendered conversation text.';
-      if(typeof GM_setClipboard==='function')await GM_setClipboard(area.value,'text');else if(typeof GM!=='undefined'&&typeof GM.setClipboard==='function')await GM.setClipboard(area.value,'text');else await navigator.clipboard.writeText(area.value);
-      diagStatus.textContent='DOM copied · '+Math.round(area.value.length/1024)+' Ki characters · paste or save as text.';
-    }catch(e){fail('dom-capture',e);if(area.value){area.focus();area.select()}diagStatus.textContent='Capture or clipboard failed · if text is available, select and copy it.'}
-  });
-  db('Select all',()=>{area.focus();area.select();area.setSelectionRange(0,area.value.length)});
+  db('Copy DOM',()=>copyDiagnosticText('DOM',()=>JSON.stringify(uiStructure())));
+  db('Select all',selectDiagnosticText);
   db('Close',()=>{diagPanel.hidden=true});
   boot.onclick=()=>{if(diagPanel.hidden)showReport();else diagPanel.hidden=true};
   (document.body||document.documentElement).append(diagnostic);
@@ -605,7 +629,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,forum:{nativeIndex:nativeForumIndex(),recognized:readForumPosts().length,displayed:canvasMode==='posts'?forumRows.length:0,trace:forumTrace},navigationDocument:{type:navigationBoot,previousExit:previousNavigation,lastIntent:lastNavigationIntent},world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,media:{cards:canvasRows.filter(p=>p.media?.images.length||p.media?.embeds.length).length},exploration:{entryDecision,known:exploration?.entry.known.size||0,overviewRegions:overviewBins.length,seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,loadedPreviouslySeen:canvasRows.filter(p=>exploration?.prior.has(p.source.message)).length,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,accountGeometry,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,forum:{nativeIndex:nativeForumIndex(),recognized:readForumPosts().length,displayed:canvasMode==='posts'?forumRows.length:0,trace:forumTrace},navigationDocument:{type:navigationBoot,previousExit:previousNavigation,lastIntent:lastNavigationIntent},diagnosticCopy,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,media:{cards:canvasRows.filter(p=>p.media?.images.length||p.media?.embeds.length).length},exploration:{entryDecision,known:exploration?.entry.known.size||0,overviewRegions:overviewBins.length,seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,loadedPreviouslySeen:canvasRows.filter(p=>exploration?.prior.has(p.source.message)).length,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,accountGeometry,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function forumThreadRoute(path=location.pathname){return path.match(/^\/channels\/(\d{15,22})\/(\d{15,22})\/threads\/(\d{15,22})(?:\/|$)/)}
   function channelRoute(path=location.pathname){
@@ -1173,6 +1197,29 @@
     metrics.canvas.fitCount++;stopInertia();const w=canvasView.clientWidth,h=canvasView.clientHeight;if(!w||!h||!canvasSize.w||!canvasSize.h)return;
     camera.z=clampScale(Math.min(1,(w-24)/canvasSize.w));camera.x=(w-canvasSize.w*camera.z)/2;camera.y=canvasSize.h*camera.z>h?12:(h-canvasSize.h*camera.z)/2;scheduleCamera();
   }
+  function nativeOriginalRow(source){
+    const route=channelRoute();if(!source?.message||!route||route[1]!==source.guild||route[2]!==source.channel)return null;
+    const row=document.getElementById('chat-messages-'+source.channel+'-'+source.message);
+    return row?.parentElement?.matches('[data-list-id="chat-messages"]')?row:null;
+  }
+  async function openOriginalMessage(source){
+    // Most recently loaded canvas cards still have a native counterpart.
+    // No router, no URL transition and no reload is needed in this case.
+    const local=nativeOriginalRow(source);
+    if(local){
+      metrics.canvas.sourceJumpLocal++;record('source-jump','native-row');
+      // chooseReadingView switches synchronously before persisting the setting.
+      const saved=chooseReadingView('timeline');local.scrollIntoView({block:'center',behavior:'instant'});await saved;
+      requestAnimationFrame(()=>nativeOriginalRow(source)?.scrollIntoView({block:'center'}));return 'local';
+    }
+    const ok=await navigateDiscord(source.url);
+    if(!ok)return 'unavailable';
+    // Do not declare a successful jump merely because the URL matched.
+    for(let i=0;i<12&&!nativeOriginalRow(source);i++)await navWait(100);
+    const row=nativeOriginalRow(source);
+    if(!row){record('source-jump','target-not-rendered');return 'not-visible'}
+    const saved=chooseReadingView('timeline');row.scrollIntoView({block:'center'});await saved;return 'routed';
+  }
   function inspectCanvas(p){
     metrics.canvas.inspections++;detail.replaceChildren();detail.hidden=false;
     const media=p.media||{images:[],embeds:[]};detail.classList.toggle('has-media',media.images.length>0);
@@ -1188,7 +1235,20 @@
     if(media.pendingImages||media.unavailableImages)el('div','Some images are not available as previews yet. Open original to view.',detail).className='muted';
     if(p.attachments)el('div','Open original for other attachments, video or unavailable previews.',detail).className='muted';
     const actions=el('div',undefined,detail);actions.className='row';
-    const link=el('a','Open original',actions);link.href=p.source.url;link.addEventListener('click',async e=>{e.preventDefault();metrics.canvas.sourceJumps++;const ok=await navigateDiscord(p.source.url);if(ok)await chooseReadingView('timeline')});
+    const link=el('a','Open original',actions);link.href=p.source.url;
+    const separate=el('a','Open in new tab',actions);separate.href=p.source.url;separate.target='_blank';separate.rel='noopener noreferrer';
+    const feedback=el('div','',detail);feedback.className='muted';feedback.setAttribute('role','status');feedback.hidden=true;
+    let opening=false;
+    link.addEventListener('click',async e=>{
+      e.preventDefault();e.stopPropagation();if(opening)return;opening=true;
+      metrics.canvas.sourceJumps++;feedback.hidden=false;feedback.textContent='Locating original message…';link.textContent='Opening…';
+      try{
+        const result=await openOriginalMessage(p.source);
+        if(result==='unavailable'){metrics.canvas.sourceJumpFallback++;feedback.textContent='Message is outside the native window and native jump is unavailable. Open in new tab to preserve this canvas.'}
+        else if(result==='not-visible'){metrics.canvas.sourceJumpFallback++;feedback.textContent='Discord did not reveal the exact message. Open in new tab.'}
+      }catch(err){fail('open-original',err);feedback.textContent='Could not open original. Use Open in new tab.'}
+      finally{opening=false;link.textContent='Open original'}
+    });
     addMarkControls(actions,p);
   }
   const cardScrollOffsets=new Map();
