@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.14.2
+// @version      0.14.3
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.14.2', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.14.3', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -261,7 +261,7 @@
     .canvas-card:focus-visible{outline:3px solid #4663b5}
     .card-overflow{position:absolute;right:8px;bottom:38px;font:650 11px system-ui;color:#526174;background:#fffdfa;border:1px solid #ccd1db;border-radius:4px;padding:2px 5px;pointer-events:none}
     .explored-strip{position:absolute;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;background:#e9e7e1;border:1px solid #d5d1c8;border-radius:8px;color:#46546a;min-height:52px;font:600 15px system-ui;cursor:pointer}
-    .canvas-card[data-seen-before="1"] .canvas-meta{color:#687487}.forum-title{font-size:15px;font-weight:700;line-height:1.25;flex:none;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .canvas-card[data-seen-before="1"] .canvas-meta{color:#687487}.seen-corner{position:absolute;left:10px;bottom:8px;color:#65758a;font:600 11px system-ui;pointer-events:none}.forum-title{font-size:15px;font-weight:700;line-height:1.25;flex:none;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
     .canvas-meta{font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .canvas-label{font-size:12px;color:#4663b5;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .canvas-card:not(.server-card){padding-bottom:34px}.canvas-meta,.canvas-label{flex:none}.canvas-preview{font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere;display:block;flex:1;min-height:0;padding:0 3px 0 0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c6c7d1 transparent}.canvas-preview[data-scrollable="1"]{border-bottom:1px solid #d9dce3}.canvas-view[data-card-scroll="1"]{cursor:ns-resize}
@@ -406,6 +406,10 @@
     html.dw-focus [data-dw-account-profile]{flex:1 1 40px!important;min-width:36px!important;max-width:100%!important;position:relative!important;margin:0!important;overflow:hidden!important}
     html.dw-focus [data-dw-account-controls]{display:flex!important;flex:0 0 auto!important;min-width:max-content!important;position:relative!important;margin:0!important;gap:2px!important}
     html.dw-focus [data-dw-account-controls] button{margin-inline:0!important}
+    html.dw-focus.dw-server-channel:not(.dw-communities) [class*="panels_"] [class*="avatarWrapper_"]{flex:0 0 44px!important;min-width:44px!important;width:44px!important;max-width:44px!important;box-sizing:border-box!important;padding-inline:2px!important;margin-inline:0!important;position:relative!important;transform:none!important}
+    html.dw-focus.dw-server-channel:not(.dw-communities) [data-dw-account-profile]{flex:0 0 44px!important;min-width:44px!important;width:44px!important;max-width:44px!important}
+    html.dw-focus [data-dw-account-row]{column-gap:8px!important;row-gap:3px!important}
+    html.dw-focus [data-dw-account-controls],html.dw-focus [data-dw-account-controls] [class*="micButtonParent_"]{inset:auto!important;transform:none!important;margin-left:0!important}
     html.dw-focus [class*="channelTextArea_"] [class*="scrollableContainer_"]{background:#f7f3ec!important;border:1px solid #e3ded5!important;border-radius:8px}
     html.dw-focus [data-dw-clean-name]{overflow:hidden;text-overflow:ellipsis}
     @media(min-width:901px){html.dw-focus.dw-contents-open [class*="page_"]:has([data-list-id="chat-messages"]){padding-inline-end:324px!important;box-sizing:border-box!important}}
@@ -525,7 +529,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,forum:{nativeIndex:nativeForumIndex(),recognized:readForumPosts().length,displayed:canvasMode==='posts'?forumRows.length:0},world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,exploration:{seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,loadedPreviouslySeen:canvasRows.filter(p=>exploration?.prior.has(p.source.message)).length,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,accountGeometry,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,forum:{nativeIndex:nativeForumIndex(),recognized:readForumPosts().length,displayed:canvasMode==='posts'?forumRows.length:0},world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,exploration:{entryDecision,seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,loadedPreviouslySeen:canvasRows.filter(p=>exploration?.prior.has(p.source.message)).length,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,accountGeometry,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -593,7 +597,7 @@
   const scrollIdentities=new WeakMap();let scrollIdentityCounter=0,lastNativeWindow='',lastNativeScrollAt=-Infinity;
   const routeKey=()=>channelRoute()?.slice(1,3).join('/')||'';
   let exploration=null,explorationLoading='',explorationTimer=0,explorationWriteTimer=0,explorationWriteQueue=Promise.resolve(),collapsedSeen=0,showPreviouslySeen=false;
-  let forumRows=[],forumSignature='';
+  let forumRows=[],forumSignature='',entryDecision='none',entryRoute='';
   const explorationCache=new Map();
   let inertiaFrame=0,velocity={x:0,y:0},lastMotion=0;const PAN_GAIN=1.85,PINCH_GAIN=1.65,FRICTION_MS=245;
   const encountered=new Map();let encounteredChannel='';
@@ -811,15 +815,45 @@
   function oldestSeen(ids){
     let oldest=null;for(const id of ids)if(oldest===null||BigInt(id)<BigInt(oldest))oldest=id;return oldest;
   }
+  function entryPlan(rows,prior,explicit,autoArrival=false){
+    if(!rows.length)return {kind:'wait'};
+    if(explicit&&!autoArrival)return {kind:'explicit',id:explicit};
+    const unseen=rows.filter(p=>!prior.has(p.source.message));
+    if(unseen.length)return {kind:'unseen',id:unseen.at(-1).source.message};
+    const oldest=oldestSeen(prior);
+    if(oldest&&BigInt(oldest)<BigInt(rows[0].source.message)&&!autoArrival)return {kind:'jump',id:oldest};
+    return {kind:'older',id:rows[0].source.message};
+  }
+  function focusMessageCard(id){
+    const i=canvasSlots.slice(0,canvasSlots.length-collapsedSeen).findIndex(p=>p?.source.message===id);
+    if(i<0)return false;
+    stopInertia();camera.y=12-Math.floor(i/5)*190*camera.z;constrainCamera();scheduleCamera();return true;
+  }
+  const ENTRY_KEY='dw-entry-resume-v1';
+  function readEntryJump(){
+    try{const raw=JSON.parse(sessionStorage.getItem(ENTRY_KEY)||'null');return raw&&Date.now()-raw.at<60000?raw:null}catch{return null}
+  }
+  function landOnExploration(route){
+    if(!canvasOpen||canvasMode!=='messages'||route!==routeKey()||entryRoute===route||!canvasRows.length)return;
+    entryRoute=route;
+    const explicit=location.pathname.match(/^\/channels\/\d{15,22}\/\d{15,22}\/(\d{15,22})\/?$/)?.[1]||null;
+    const pending=readEntryJump(),autoArrival=pending?.route===route&&(!explicit||pending.id===explicit);
+    const plan=entryPlan(canvasRows,exploration?.prior||new Set(),explicit,autoArrival);
+    entryDecision=plan.kind;
+    if(plan.kind==='explicit'){focusMessageCard(plan.id);return}
+    if(plan.kind==='unseen'){metrics.canvas.explorationEntryUnseen++;focusMessageCard(plan.id);return}
+    if(plan.kind==='jump'){
+      try{sessionStorage.setItem(ENTRY_KEY,JSON.stringify({route,id:plan.id,at:Date.now()}));if(readEntryJump()?.id!==plan.id)throw Error('entry guard unavailable')}
+      catch{entryDecision='older';focusMessageCard(canvasRows[0].source.message);loadHistory('older');return}
+      metrics.canvas.explorationEntryJumps++;location.replace('https://discord.com/channels/'+route+'/'+plan.id);return;
+    }
+    if(plan.kind==='older'){focusMessageCard(plan.id);metrics.canvas.explorationEntryLoads++;loadHistory('older')}
+  }
   function resumeExploration(){
     if(!exploration||exploration.route!==routeKey())return;
     const id=oldestSeen(exploration.prior);
     if(!id)return;
-    const i=canvasSlots.slice(0,canvasSlots.length-collapsedSeen).findIndex(p=>p?.source.message===id);
-    if(i>=0){
-      stopInertia();camera.y=12-Math.floor(i/5)*190*camera.z;constrainCamera();scheduleCamera();metrics.canvas.explorationResumes++;
-      return;
-    }
+    if(focusMessageCard(id)){metrics.canvas.explorationResumes++;return;}
     // Use the real Discord message permalink for an anchor not in the live window.
     // No synthetic request or assertion that unseen history has been downloaded.
     location.assign('https://discord.com/channels/'+exploration.route+'/'+id);
@@ -923,7 +957,7 @@
       const preview=el('div',p.text||'(Attachment or no text)',card);preview.className='canvas-preview';preview.dataset.cardUrl=p.source.url;
       preview.scrollTop=cardScrollOffsets.get(p.source.url)||0;
       preview.addEventListener('scroll',()=>cardScrollOffsets.set(p.source.url,preview.scrollTop),{passive:true});
-      if(exploration?.prior.has(p.source.message))card.dataset.seenBefore='1';
+      if(exploration?.prior.has(p.source.message)){card.dataset.seenBefore='1';el('span','Seen',card).className='seen-corner';}
       const n=p.text.length;card.dataset.density=n>=400?'3':n>=150?'2':n>=60?'1':'0';
       if(!p.attachments&&!p.reply&&lowSignal(p.text))card.dataset.low='1';
       const markbar=el('div',undefined,card);markbar.className='canvas-markbar';addMarkControls(markbar,p);
@@ -1039,7 +1073,7 @@
     rememberWindow(visibleRows(true));const rows=chronological([...encountered.values()]);
     if(!rows.length){historyStatus='Waiting for channel messages';scheduleCamera();return}
     canvasRows=rows.slice(-100);canvasSlots=[...canvasRows];messageCols=5;historyStatus='Drag past an edge for more';
-    positionCanvas();renderCanvas();requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='messages'){fitReadingWidth();const id=oldestSeen(exploration?.prior||[]);if(id&&canvasSlots.slice(0,canvasSlots.length-collapsedSeen).some(p=>p?.source.message===id))resumeExploration()}});
+    positionCanvas();renderCanvas();const entry=routeKey();requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='messages'&&routeKey()===entry){fitReadingWidth();landOnExploration(entry)}});
     record('canvas-filled',String(canvasRows.length));
   }
   function openCanvas(mode='messages'){
@@ -1515,7 +1549,7 @@
   function annotateAccount(){
     const panel=document.querySelector('[class*="panels_"]');if(!panel){accountGeometry=null;return}
     const profile=panel.querySelector('[class*="avatarWrapper_"],[class*="avatarWrapper__"],[aria-label*="User profile" i],[aria-label*="Set Status" i]');
-    const mute=panel.querySelector('button[aria-label*="Mute" i],button[aria-label*="Unmute" i],[role="button"][aria-label*="Mute" i],[role="button"][aria-label*="Unmute" i]');
+    const mute=panel.querySelector('button[aria-label*="Mute" i],button[aria-label*="Unmute" i],[role="button"][aria-label*="Mute" i],[role="button"][aria-label*="Unmute" i]')||panel.querySelector('[class*="micButtonParent_"]')||panel.querySelector('[aria-label*="microphone" i]');
     if(!profile||!mute){accountGeometry={profile:!!profile,mute:!!mute,matched:false};return}
     let row=profile.parentElement;while(row&&row!==panel&&!row.contains(mute))row=row.parentElement;
     if(!row||row===panel){accountGeometry={profile:true,mute:true,matched:false};return}
@@ -1525,7 +1559,8 @@
     if(!p.hasAttribute('data-dw-account-profile'))p.dataset.dwAccountProfile='1';
     if(!m.hasAttribute('data-dw-account-controls'))m.dataset.dwAccountControls='1';
     const a=profile.getBoundingClientRect(),b=mute.getBoundingClientRect();
-    accountGeometry={matched:true,profileWidth:Math.round(a.width),rowWidth:Math.round(row.getBoundingClientRect().width),gap:Math.round(b.left-a.right),overlap:a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top};
+    const avatar=profile.querySelector('[class*="avatar_"],img')||profile,actual=avatar.getBoundingClientRect();
+    accountGeometry={matched:true,profileWidth:Math.round(a.width),rowWidth:Math.round(row.getBoundingClientRect().width),controlsWidth:Math.round(m.getBoundingClientRect().width),gap:Math.round(b.left-actual.right),overlap:actual.left<b.right&&actual.right>b.left&&actual.top<b.bottom&&actual.bottom>b.top,profileBox:[Math.round(actual.left),Math.round(actual.top),Math.round(actual.width),Math.round(actual.height)],micBox:[Math.round(b.left),Math.round(b.top),Math.round(b.width),Math.round(b.height)]};
   }
   function annotateNavigation(){
     for(const a of document.querySelectorAll('#channels a[href^="/channels/"]')){
@@ -1715,7 +1750,7 @@
   document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;resetComposerIntent('route');closeCanvas();retainedCanvas=null;canvasChannel='';exploration=null;explorationLoading='';showPreviouslySeen=false;canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;resetComposerIntent('route');closeCanvas();retainedCanvas=null;canvasChannel='';exploration=null;explorationLoading='';entryRoute='';entryDecision='none';showPreviouslySeen=false;canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
