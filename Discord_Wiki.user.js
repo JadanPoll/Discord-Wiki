@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.14.3
+// @version      0.14.4
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.14.3', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.14.4', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -825,13 +825,25 @@
     return {kind:'older',id:rows[0].source.message};
   }
   function focusMessageCard(id){
-    const i=canvasSlots.slice(0,canvasSlots.length-collapsedSeen).findIndex(p=>p?.source.message===id);
+    const i=canvasSlots.findIndex(p=>p?.source.message===id);
     if(i<0)return false;
+    if(i>=canvasSlots.length-collapsedSeen){showPreviouslySeen=true;renderCanvas()}
     stopInertia();camera.y=12-Math.floor(i/5)*190*camera.z;constrainCamera();scheduleCamera();return true;
   }
   const ENTRY_KEY='dw-entry-resume-v1';
   function readEntryJump(){
     try{const raw=JSON.parse(sessionStorage.getItem(ENTRY_KEY)||'null');return raw&&Date.now()-raw.at<60000?raw:null}catch{return null}
+  }
+  async function loadEntryFrontier(route){
+    const initial=canvasRows[0]?.source.message;
+    if(initial)focusMessageCard(initial);
+    metrics.canvas.explorationEntryLoads++;
+    const interaction=()=>[metrics.canvas.pans,metrics.canvas.pinches,metrics.canvas.zooms,metrics.canvas.inspections,metrics.canvas.fitCount].join('/');
+    const token=interaction(),generation=historyGeneration;
+    await loadHistory('older');
+    if(!canvasOpen||canvasMode!=='messages'||routeKey()!==route||historyGeneration!==generation||interaction()!==token||pointers.size||inertiaFrame||!detail.hidden||!noteEditor.hidden)return;
+    const unseen=canvasRows.filter(p=>!exploration?.prior.has(p.source.message));
+    if(unseen.length)focusMessageCard(unseen.at(-1).source.message);
   }
   function landOnExploration(route){
     if(!canvasOpen||canvasMode!=='messages'||route!==routeKey()||entryRoute===route||!canvasRows.length)return;
@@ -844,10 +856,10 @@
     if(plan.kind==='unseen'){metrics.canvas.explorationEntryUnseen++;focusMessageCard(plan.id);return}
     if(plan.kind==='jump'){
       try{sessionStorage.setItem(ENTRY_KEY,JSON.stringify({route,id:plan.id,at:Date.now()}));if(readEntryJump()?.id!==plan.id)throw Error('entry guard unavailable')}
-      catch{entryDecision='older';focusMessageCard(canvasRows[0].source.message);loadHistory('older');return}
+      catch{entryDecision='older';loadEntryFrontier(route);return}
       metrics.canvas.explorationEntryJumps++;location.replace('https://discord.com/channels/'+route+'/'+plan.id);return;
     }
-    if(plan.kind==='older'){focusMessageCard(plan.id);metrics.canvas.explorationEntryLoads++;loadHistory('older')}
+    if(plan.kind==='older')loadEntryFrontier(route);
   }
   function resumeExploration(){
     if(!exploration||exploration.route!==routeKey())return;
