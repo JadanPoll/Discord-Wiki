@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.10.0
+// @version      0.10.1
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.10.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.10.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -443,6 +443,7 @@
     const candidates=raw.conversations.map(x=>region({...x,verified:false}));
     if(candidates.some(r=>r.messages.some(u=>!allow.has(u))))throw Error('Proposal contains URLs not in last copied packet');
     preview.replaceChildren();
+    if(candidates.length)btn(preview,'Apply new labels',async()=>{const next=await latest();let added=0;for(const r of candidates){if(next.conversations.some(x=>x.id===r.id))continue;upsert(next,{...r,verified:false});added++}if(added)await save(next,'ai-labels-imported');preview.replaceChildren();status('Added '+added+' AI labels; existing labels preserved.');});
     for(const r of candidates){
       const item=el('div',undefined,preview);item.className='entry';
       const label=el('input',undefined,item);label.value=r.title;
@@ -462,7 +463,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyTrace,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -524,7 +525,7 @@
   // Stable chronological grid, adapted from RSM_Tree_Viewer's atlas camera.
   // Snapshot the currently rendered window; no automatic history requests.
   let canvasOpen=false,canvasMode='messages',canvasRows=[],serverRows=[],canvasSize={w:0,h:0},canvasFrame=0;
-  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0;const HISTORY_LIMIT=400;
+  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,historyTrace=null;const HISTORY_LIMIT=400;
   let inertiaFrame=0,velocity={x:0,y:0},lastMotion=0;const PAN_GAIN=1.85,PINCH_GAIN=1.65,FRICTION_MS=245;
   const encountered=new Map();let encounteredChannel='';
   const camera={x:0,y:0,z:1},pointers=new Map();let pinch=null,dragged=false,suppressUntil=0;
@@ -534,7 +535,7 @@
   btn(canvasHead,'−',()=>zoomCanvas(camera.z/1.6));
   btn(canvasHead,'+',()=>zoomCanvas(camera.z*1.6));
   btn(canvasHead,'Fit',fitCanvas);
-  const canvasCopy=btn(canvasHead,'Copy for AI',()=>copyResearch(canvasRows));
+  const canvasCopy=btn(canvasHead,'Copy for AI',()=>copyResearch(canvasFocusRows()));
   const canvasView=el('div',undefined,canvas);canvasView.className='canvas-view';canvasView.setAttribute('aria-label','Drag to pan, pinch to zoom');
   const world=el('div',undefined,canvasView);world.className='canvas-world';
   const detail=el('section',undefined,canvas);detail.className='canvas-detail';detail.hidden=true;
@@ -561,7 +562,7 @@
   btn(noteActions,'Cancel',()=>{noteEditor.hidden=true;noteTarget=null});
   function syncMarkButton(b){
     const m=data.marks[b.dataset.dwMarkUrl],isNote=b.dataset.dwMarkKind==='note',active=isNote?!!m?.note:!!m?.favorite;
-    const glyph=isNote?(active?'▣':'▤'):(active?'★':'☆');
+    const glyph=isNote?(active?'▣':'✎'):(active?'★':'☆');
     if(b.textContent!==glyph)b.textContent=glyph;
     b.setAttribute('aria-pressed',String(active));
     const name=isNote?'Note':'Favorite';b.setAttribute('aria-label',name);b.title=name;
@@ -581,6 +582,12 @@
       });syncMarkButton(b);
     }
   }
+  function canvasFocusRows(){
+    const cx=(canvasView.clientWidth/2-camera.x)/camera.z,cy=(canvasView.clientHeight/2-camera.y)/camera.z;
+    const cols=messageCols||1;
+    const ranked=canvasSlots.map((p,i)=>({p,d:Math.hypot(160+(i%cols)*316-cx,97+Math.floor(i/cols)*190-cy)})).filter(x=>x.p).sort((a,b)=>a.d-b.d).slice(0,100).map(x=>x.p);
+    return chronological(ranked);
+  }
   async function copyResearch(rows=null){
     const state=await latest(),route=channelRoute();
     const all=scope.value==='all'&&!rows;
@@ -588,9 +595,10 @@
     const sourceRows=rows||visibleRows(true);
     const marks=Object.entries(state.marks).filter(([url])=>matches(url)).map(([url,m])=>({url,...m}));
     // Favorited material remains recoverable even when its original row is unloaded.
-    const messages=boundedRows(sourceRows).map(packetJSON);
-    const saved=[];let bytes=messages.reduce((n,p)=>n+p.text.length,0);
-    for(const m of marks){const text=m.text.slice(0,Math.max(0,60000-bytes-m.note.length));if(saved.length>=100||bytes+m.note.length>60000)break;saved.push({...m,text});bytes+=text.length+m.note.length}
+    const saved=[];let bytes=0;
+    // Personal notes take precedence; reserve space for the currently explored window.
+    for(const m of marks){if(saved.length>=100||bytes+m.note.length>24000)break;const text=m.text.slice(0,Math.min(2500,Math.max(0,24000-bytes-m.note.length)));saved.push({...m,text});bytes+=text.length+m.note.length}
+    const messages=[];for(const p of boundedRows(sourceRows)){if(bytes+p.text.length>60000)break;messages.push(packetJSON(p));bytes+=p.text.length}
     if(!messages.length&&!saved.length)throw Error('No messages or saved notes to copy');
     await write('dw-last-packet',[...new Set([...messages.map(m=>m.url),...saved.map(m=>m.url)])]);
     await copy(JSON.stringify({instruction:'Explore these source-backed messages and personal notes. Preserve source URLs. If useful, propose concise conversation titles and topics. Return JSON {"conversations":[{"title":"...","messages":["exact supplied URL"],"topics":["..."],"note":"optional"}]}. Each conversation must belong to one channel. Chronological gaps may exist. Notes are personal interpretations, not source claims.',messages,saved,omittedSaved:marks.length-saved.length},null,2));
@@ -769,7 +777,8 @@
   function integrateHistory(rows,dir){
     const ids=new Set(canvasRows.map(p=>p.source.url)),ordered=chronological(canvasRows);
     const edge=BigInt((dir==='older'?ordered[0]:ordered[ordered.length-1]).source.message);
-    const extra=chronological(rows.filter(p=>!ids.has(p.source.url)&&(dir==='older'?BigInt(p.source.message)<edge:BigInt(p.source.message)>edge)));
+    const scope=ordered[0].source;
+    const extra=chronological(rows.filter(p=>p.source.guild===scope.guild&&p.source.channel===scope.channel&&!ids.has(p.source.url)&&(dir==='older'?BigInt(p.source.message)<edge:BigInt(p.source.message)>edge)));
     const room=HISTORY_LIMIT-canvasRows.length,add=dir==='older'?extra.slice(-room):extra.slice(0,room);
     if(!room||!add.length)return 0;
     if(dir==='older'){
@@ -785,14 +794,17 @@
     const scroller=nativeScroller();if(!scroller){historyStatus='Native history scroller not found';metrics.canvas.historyBlocked++;scheduleCamera();return}
     historyBusy=true;lastHistoryAt=Date.now();const gen=historyGeneration;metrics.canvas.historyAttempts++;
     historyStatus='Loading '+dir+' messages…';scheduleCamera();record('history-request',dir);
+    const route=channelRoute()?.slice(1,3).join('/');
+    historyTrace={direction:dir,before:{top:Math.round(scroller.scrollTop),height:scroller.clientHeight,scrollHeight:scroller.scrollHeight},samples:[]};
     try{
       // Only drive Discord's existing scroll surface on an explicit edge gesture.
       // No fetch interception, private API, automatic paging loop or credentials.
       scroller.scrollTop=dir==='older'?0:scroller.scrollHeight;
       for(const delay of [250,450,750,1000]){
         await new Promise(resolve=>setTimeout(resolve,delay));
-        if(gen!==historyGeneration||!canvasOpen||canvasMode!=='messages')return;
-        const n=integrateHistory(visibleRows(true),dir);
+        if(gen!==historyGeneration||!canvasOpen||canvasMode!=='messages'||route!==channelRoute()?.slice(1,3).join('/'))return;
+        const current=visibleRows(true),native=nativeScroller();
+        const n=integrateHistory(current,dir);historyTrace.samples.push({recognized:current.length,added:n,top:native?Math.round(native.scrollTop):null,height:native?.clientHeight,scrollHeight:native?.scrollHeight});
         if(n){metrics.canvas.historyAdded+=n;historyStatus='+'+n+' '+dir+' messages';record('history-added',dir+':'+n);return}
       }
       metrics.canvas.historyEmpty++;historyStatus='No additional '+dir+' messages loaded';record('history-empty',dir);
@@ -853,6 +865,7 @@
       const day=new Date(Number(BigInt(parseLink(r.messages[0]).message)>>22n)+1420070400000);
       el('div',(Number.isFinite(day.getTime())?day.toISOString().slice(0,10):'Unknown date')+' · '+r.messages.length+' messages · '+r.topics.join(' / '),item).className='muted';
       if(r.note)el('div',r.note,item);
+      if(!r.verified)el('div','AI label · not reviewed',item).className='muted';
       const controls=el('div',undefined,item);controls.className='row';
       btn(controls,'Edit',async()=>{const title=prompt('Conversation title',r.title);if(title===null)return;const tags=prompt('Topics (comma separated)',r.topics.join(', '));if(tags===null)return;const next=await latest();upsert(next,{...r,title,topics:tags.split(',').map(x=>x.trim()).filter(Boolean),verified:true});await save(next,'label-edited')});
       btn(controls,'Remove',async()=>{if(!confirm('Remove conversation label?'))return;const next=await latest();next.conversations=next.conversations.filter(x=>x.id!==r.id);await save(next,'label-removed')});
