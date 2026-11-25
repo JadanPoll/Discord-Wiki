@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.10.1
+// @version      0.11.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.10.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.11.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -112,6 +112,14 @@
       return {guild,channel,message,url:'https://discord.com/channels/'+guild+'/'+channel+'/'+message};
     } catch { return null; }
   }
+  // Stable identity for every annotatable resource; message parsing stays strict.
+  function markSource(raw){
+    const message=parseLink(raw);if(message)return {...message,kind:'message'};
+    try{const u=new URL(raw);if(u.origin!=='https://discord.com')return null;
+      const m=u.pathname.match(/^\/channels\/(\d{15,22})(?:\/(\d{15,22}))?\/?$/);if(!m)return null;
+      const [,guild,channel]=m;return {guild,channel:channel||null,kind:channel?'channel':'server',url:'https://discord.com/channels/'+guild+(channel?'/'+channel:'')};
+    }catch{return null}
+  }
   function keyOf(s) { return s.guild+'/'+s.channel+'/'+s.message; }
   function topicName(v) {
     const s = String(v || '').trim();
@@ -159,9 +167,9 @@
       for(const r of input.conversations)upsert(out,r);
     }
     for(const [url,m] of Object.entries(input.marks||{})){
-      const src=parseLink(url);if(!src||!m||typeof m!=='object')continue;
+      const src=markSource(url);if(!src||!m||typeof m!=='object')continue;
       const note=String(m.note||'').slice(0,4000),favorite=m.favorite===true;
-      if(favorite||note)out.marks[src.url]={favorite,note,text:String(m.text||'').slice(0,12000),at:typeof m.at==='string'?m.at:''};
+      if(favorite||note)out.marks[src.url]={kind:src.kind,favorite,note,text:String(m.text||'').slice(0,12000),at:typeof m.at==='string'?m.at:''};
     }
     return out;
   }
@@ -203,7 +211,7 @@
     :host{all:initial;position:fixed!important;right:12px!important;top:3px!important;right:108px!important;bottom:auto!important;z-index:2147483646!important;font:13px system-ui,sans-serif;color:#1e293b}
     *{box-sizing:border-box} button,input,textarea,select{font:inherit} button{cursor:pointer;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#1e293b;padding:6px 9px}
     button:hover{background:#eaf0ff} button:focus-visible,a:focus-visible{outline:2px solid #5265c9} .primary{background:#4663b5;color:white;border-color:#4663b5}
-    .panel{position:fixed;right:12px;top:52px;bottom:12px;width:min(310px,calc(100vw - 24px));overflow:auto;background:#f4f1f8;border:1px solid #dedbe5;border-radius:9px;padding:13px;box-shadow:0 4px 18px #27364a14;scrollbar-gutter:stable}
+     .panel{z-index:5;position:fixed;right:12px;top:52px;bottom:12px;width:min(310px,calc(100vw - 24px));overflow:auto;background:#f4f1f8;border:1px solid #dedbe5;border-radius:9px;padding:13px;box-shadow:0 4px 18px #27364a14;scrollbar-gutter:stable}
     .launcher{justify-content:flex-end;background:#f7f3ec;padding:0 2px;border:0;border-radius:5px;gap:4px;flex-wrap:nowrap}
     .launcher button{font-size:12px;line-height:16px;padding:4px 7px;white-space:nowrap;touch-action:manipulation}
     .canvas{position:fixed;z-index:3;background:#f7f3ec;color:#283342;border:1px solid #ded9d0;border-radius:9px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 18px #27364a18}
@@ -226,7 +234,7 @@
     .canvas-detail p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;margin:8px 0}
     .canvas-detail .row{margin:4px 0}
     .canvas-day{position:absolute;font-size:12px;color:#687689;font-weight:650;white-space:nowrap}
-    .server-card{width:224px;height:84px;justify-content:center;background:#fffdfa}.server-name{font-size:16px;font-weight:650;line-height:1.3;overflow-wrap:anywhere}.server-card[data-saved="1"]{background:#e9eefc}
+    .server-card{width:224px;height:84px;justify-content:flex-start;padding-bottom:23px;background:#fffdfa}.server-name{font-size:16px;font-weight:650;line-height:1.3;overflow-wrap:anywhere}.server-card[data-saved="1"]{background:#e9eefc}
     @media(max-width:480px){.launcher{flex-wrap:wrap}}
     .panel details{border-top:1px solid #e1dce7;padding:9px 0}.panel summary{cursor:pointer;font-weight:500;color:#53647b}
     .panel .entry{background:#fffdfa;border-color:#e1dce7}
@@ -344,6 +352,7 @@
     html.dw-focus [data-list-id="chat-messages"] [data-dw-density="3"]{background:#eaeaf3}
     html.dw-focus [data-dw-label]::before{color:#4663b5!important;font-size:13px!important;font-weight:700!important;border-color:#cbd4ed!important;padding:7px 0 5px!important}
     html.dw-focus .dw-native-marks{display:inline-flex;gap:2px;vertical-align:middle;margin-left:8px}html.dw-focus .dw-native-marks button{font:15px system-ui;color:#758195;background:transparent;border:0;padding:2px 6px;cursor:pointer}html.dw-focus .dw-native-marks button[aria-pressed="true"]{color:#9a7018;background:#fff1c7;border-radius:4px}html:not(.dw-focus) .dw-native-marks{display:none!important}
+    html.dw-focus [data-dw-channel-row]{position:relative!important}html.dw-focus [data-dw-channel-row]>a{padding-right:47px!important}html.dw-focus .dw-channel-marks{position:absolute;right:2px;top:50%;transform:translateY(-50%);display:flex;gap:0;z-index:1;background:inherit}html.dw-focus .dw-channel-marks button{font:14px system-ui;padding:2px 3px;border:0;background:transparent;color:#8792a1;cursor:pointer}html.dw-focus .dw-channel-marks button[aria-pressed="true"]{color:#946d14;background:#fff1c7;border-radius:3px}html.dw-focus [data-dw-favorite-channel="1"]>a{box-shadow:inset 2px 0 #c39b38}html:not(.dw-focus) .dw-channel-marks{display:none!important}
     html.dw-focus [data-dw-low="1"]{opacity:.52!important}
     html.dw-focus [data-dw-low="1"]:hover,html.dw-focus [data-dw-low="1"]:focus-within{opacity:1!important}
     html.dw-focus [class*="channelTextArea_"] [class*="scrollableContainer_"]{background:#f7f3ec!important;border:1px solid #e3ded5!important;border-radius:8px}
@@ -352,6 +361,7 @@
     @media(max-width:900px){html.dw-focus.dw-server-channel [class*="sidebar_"]:has(#channels){--custom-guild-sidebar-width:225px!important}html.dw-focus.dw-server-channel:not(.dw-communities) [class*="sidebar_"]:has(#channels){--custom-guild-sidebar-width:171px!important}}
   `,document.head);
   let focus=true;try{focus=(await read('dw-focus',true))!==false}catch(e){record('focus-load-failed');fail('load-focus',e)}
+  let readingView='canvas';try{readingView=(await read('dw-reading-view','canvas'))==='timeline'?'timeline':'canvas'}catch(e){fail('load-reading-view',e)}
   const launcher=el('div',undefined,shadow);launcher.className='row launcher';launcher.style.margin='0';
   const communities=el('button','Servers',launcher);communities.title='Browse communities spatially';
   let communitiesOpen=false;
@@ -366,7 +376,7 @@
   }
   focusToggle.addEventListener('click',async(e)=>{
     if(!e.isTrusted)return;
-    focus=!focus;metrics.appearance.explicitToggles++;record('appearance-toggle',String(focus));applyFocus();
+    focus=!focus;metrics.appearance.explicitToggles++;record('appearance-toggle',String(focus));applyFocus();if(focus)restoreReading();else closeCanvas();
     try{await write('dw-focus',focus);record('focus',String(focus))}catch(e){record('focus-save-failed');fail('save-focus',e)}
   });
   applyFocus();
@@ -379,7 +389,7 @@
     b.addEventListener('click',async()=>{const m=metrics.actions[label]||=( {attempts:0,completed:0,failed:0} );m.attempts++;if(b.disabled)return;b.disabled=true;try{await fn();m.completed++}catch(e){m.failed++;status('Error: '+e.message);record('action-failed',label);fail('action:'+label,e);showReport()}finally{b.disabled=false}}); return b;
   }
   btn(titleRow,'Hide',()=>setOpen(false));
-  const canvasToggle=btn(launcher,'Canvas',()=>openCanvas('messages'));launcher.insertBefore(canvasToggle,toggle);
+  const canvasToggle=btn(launcher,readingView==='canvas'?'Timeline':'Canvas',async()=>{await chooseReadingView(readingView==='canvas'?'timeline':'canvas')});launcher.insertBefore(canvasToggle,toggle);
   const stats=el('div','',panel); stats.className='muted';
   const captureBox=el('details',undefined,panel);el('summary','Label a conversation',captureBox);
   const row=el('div',undefined,captureBox); row.className='row';
@@ -463,7 +473,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyTrace,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyTrace,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -534,7 +544,7 @@
   const canvasCount=el('span','',canvasHead);canvasCount.className='canvas-count';
   btn(canvasHead,'−',()=>zoomCanvas(camera.z/1.6));
   btn(canvasHead,'+',()=>zoomCanvas(camera.z*1.6));
-  btn(canvasHead,'Fit',fitCanvas);
+  btn(canvasHead,'Fit',()=>canvasMode==='messages'?fitReadingWidth():fitCanvas());
   const canvasCopy=btn(canvasHead,'Copy for AI',()=>copyResearch(canvasFocusRows()));
   const canvasView=el('div',undefined,canvas);canvasView.className='canvas-view';canvasView.setAttribute('aria-label','Drag to pan, pinch to zoom');
   const world=el('div',undefined,canvasView);world.className='canvas-world';
@@ -549,7 +559,7 @@
     const task=markQueue.then(async()=>{
       const next=await latest(),url=p.source.url;
       const old=next.marks[url]||{favorite:false,note:'',text:'',at:''};
-      const m={...old,...change(old),text:String(p.text||old.text||'').slice(0,12000),at:new Date().toISOString()};
+      const m={...old,...change(old),kind:markSource(url)?.kind||'message',text:String(p.text||old.text||'').slice(0,12000),at:new Date().toISOString()};
       if(m.favorite||m.note)next.marks[url]=m;else delete next.marks[url];
       await save(next,'mark-saved');
     });
@@ -566,7 +576,7 @@
     if(b.textContent!==glyph)b.textContent=glyph;
     b.setAttribute('aria-pressed',String(active));
     const name=isNote?'Note':'Favorite';b.setAttribute('aria-label',name);b.title=name;
-    const card=b.closest('.canvas-card');if(card){if(m?.favorite)card.dataset.favorite='1';else delete card.dataset.favorite;}
+    const card=b.closest('.canvas-card');if(card){if(m?.favorite)card.dataset.favorite='1';else delete card.dataset.favorite;}const nav=b.closest('.dw-channel-marks')?.parentElement;if(nav){if(m?.favorite)nav.dataset.dwFavoriteChannel='1';else delete nav.dataset.dwFavoriteChannel;}
   }
   function syncMarks(){
     for(const b of [...shadow.querySelectorAll('[data-dw-mark-url]'),...document.querySelectorAll('[data-dw-mark-url]')])syncMarkButton(b);
@@ -591,7 +601,7 @@
   async function copyResearch(rows=null){
     const state=await latest(),route=channelRoute();
     const all=scope.value==='all'&&!rows;
-    const matches=url=>{const p=parseLink(url);return p&&(all||route&&p.guild===route[1]&&p.channel===route[2])};
+    const matches=url=>{const p=markSource(url);return p&&(all||route&&p.guild===route[1]&&(!p.channel||p.channel===route[2]))};
     const sourceRows=rows||visibleRows(true);
     const marks=Object.entries(state.marks).filter(([url])=>matches(url)).map(([url,m])=>({url,...m}));
     // Favorited material remains recoverable even when its original row is unloaded.
@@ -600,7 +610,7 @@
     for(const m of marks){if(saved.length>=100||bytes+m.note.length>24000)break;const text=m.text.slice(0,Math.min(2500,Math.max(0,24000-bytes-m.note.length)));saved.push({...m,text});bytes+=text.length+m.note.length}
     const messages=[];for(const p of boundedRows(sourceRows)){if(bytes+p.text.length>60000)break;messages.push(packetJSON(p));bytes+=p.text.length}
     if(!messages.length&&!saved.length)throw Error('No messages or saved notes to copy');
-    await write('dw-last-packet',[...new Set([...messages.map(m=>m.url),...saved.map(m=>m.url)])]);
+    await write('dw-last-packet',[...new Set([...messages.map(m=>m.url),...saved.filter(m=>m.kind==='message'||parseLink(m.url)).map(m=>m.url)])]);
     await copy(JSON.stringify({instruction:'Explore these source-backed messages and personal notes. Preserve source URLs. If useful, propose concise conversation titles and topics. Return JSON {"conversations":[{"title":"...","messages":["exact supplied URL"],"topics":["..."],"note":"optional"}]}. Each conversation must belong to one channel. Chronological gaps may exist. Notes are personal interpretations, not source claims.',messages,saved,omittedSaved:marks.length-saved.length},null,2));
     record('research-copied',messages.length+' messages, '+saved.length+' saved');
     status('Copied '+messages.length+' messages and '+saved.length+' saved notes/favorites.');
@@ -620,7 +630,7 @@
     const r=main?.getBoundingClientRect();
     const left=r&&r.width>260?Math.max(8,Math.round(r.left)+5):8;
     const top=r?Math.max(48,Math.round(r.top)+3):48;
-    canvas.style.left=left+'px';canvas.style.top=top+'px';canvas.style.right='8px';canvas.style.bottom='8px';
+    canvas.style.left=left+'px';canvas.style.top=top+'px';canvas.style.right=opened&&innerWidth>900?'330px':'8px';canvas.style.bottom='8px';
   }
   function stopInertia(){if(inertiaFrame){cancelAnimationFrame(inertiaFrame);inertiaFrame=0;metrics.canvas.flingStops++}velocity={x:0,y:0}}
   function boundAxis(pos,extent,viewport){
@@ -663,6 +673,10 @@
     metrics.canvas.fitCount++;camera.z=clampScale(Math.min(1,(w-28)/canvasSize.w,(h-28)/canvasSize.h));
     camera.x=(w-canvasSize.w*camera.z)/2;camera.y=(h-canvasSize.h*camera.z)/2;scheduleCamera();
   }
+  function fitReadingWidth(){
+    stopInertia();const w=canvasView.clientWidth,h=canvasView.clientHeight;if(!w||!h||!canvasSize.w||!canvasSize.h)return;
+    camera.z=clampScale(Math.min(1,(w-24)/canvasSize.w));camera.x=(w-canvasSize.w*camera.z)/2;camera.y=canvasSize.h*camera.z>h?12:(h-canvasSize.h*camera.z)/2;scheduleCamera();
+  }
   function inspectCanvas(p){
     metrics.canvas.inspections++;detail.replaceChildren();detail.hidden=false;
     const head=el('div',undefined,detail);head.className='row';
@@ -673,7 +687,7 @@
     el('p',p.text||'(No text in this rendered message)',detail);
     if(p.attachments)el('div',p.attachments+' attachment / embed indicators · open source to view',detail).className='muted';
     const actions=el('div',undefined,detail);actions.className='row';
-    const link=el('a','Open original',actions);link.href=p.source.url;link.addEventListener('click',()=>{metrics.canvas.sourceJumps++;closeCanvas()});
+    const link=el('a','Open original',actions);link.href=p.source.url;link.addEventListener('click',()=>{metrics.canvas.sourceJumps++;chooseReadingView('timeline').catch(e=>fail('reading-view',e))});
     addMarkControls(actions,p);
   }
   function renderCanvas(){
@@ -704,7 +718,7 @@
   }
   function gridColumns(n,sx,sy){
     const aspect=Math.max(.5,Math.min(3,(canvasView.clientWidth||800)/(canvasView.clientHeight||500)));
-    return Math.min(Math.max(1,n),Math.max(1,Math.round(Math.sqrt(n*aspect*sy/sx))));
+    return Math.min(6,Math.max(1,n),Math.max(1,Math.round(Math.sqrt(n*aspect*sy/sx))));
   }
   function readServers(){
     const rail=document.querySelector('nav[aria-label="Servers sidebar"]');if(!rail)return [];
@@ -713,6 +727,7 @@
       const raw=node.querySelector('[class*="hiddenVisually_"]')?.textContent?.trim()||'';
       const id=node.getAttribute('data-list-item-id')?.slice('guildsnav___'.length)||'';
       const folder=node.hasAttribute('aria-expanded');
+      if(!folder&&node.querySelector('[role="treeitem"][data-list-item-id^="guildsnav___"]'))continue;
       if(!raw||(!folder&&id!=='home'&&(!/^\d{15,22}$/.test(id)||!node.hasAttribute('aria-selected'))))continue;
       const name=raw.replace(/^(?:Unread messages,\s*|\d+\s+mentions?,\s*)+/i,'').replace(/,\s*(?:Voice call active|folder)$/i,'').trim();
       result.push({id,name:name||raw,folder,expanded:node.getAttribute('aria-expanded')==='true',selected:node.getAttribute('aria-selected')==='true',node});
@@ -723,40 +738,62 @@
     serverRows=readServers();world.replaceChildren();detail.hidden=true;
     const sx=236,sy=96,margin=10,cols=gridColumns(serverRows.length,sx,sy);
     for(const [i,item] of serverRows.entries()){
-      const card=el('button',undefined,world);card.type='button';card.className='canvas-card server-card';
+      const card=el('div',undefined,world);card.tabIndex=0;card.setAttribute('role','group');card.className='canvas-card server-card';
       card.style.left=(margin+(i%cols)*sx)+'px';card.style.top=(margin+Math.floor(i/cols)*sy)+'px';
       if(item.selected)card.dataset.saved='1';
       el('div',item.folder?(item.expanded?'Folder · expanded':'Folder · tap to expand'):(item.selected?'Current community':'Community'),card).className='canvas-meta';
       el('div',item.name,card).className='server-name';
-      card.addEventListener('click',()=>{
+      if(!item.folder&&isId(item.id)){const bar=el('div',undefined,card);bar.className='canvas-markbar';addMarkControls(bar,{source:markSource('https://discord.com/channels/'+item.id),text:item.name});}
+      const activate=()=>{
         if(Date.now()<suppressUntil)return;
         if(!item.node.isConnected){renderServers(false);return}
         if(item.folder){
           metrics.canvas.folderToggles++;item.node.click();
           // Native React state owns folder expansion; re-read after the render settles.
           setTimeout(()=>{if(canvasOpen&&canvasMode==='servers'){renderServers(false);constrainCamera();scheduleCamera()}},200);
-        }else{metrics.canvas.serverJumps++;closeCanvas();item.node.click()}
-      });
+        }else{metrics.canvas.serverJumps++;const old=location.pathname;item.node.click();if(item.selected||location.pathname===old&&item.id===channelRoute()?.[1])restoreReading();else{historyStatus='Opening community…';scheduleCamera();}}
+      };
+      card.addEventListener('click',activate);card.addEventListener('keydown',e=>{if(e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();activate()}});
     }
     canvasSize={w:margin*2+cols*sx-12,h:margin*2+Math.ceil(serverRows.length/cols)*sy-12};
     world.style.width=canvasSize.w+'px';world.style.height=canvasSize.h+'px';
     if(refit)fitCanvas();else scheduleCamera();
   }
+  // Reading mode is persistent; the server map is a temporary projection.
+  function updateViewButtons(){
+    canvasToggle.textContent=readingView==='canvas'?'Timeline':'Canvas';
+    communities.textContent=canvasOpen&&canvasMode==='servers'?'Back':'Servers';
+  }
+  function fillMessageCanvas(){
+    if(!canvasOpen||canvasMode!=='messages'||canvasRows.length)return;
+    rememberWindow(visibleRows(true));const rows=chronological([...encountered.values()]);
+    if(!rows.length){historyStatus='Waiting for channel messages';scheduleCamera();return}
+    canvasRows=rows.slice(-100);canvasSlots=[...canvasRows];messageCols=0;historyStatus='Drag past an edge for more';
+    positionCanvas();renderCanvas();requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='messages')fitReadingWidth()});
+    record('canvas-filled',String(canvasRows.length));
+  }
   function openCanvas(mode='messages'){
-    if(canvasOpen&&canvasMode===mode){closeCanvas();return}
-    if(mode==='messages'){
-      rememberWindow(visibleRows(true));const rows=chronological([...encountered.values()]);if(!rows.length)throw Error('No loaded channel messages recognized');
-      canvasRows=rows.slice(-100);canvasSlots=[...canvasRows];messageCols=0;historyStatus='Drag past an edge for more';
-    }else if(!readServers().length)throw Error('No native server entries recognized');
+    if(mode==='servers'&&canvasOpen&&canvasMode==='servers'){restoreReading();return}
+    if(mode==='servers'&&!readServers().length)throw Error('No native server entries recognized');
+    if(canvasOpen&&canvasMode===mode)return;
     if(canvasOpen)closeCanvas();
-    setOpen(false);canvasMode=mode;canvasOpen=true;canvas.hidden=false;canvasCopy.hidden=mode!=='messages';
-    communities.textContent=mode==='servers'?'Back to chat':'Servers';canvasToggle.textContent=mode==='messages'?'Timeline':'Canvas';
-    positionCanvas();if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++}else renderCanvas();
-    requestAnimationFrame(()=>{if(canvasOpen&&canvasMode===mode)fitCanvas()});metrics.canvas.opens++;record('canvas-open',mode+':'+(mode==='servers'?serverRows.length:canvasRows.length));
+    canvasMode=mode;canvasOpen=true;canvas.hidden=false;canvasCopy.hidden=mode!=='messages';updateViewButtons();
+    positionCanvas();
+    if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='servers')fitCanvas()})}
+    else{canvasRows=[];canvasSlots=[];messageCols=0;canvasSize={w:0,h:0};world.replaceChildren();camera.x=0;camera.y=0;camera.z=1;fillMessageCanvas()}
+    metrics.canvas.opens++;record('canvas-open',mode+':'+(mode==='servers'?serverRows.length:canvasRows.length));
   }
   function closeCanvas(){
     if(!canvasOpen)return;historyGeneration++;historyBusy=false;edgeDirection='';edgeTravel=0;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;
-    canvasView.classList.remove('dragging');canvasToggle.textContent='Canvas';communities.textContent='Servers';metrics.canvas.closes++;record('canvas-close');
+    canvasView.classList.remove('dragging');updateViewButtons();metrics.canvas.closes++;record('canvas-close');
+  }
+  function restoreReading(){
+    if(!focus||readingView==='timeline'||!channelRoute()){closeCanvas();updateViewButtons();return}
+    if(canvasOpen&&canvasMode==='messages')return;
+    openCanvas('messages');
+  }
+  async function chooseReadingView(view){
+    readingView=view;closeCanvas();restoreReading();updateViewButtons();await write('dw-reading-view',readingView);record('reading-view',readingView);
   }
   function trackHistoryEdge(dy){
     if(!canvasOpen||canvasMode!=='messages'||historyBusy||!dy)return;
@@ -840,7 +877,7 @@
   canvasView.addEventListener('click',e=>{if(Date.now()<suppressUntil){e.preventDefault();e.stopPropagation()}},true);
   canvasView.addEventListener('wheel',e=>{e.preventDefault();const r=canvasView.getBoundingClientRect();if(e.ctrlKey||e.metaKey)zoomCanvas(camera.z*Math.exp(-Math.max(-110,Math.min(110,e.deltaY))*.015),e.clientX-r.left,e.clientY-r.top);else{const unit=e.deltaMode===1?16:e.deltaMode===2?canvasView.clientHeight:1;stopInertia();trackHistoryEdge(-e.deltaY*unit*1.65);if(edgeTravel>65&&edgeDirection){loadHistory(edgeDirection);edgeTravel=0}camera.x-=e.deltaX*unit*1.65;camera.y-=e.deltaY*unit*1.65;constrainCamera();metrics.canvas.pans++;scheduleCamera()}},{passive:false});
   window.addEventListener('resize',()=>{if(canvasOpen)positionCanvas()});
-  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&canvasOpen){if(!detail.hidden)detail.hidden=true;else closeCanvas()}});
+  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&canvasOpen){if(!noteEditor.hidden){noteEditor.hidden=true;noteTarget=null}else if(!detail.hidden)detail.hidden=true;else if(canvasMode==='servers')restoreReading();else chooseReadingView('timeline').catch(err=>fail('reading-view',err))}});
   function stage(rows,origin='selection'){
     if(!rows.length||rows.length>100||rows.reduce((n,p)=>n+p.text.length,0)>60000)throw Error('Select up to 100 messages / 60,000 characters');
     packet=rows;packetOrigin=origin;picked=rows[0].source;sourceInput.value=picked.url;
@@ -850,10 +887,12 @@
     const route=channelRoute(),q=filter.value.toLowerCase();
     index.replaceChildren();
     for(const [url,m] of Object.entries(data.marks).reverse()){
-      const src=parseLink(url);if(!src||scope.value!=='all'&&(!route||src.guild!==route[1]||src.channel!==route[2]))continue;
+      const src=markSource(url);if(!src||scope.value!=='all'&&(!route||src.guild!==route[1]||src.channel&&src.channel!==route[2]))continue;
       if(![m.text,m.note].join(' ').toLowerCase().includes(q))continue;
       const item=el('div',undefined,index);item.className='entry saved-mark';
-      const a=el('a',(m.favorite?'★ ':'')+(m.text||m.note||'Saved message').slice(0,150),item);a.href=url;
+      const a=el('a',(m.favorite?'★ ':'')+(m.text||m.note||'Saved '+src.kind).slice(0,150),item);a.href=url;
+      el('div',src.kind,item).className='muted';
+      if(src.kind==='server')a.addEventListener('click',e=>{const match=readServers().find(x=>!x.folder&&x.id===src.guild);if(match){e.preventDefault();match.node.click()}});
       if(m.note)el('div',m.note,item);
       const controls=el('div',undefined,item);controls.className='row';addMarkControls(controls,{source:src,text:m.text});
     }
@@ -870,7 +909,7 @@
       btn(controls,'Edit',async()=>{const title=prompt('Conversation title',r.title);if(title===null)return;const tags=prompt('Topics (comma separated)',r.topics.join(', '));if(tags===null)return;const next=await latest();upsert(next,{...r,title,topics:tags.split(',').map(x=>x.trim()).filter(Boolean),verified:true});await save(next,'label-edited')});
       btn(controls,'Remove',async()=>{if(!confirm('Remove conversation label?'))return;const next=await latest();next.conversations=next.conversations.filter(x=>x.id!==r.id);await save(next,'label-removed')});
     }
-    if(!index.children.length)el('div','Star a message or add a note to find it here later.',index).className='muted';
+    if(!index.children.length)el('div','Star a server, channel or message to find it here later.',index).className='muted';
   }
   function lowSignal(text){
     return /^(?:lol+|lmao+|lmfao+|rofl|ha(?:ha)+|he(?:he)+|nice+|bruh+|xd)[.!\s]*$/i.test(text.trim());
@@ -881,6 +920,11 @@
     return out||raw;
   }
   function annotateNavigation(){
+    for(const a of document.querySelectorAll('#channels a[href^="/channels/"]')){
+      const src=markSource(a.href),name=a.querySelector('[class*="name_"]');if(!src||src.kind!=='channel'||!name||!a.parentElement)continue;
+      const row=a.parentElement;let controls=row.querySelector(':scope > .dw-channel-marks');if(controls?.dataset.source===src.url)continue;
+      controls?.remove();row.dataset.dwChannelRow='1';controls=el('span',undefined,row);controls.className='dw-channel-marks';controls.dataset.source=src.url;addMarkControls(controls,{source:src,text:cleanName(name.textContent.trim())},true);
+    }
     for(const node of document.querySelectorAll('#channels a[href^="/channels/"] [class*="name_"],#channels h3[class*="name_"],[aria-label="Channel header"] [class*="title_"]')){
       const raw=(node.textContent||'').trim();const clean=cleanName(raw);
       if(clean!==raw){if(node.dataset.dwCleanName!==clean)node.dataset.dwCleanName=clean}
@@ -907,12 +951,12 @@
       const label=source&&labels.get(keyOf(source));
       if(label)node.dataset.dwLabel=label;else delete node.dataset.dwLabel;
     }
-    rememberWindow(encounteredRows);syncMarks();
+    rememberWindow(encounteredRows);syncMarks();if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
     metrics.scanMs=Math.round((performance.now()-t)*10)/10;metrics.maxScanMs=Math.max(metrics.maxScanMs,metrics.scanMs);
   }
   function render(){
     renderIndex();annotateDOM();
-    stats.textContent=Object.keys(data.marks).length+' saved messages · '+data.conversations.length+' conversation labels';syncMarks();
+    stats.textContent=Object.keys(data.marks).length+' saved items · '+data.conversations.length+' conversation labels';syncMarks();
     topics.replaceChildren();
     const names=[...new Set([topic,...Object.keys(data.topics)])].sort();
     for(const name of names){const option=el('option',name,topics);option.value=name}
@@ -948,8 +992,8 @@
   document.addEventListener('focusin',()=>reconcileAppearance('focus-in'));
   document.addEventListener('focusout',()=>reconcileAppearance('focus-out'));
   window.visualViewport?.addEventListener('resize',()=>{metrics.appearance.viewportResizes++;reconcileAppearance('viewport-resize');if(canvasOpen)positionCanvas()});
-  function setOpen(v){if(v&&canvasOpen)closeCanvas();opened=v;panel.hidden=!v;toggle.hidden=v;document.documentElement.classList.toggle('dw-contents-open',v);if(v)refresh()}
-  toggle.addEventListener('click',()=>setOpen(true));
+  function setOpen(v){opened=v;panel.hidden=!v;toggle.textContent=v?'Hide saved':'Contents';document.documentElement.classList.toggle('dw-contents-open',v);if(canvasOpen)positionCanvas();if(v)refresh()}
+  toggle.addEventListener('click',()=>setOpen(!opened));
   function captureSelection(){
     const sel=window.getSelection();if(!sel||sel.isCollapsed||sel.rangeCount!==1)return;
     const element=n=>n?.nodeType===1?n:n?.parentElement;
@@ -971,12 +1015,12 @@
   document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;closeCanvas();canvasRows=[];encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;closeCanvas();canvasRows=[];canvasSlots=[];encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
   setInterval(()=>{if(lastPath!==location.pathname)scheduleScan()},1000);
-  record('ready',storage);render();
+  record('ready',storage);render();restoreReading();updateViewButtons();
   if(storage==='session only')status('No userscript storage API available; export JSON before closing.');
   bootStep='ready';boot.textContent=failures.length?'Wiki · errors '+failures.length:'Diagnostics';
   } catch(e){bootStep='startup failed';fail('startup',e);boot.textContent='Wiki startup failed';showReport();console.error('[DW] startup failed',e);}
