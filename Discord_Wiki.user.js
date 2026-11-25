@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.15.5
+// @version      0.15.6
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.15.5', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.15.6', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyTraversals:0,historyDirectionChanges:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyTraversals:0,historyPrefetches:0,historyRecoveryAttempts:0,historyRecoveryProgress:0,historyDirectionChanges:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -314,7 +314,7 @@
     .canvas{position:fixed;z-index:3;background:#f7f3ec;color:#283342;border:1px solid #ded9d0;border-radius:9px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 18px #27364a18}
     .canvas-head{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:6px 9px;background:#fffdfa;border-bottom:1px solid #e3ded5}
     .canvas-head button{padding:5px 8px;min-height:30px;touch-action:manipulation}
-    .history-overview{display:flex;align-items:center;gap:7px;padding:5px 9px;border-bottom:1px solid #e3ded5;background:#fffdfa;min-width:0;font:11px system-ui;color:#526174}.history-overview[hidden]{display:none}.overview-legend{flex:0 0 auto;line-height:1.35}.overview-track{display:flex;gap:3px;flex:1;min-width:0}.overview-bin{display:flex;flex-direction:column;gap:2px;flex:1 1 0;min-width:0;padding:2px!important;border:1px solid transparent!important;background:none!important;min-height:26px!important;border-radius:4px}.overview-bin[disabled]{opacity:1}.overview-bin[data-current="1"]{border-color:#4663b5!important}.overview-bar{position:relative;display:flex;height:15px;border-radius:2px;overflow:hidden;background:#dce0ef;width:100%}.overview-bar i{display:block;background:#a8bcb0;height:100%}.overview-mark{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed #9d7015;pointer-events:none;z-index:1}.overview-mark[data-note="1"]{border-left:2px solid #8b5d0b}.overview-mark[data-both="1"]{border-right:1px dashed #d9ae47}.overview-bin[disabled] .overview-bar{background:#f4f1eb;border:1px dashed #bbb9b2}.overview-label{font:10px system-ui;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .history-overview{display:flex;align-items:center;gap:7px;padding:5px 9px;border-bottom:1px solid #e3ded5;background:#fffdfa;min-width:0;font:11px system-ui;color:#526174}.history-overview[hidden]{display:none}.overview-legend{flex:0 0 auto;line-height:1.35}.overview-track{display:flex;gap:3px;flex:1;min-width:0}.overview-bin{display:flex;flex-direction:column;gap:2px;flex:1 1 0;min-width:0;padding:2px!important;border:1px solid transparent!important;background:none!important;min-height:26px!important;border-radius:4px}.overview-bin[disabled]{opacity:1}.overview-bin[data-current="1"]{border-color:#4663b5!important}.overview-bar{position:relative;display:flex;height:15px;border-radius:2px;overflow:hidden;background:#dce0ef;width:100%}.overview-bar i{display:block;background:#a8bcb0;height:100%}.overview-position{position:absolute;top:0;bottom:0;width:3px;background:#3a59b8;box-shadow:0 0 0 1px #fffdfa;z-index:3;pointer-events:none;transform:translateX(-50%)}.overview-date{font-weight:650;color:#395279;white-space:nowrap;min-width:0}.overview-mark{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed #9d7015;pointer-events:none;z-index:1}.overview-mark[data-note="1"]{border-left:2px solid #8b5d0b}.overview-mark[data-both="1"]{border-right:1px dashed #d9ae47}.overview-bin[disabled] .overview-bar{background:#f4f1eb;border:1px dashed #bbb9b2}.overview-label{font:10px system-ui;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .canvas-count{flex:1;min-width:110px;font-size:12px;color:#657487}
     .canvas-view{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;overscroll-behavior:contain;user-select:none;cursor:grab;background-color:#f5f2eb;background-image:radial-gradient(#d8d4ca 1px,transparent 1px);background-size:20px 20px}
     .canvas-view.dragging{cursor:grabbing}
@@ -703,7 +703,8 @@
   // Stable chronological grid, adapted from RSM_Tree_Viewer's atlas camera.
   // Snapshot the currently rendered window; no automatic history requests.
   let canvasOpen=false,canvasMode='messages',canvasRows=[],serverRows=[],canvasSize={w:0,h:0},canvasFrame=0;
-  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,lastHistoryDirection='',historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};const HISTORY_LIMIT=1200,HISTORY_BATCH=300,HISTORY_BATCH_CYCLES=30,HISTORY_BATCH_MS=30000;
+  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,lastHistoryDirection='',historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};
+  let prefetchIntent='',prefetchFrontiers={older:'',newer:''};const HISTORY_LIMIT=1200,HISTORY_BATCH=300,HISTORY_BATCH_CYCLES=30,HISTORY_BATCH_MS=30000;
   let canvasChannel='',retainedCanvas=null,historyObserved=null,lateHistory=null,lastTrustedActivity=null;
   const historyEvidence=[],nativeWindowEvidence=[],nativeScrollEvidence=[];
   const scrollIdentities=new WeakMap();let scrollIdentityCounter=0,lastNativeWindow='',lastNativeScrollAt=-Infinity;
@@ -723,7 +724,7 @@
   const canvasCopy=btn(canvasHead,'Copy for AI',()=>copyResearch(canvasFocusRows()));
   const forumBack=el('a','← Forum',canvasHead);forumBack.hidden=true;forumBack.style.cssText='font-size:12px;color:#4663b5;white-space:nowrap';
   const resumeLink=el('a','Resume exploration',canvasHead);resumeLink.hidden=true;resumeLink.style.cssText='font-size:12px;color:#4663b5;white-space:nowrap';
-  const overview=el('div',undefined,canvas);overview.className='history-overview';overview.hidden=true;let overviewBins=[],overviewSignature='';
+  const overview=el('div',undefined,canvas);overview.className='history-overview';overview.hidden=true;let overviewBins=[],overviewSignature='',overviewDate=null,overviewCursorId=null;
   const canvasView=el('div',undefined,canvas);canvasView.className='canvas-view';canvasView.setAttribute('aria-label','Drag to pan, pinch to zoom');
   const world=el('div',undefined,canvasView);world.className='canvas-world';
   const historyBoundary=el('div',undefined,canvasView);historyBoundary.setAttribute('role','status');historyBoundary.hidden=true;historyBoundary.style.cssText='position:absolute;z-index:2;left:50%;transform:translateX(-50%);top:8px;max-width:90%;padding:5px 10px;border:1px solid #d9dce3;border-radius:6px;background:#fffdfa;color:#657487;font:12px system-ui;white-space:normal;text-align:center;pointer-events:none';
@@ -1079,7 +1080,7 @@
       bins.push({start,end,total:ids.length,seen:ids.length-unseen.length,target:latest(unseen)||latest(ids),cells:coverageCells(ids,seen,start,end)});
     }return bins;
   }
-  function monthLabel(m){return new Date(Date.UTC(Math.floor(m/12),m%12,1)).toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'})}
+  function monthLabel(m){const d=new Date(Date.UTC(Math.floor(m/12),m%12,1));return d.toLocaleDateString('en-US',{month:'short',timeZone:'UTC'})+' ’'+String(d.getUTCFullYear()).slice(-2)}
   function engagementMarks(marks,route){
     const result=[];
     for(const [url,m] of Object.entries(marks)){const p=parseLink(url);if(p&&p.guild+'/'+p.channel===route&&(m.favorite||m.note))result.push({id:p.message,favorite:!!m.favorite,note:!!m.note})}
@@ -1097,21 +1098,47 @@
     const marks=engagementMarks(data.marks,exploration.route),sig=exploration.route+'|'+e.known.size+'|'+e.seen.size+'|'+marks.map(m=>m.id+':'+Number(m.favorite)+Number(m.note)).sort().join(',');
     if(sig===overviewSignature){overview.hidden=!overviewBins.length;return}
     overviewSignature=sig;overview.replaceChildren();overviewBins=historyBins(new Set([...e.known,...marks.map(m=>m.id)]),e.seen);overview.hidden=!overviewBins.length;if(overview.hidden)return;
-    const legend=el('div',undefined,overview);legend.className='overview-legend';legend.textContent='Older → newer';const key=el('div','Green seen · lilac unseen · gold marks',legend);key.style.fontSize='10px';key.title='Only among observed messages, not complete channel coverage. Colors follow actual dates; mixed colors mean mixed seen status, pale grey means no recorded messages. Gold marks share the same time axis.';
+    const legend=el('div',undefined,overview);legend.className='overview-legend';overviewDate=el('div','Older → newer',legend);overviewDate.className='overview-date';overviewCursorId=null;const key=el('div','Green seen · lilac unseen · gold marks',legend);key.style.fontSize='10px';key.title='Only among observed messages, not complete channel coverage. Colors follow actual dates; mixed colors mean mixed seen status, pale grey means no recorded messages. Gold marks share the same time axis.';
     const track=el('div',undefined,overview);track.className='overview-track';
     for(const b of overviewBins){
       const button=el('button',undefined,track);button.type='button';button.className='overview-bin';button.disabled=!b.total;b.node=button;
       const label=monthLabel(b.start)+(b.end!==b.start?'–'+monthLabel(b.end):'');button.title=label+' · '+(b.total?b.seen+' seen / '+b.total+' observed (not total coverage)':'No recorded messages; coverage unknown');button.setAttribute('aria-label',button.title);
-      const bar=el('span',undefined,button);bar.className='overview-bar';if(b.total)for(const cell of b.cells){const segment=el('i',undefined,bar);segment.style.flex='1 1 0';segment.style.background=coverageColor(cell)}const ticks=engagementTicks(marks,b.start,b.end);for(const t of ticks){const tick=el('span',undefined,bar);tick.className='overview-mark';tick.style.left=t.position+'%';if(t.note)tick.dataset.note='1';if(t.note&&t.favorite)tick.dataset.both='1'}button.title+=' · '+ticks.filter(t=>t.favorite).length+' favorites · '+ticks.filter(t=>t.note).length+' notes';button.setAttribute('aria-label',button.title);el('span',label,button).className='overview-label';
+      const bar=el('span',undefined,button);bar.className='overview-bar';b.cursor=el('span',undefined,bar);b.cursor.className='overview-position';b.cursor.hidden=true;if(b.total)for(const cell of b.cells){const segment=el('i',undefined,bar);segment.style.flex='1 1 0';segment.style.background=coverageColor(cell)}const ticks=engagementTicks(marks,b.start,b.end);for(const t of ticks){const tick=el('span',undefined,bar);tick.className='overview-mark';tick.style.left=t.position+'%';if(t.note)tick.dataset.note='1';if(t.note&&t.favorite)tick.dataset.both='1'}button.title+=' · '+ticks.filter(t=>t.favorite).length+' favorites · '+ticks.filter(t=>t.note).length+' notes';button.setAttribute('aria-label',button.title);el('span',label,button).className='overview-label';
       if(b.target)button.addEventListener('click',()=>{if(!canvasOpen||canvasMode!=='messages'||exploration?.route!==routeKey())return;const local=canvasRows.filter(p=>messageMonth(p.source.message)>=b.start&&messageMonth(p.source.message)<=b.end&&!e.seen.has(p.source.message)).at(-1);const target=local?.source.message||b.target;if(!focusMessageCard(target))location.assign('https://discord.com/channels/'+exploration.route+'/'+target)});
     }updateOverviewCursor();
+  }
+  function overviewPosition(slots,hidden,camera,w,h){
+    if(!w||!h||camera.z<=0)return null;
+    const cx=(w/2-camera.x)/camera.z,cy=(h/2-camera.y)/camera.z,limit=slots.length-hidden;
+    let nearest=null;
+    // Use the nearest actual visible card, including after prepend holes.
+    const lo=Math.max(0,Math.floor((-camera.y/camera.z-184)/190));
+    const hi=Math.min(Math.ceil(limit/5)-1,Math.floor((h-camera.y)/camera.z/190));
+    for(let r=lo;r<=hi;r++)for(let c=0;c<5;c++){
+      const i=r*5+c,p=i<limit?slots[i]:null;if(!p)continue;
+      const x=10+c*316,y=10+r*190;
+      if((x+300)*camera.z+camera.x<=0||x*camera.z+camera.x>=w||(y+174)*camera.z+camera.y<=0||y*camera.z+camera.y>=h)continue;
+      const distance=Math.hypot(x+150-cx,y+87-cy);
+      if(!nearest||distance<nearest.distance)nearest={id:p.source.message,distance};
+    }
+    return nearest?.id||null;
+  }
+  function timestampPosition(id,start,end){
+    const from=Date.UTC(Math.floor(start/12),start%12,1),next=end+1,to=Date.UTC(Math.floor(next/12),next%12,1);
+    const t=Number(BigInt(id)>>22n)+1420070400000;return Math.max(0,Math.min(100,100*(t-from)/(to-from)));
   }
   function updateOverviewCursor(){
     if(canvasMode!=='messages'||!exploration||exploration.route!==routeKey()){overview.hidden=true;return}
     if(!overviewBins.length)return;overview.hidden=false;
-    const i=Math.max(0,Math.min(canvasSlots.length-collapsedSeen-1,Math.floor((canvasView.clientHeight/2-camera.y)/camera.z/190)*5+2));
-    const p=canvasSlots[i]||canvasSlots.slice(0,canvasSlots.length-collapsedSeen).find(Boolean),month=p?messageMonth(p.source.message):null;
-    for(const b of overviewBins){if(month!==null&&month>=b.start&&month<=b.end)b.node.dataset.current='1';else delete b.node.dataset.current}
+    const id=overviewPosition(canvasSlots,collapsedSeen,camera,canvasView.clientWidth,canvasView.clientHeight);
+    if(id===overviewCursorId)return;overviewCursorId=id;
+    const month=id?messageMonth(id):null;
+    if(overviewDate)overviewDate.textContent=id?new Date(Number(BigInt(id)>>22n)+1420070400000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'})+' · UTC':'Older → newer';
+    for(const b of overviewBins){
+      const active=month!==null&&month>=b.start&&month<=b.end;
+      if(active){b.node.dataset.current='1';b.cursor.hidden=false;b.cursor.style.left=timestampPosition(id,b.start,b.end)+'%'}
+      else{delete b.node.dataset.current;b.cursor.hidden=true}
+    }
   }
   function applyCamera(){
     canvasFrame=0;world.style.transform='translate('+camera.x+'px,'+camera.y+'px) scale('+camera.z+')';
@@ -1119,10 +1146,10 @@
     canvasCount.title=canvasMode==='servers'?'Native server and folder entries; select a folder to expand it.':canvasMode==='posts'?'Currently rendered forum posts; use Timeline to load additional posts.':'Initially up to 100 encountered messages, extended by native history loading; chronological gaps may exist.';
     const extent=canvasSize.h*camera.z,top=extent<=canvasView.clientHeight?(canvasView.clientHeight-extent)/2:0;
     const atTop=canvasMode==='messages'&&camera.y>=top-30;
-    const boundary=historyEnds.older?'Beginning of channel':historyBusy?historyStatus:lateHistory&&historyStatus.includes('Discord still loading')?'Discord still loading · watching for messages':historyStalls.older?'No older messages returned · drag again to retry':'';
+    const boundary=historyEnds.older?'Beginning of channel':historyBusy?historyStatus:lateHistory&&historyStatus.includes('Discord still loading')?'Discord still loading · watching for messages':historyStalls.older&&lastHistoryDirection==='older'?(historyStatus||'Older history paused · drag again to retry'):'';
     historyBoundary.hidden=!(atTop&&boundary);historyBoundary.textContent=boundary;updateOverviewCursor();
     const thread=forumThreadRoute();forumBack.hidden=!(canvasMode==='messages'&&thread);if(thread)forumBack.href='https://discord.com/channels/'+thread[1]+'/'+thread[2];
-    updateResume();if(canvasMode==='messages')scheduleExploration();
+    updateResume();if(canvasMode==='messages'){scheduleExploration();maybePrefetchHistory()}
   }
   function scheduleCamera(){if(!canvasFrame)canvasFrame=requestAnimationFrame(applyCamera)}
   function clampScale(z){return Math.max(.025,Math.min(3.5,z))}
@@ -1340,7 +1367,7 @@
     if(explorationTimer){clearTimeout(explorationTimer);explorationTimer=0}saveExploration();
     if(layoutFrame){cancelAnimationFrame(layoutFrame);layoutFrame=0}layoutObserver?.disconnect();layoutTargets=[];lastCanvasGeometry=null;
     if(canvasMode==='messages'&&canvasRows.length)retainedCanvas={channel:canvasChannel,rows:canvasRows,slots:canvasSlots,camera:{...camera},ends:{...historyEnds},stalls:{...historyStalls},status:historyBusy?'Drag past an edge for more':historyStatus};
-    historyGeneration++;historyBusy=false;historyObserved=null;lateHistory=null;edgeDirection='';edgeTravel=0;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;delete canvasView.dataset.cardScroll;
+    historyGeneration++;historyBusy=false;historyObserved=null;lateHistory=null;edgeDirection='';edgeTravel=0;prefetchIntent='';prefetchFrontiers={older:'',newer:''};stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;delete canvasView.dataset.cardScroll;
     canvasView.classList.remove('dragging');updateViewButtons();syncComposerGuard();metrics.canvas.closes++;record('canvas-close');
   }
   function readForumPosts(){
@@ -1416,7 +1443,8 @@
     return {dir:'',travel:0};
   }
   function trackHistoryEdge(dy){
-    if(!canvasOpen||canvasMode!=='messages'||historyBusy||!dy){edgeTravel=0;edgeDirection='';return}
+    if(!canvasOpen||canvasMode!=='messages'||historyBusy||!dy){edgeTravel=0;edgeDirection='';prefetchIntent='';return}
+    if(Math.abs(dy)>=1)prefetchIntent=dy>0?'older':'newer';
     const {dir,travel}=edgeIntent(camera.y,dy,canvasView.clientHeight,canvasSize.h*camera.z);
     if(!dir){edgeTravel=0;edgeDirection='';return}
     if(dir!==edgeDirection){edgeDirection=dir;edgeTravel=0}
@@ -1424,7 +1452,25 @@
   }
   function consumeHistoryEdge(){
     if(edgeTravel<=65||!edgeDirection||historyBusy)return false;
-    const dir=edgeDirection;edgeTravel=0;edgeDirection='';loadHistory(dir);return true;
+    const dir=edgeDirection;edgeTravel=0;edgeDirection='';prefetchIntent='';loadHistory(dir);return true;
+  }
+  function nearHistoryEdge(dir,y,extent,height){
+    if(!height||extent<=height)return false;
+    const distance=dir==='older'?-y:y-(height-extent);
+    return distance<=height*1.5;
+  }
+  function maybePrefetchHistory(){
+    const dir=prefetchIntent;prefetchIntent='';
+    if(!dir||!canvasOpen||canvasMode!=='messages'||historyBusy||lateHistory||!canvasRows.length||!detail.hidden||!noteEditor.hidden||pinch||historyEnds[dir]||historyStalls[dir]||canvasRows.length>=HISTORY_LIMIT)return;
+    // A real pan toward an edge authorizes at most one speculative batch
+    // per distinct frontier. Never chain loads while the user is stationary.
+    if(dir==='newer'&&collapsedSeen)return;
+    if(!nearHistoryEdge(dir,camera.y,canvasSize.h*camera.z,canvasView.clientHeight))return;
+    if(dir===lastHistoryDirection&&Date.now()-lastHistoryAt<600)return;
+    const id=(dir==='older'?canvasRows[0]:canvasRows.at(-1)).source.message,key=routeKey()+'/'+id;
+    if(prefetchFrontiers[dir]===key)return;
+    prefetchFrontiers[dir]=key;metrics.canvas.historyPrefetches++;
+    loadHistory(dir,HISTORY_BATCH,'prefetch');
   }
   function nativeScrollCandidates(){
     const list=document.querySelector('[data-list-id="chat-messages"]'),out=[];
@@ -1647,7 +1693,7 @@
     if(nativeFirst.channel!==canvasFirst.channel||nativeFirst.message!==canvasFirst.message)return false;
     historyEnds.older=true;historyStalls.older=0;metrics.canvas.historyEndConfirmed++;record('history-end','older');scheduleCamera();return true;
   }
-  async function loadHistory(dir,target=HISTORY_BATCH){
+  async function loadHistory(dir,target=HISTORY_BATCH,trigger='gesture'){
     if(!canvasOpen||canvasMode!=='messages'||historyBusy||!canvasRows.length||(dir===lastHistoryDirection&&Date.now()-lastHistoryAt<600))return;
     if(historyEnds[dir]){historyStatus=dir==='older'?'Beginning of channel':'End of channel';scheduleCamera();return}
     if(canvasRows.length>=HISTORY_LIMIT){historyStatus='1200-message session limit';scheduleCamera();metrics.canvas.historyBlocked++;return}
@@ -1660,12 +1706,14 @@
     if(historyTrace){historyEvidence.push(summarizeHistoryTrace(historyTrace));if(historyEvidence.length>6)historyEvidence.shift()}
     historyTrace={channel:channelRoute()?.[2],started:performance.now(),direction:dir,scrollEvents:0,scrollSamples:[],driverSteps:[],scrollerCandidates:nativeScrollCandidates().map(scrollSnapshot),canvasBefore:dateRange(canvasRows),before:{top:Math.round(scroller.scrollTop),height:scroller.clientHeight,scrollHeight:scroller.scrollHeight,...historyRange(visibleRows(true)),...nativeHistoryState(scroller)},samples:[],activity:[],resources:[],lastActivity:lastTrustedActivity,visible:document.visibilityState,rearmed:false};
     const active=()=>gen===historyGeneration&&canvasOpen&&canvasMode==='messages'&&route===channelRoute()?.slice(1,3).join('/');
-    const batch={target:Math.min(target,HISTORY_LIMIT-canvasRows.length),added:0,pages:[],stop:null};
+    const batch={target:Math.min(target,HISTORY_LIMIT-canvasRows.length),added:0,pages:[],stop:null,trigger,recoveryAttempts:0};
     historyTrace.batch=batch;
     const deadline=performance.now()+HISTORY_BATCH_MS;
     const remaining=()=>batch.target-batch.added;
+    let recoveryPending=false;
     const progress=(n,via)=>{
       if(!n)return false;
+      if(recoveryPending){metrics.canvas.historyRecoveryProgress++;recoveryPending=false;}
       batch.added+=n;batch.pages.push({via,added:n,total:batch.added,elapsed:Math.round(performance.now()-historyTrace.started)});
       metrics.canvas.historyAdded+=n;metrics.canvas.historyBatchPages++;historyStalls[dir]=0;
       historyStatus='Loading '+dir+' · '+batch.added+'/'+batch.target+' messages';
@@ -1682,7 +1730,8 @@
     }
     try{
       // One explicit gesture authorizes one bounded logical batch. Every
-      // additional traversal follows observed progress; never retry a stall.
+      // additional traversal follows observed progress, with one bounded
+      // recovery from a native scroll that did not advance.
       const already=visibleRows(true);rememberWindow(already);
       progress(integrateHistory([...encountered.values()],dir,remaining()),'cache');
       for(let cycle=0;cycle<HISTORY_BATCH_CYCLES&&remaining()>0;cycle++){
@@ -1715,8 +1764,13 @@
           if(performance.now()-waitStart>=3000&&!seenBusy)break;
         }
         if(advanced)continue;
-        // Do not repeat a native operation which yielded no new messages.
+        // A native list can temporarily restore its scroll anchor during
+        // a render. Wait above, then allow one re-drive, not a retry loop.
         const pending=nativeHistoryState(nativeScroller()).busy;
+        if(!pending&&driverResult==='scroll-not-moving'&&batch.recoveryAttempts===0&&deadline-performance.now()>2500){
+          batch.recoveryAttempts++;metrics.canvas.historyRecoveryAttempts++;recoveryPending=true;
+          historyStatus='Recovering native scroll · '+batch.added+'/'+batch.target;record('history-recovery',dir);scheduleCamera();continue;
+        }
         metrics.canvas.historyEmpty++;metrics.canvas.historyStalled++;historyStalls[dir]++;
         if(pending)metrics.canvas.historyPendingTimeouts++;
         lateHistory={generation:gen,route:routeKey(),dir,until:performance.now()+30000,remaining:remaining(),added:batch.added};
@@ -1725,7 +1779,7 @@
       }
       finish(remaining()===0?'batch-target':'cycle-budget',remaining()===0?(canvasRows.length>=HISTORY_LIMIT?'1200-message session limit':''):'drag for more');
     }catch(e){if(active()){fail('history-load',e);finish('error','History load failed')}}
-    finally{if(gen===historyGeneration){historyBusy=false;historyObserved=null;edgeDirection='';edgeTravel=0;historyTrace.canvasAfter=dateRange(canvasRows);traceHistoryResources(historyTrace);scheduleCamera()}}
+    finally{if(gen===historyGeneration){historyBusy=false;historyObserved=null;edgeDirection='';edgeTravel=0;historyTrace.canvasAfter=dateRange(canvasRows);prefetchIntent='';traceHistoryResources(historyTrace);scheduleCamera()}}
   }
   // Route a gesture by target, direction and actual text overflow, never zoom.
   function canScrollCard(top,height,client,dy){
