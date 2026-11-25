@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.15.7
+// @version      0.15.8
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.15.7', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.15.8', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -605,7 +605,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,forum:{nativeIndex:nativeForumIndex(),recognized:readForumPosts().length,displayed:canvasMode==='posts'?forumRows.length:0},world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,media:{cards:canvasRows.filter(p=>p.media?.images.length||p.media?.embeds.length).length},exploration:{entryDecision,known:exploration?.entry.known.size||0,overviewRegions:overviewBins.length,seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,loadedPreviouslySeen:canvasRows.filter(p=>exploration?.prior.has(p.source.message)).length,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,accountGeometry,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,forum:{nativeIndex:nativeForumIndex(),recognized:readForumPosts().length,displayed:canvasMode==='posts'?forumRows.length:0,trace:forumTrace},navigationDocument:{type:navigationBoot,previousExit:previousNavigation,lastIntent:lastNavigationIntent},world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,media:{cards:canvasRows.filter(p=>p.media?.images.length||p.media?.embeds.length).length},exploration:{entryDecision,known:exploration?.entry.known.size||0,overviewRegions:overviewBins.length,seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,loadedPreviouslySeen:canvasRows.filter(p=>exploration?.prior.has(p.source.message)).length,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,accountGeometry,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function forumThreadRoute(path=location.pathname){return path.match(/^\/channels\/(\d{15,22})\/(\d{15,22})\/threads\/(\d{15,22})(?:\/|$)/)}
   function channelRoute(path=location.pathname){
@@ -656,7 +656,7 @@
     try{const u=new URL(raw);return u.protocol==='https:'&&/^(?:cdn\.discordapp\.(?:com|net)|media\.discordapp\.net|images-ext-\d+\.discordapp\.net)$/.test(u.hostname)?u.href:null}catch{return null}
   }
   function messageMedia(row){
-    const images=[],embeds=[],seen=new Set();let pendingImages=0,unavailableImages=0;if(!row)return {images,embeds,pendingImages,unavailableImages};
+    const images=[],embeds=[],seen=new Set(),imageCaptions=[];let pendingImages=0,unavailableImages=0;if(!row)return {images,embeds,pendingImages,unavailableImages,imageCaptions};
     const accessories=row.querySelector('[id^="message-accessories-"]')||row;
     const excluded=n=>n.closest('[class*="repliedMessage_"],[class*="spoiler"],[class*="Spoiler"]');
     const addImage=(url,alt)=>{if(!url||seen.has(url)||images.length>=6)return;seen.add(url);images.push({url,alt:(alt||'Message image').slice(0,150)})};
@@ -664,10 +664,11 @@
     // Each wrapper owns a sibling originalLink even when its lazy img is absent.
     for(const wrapper of accessories.querySelectorAll('[class*="imageWrapper_"]')){
       if(excluded(wrapper)||wrapper.closest('[class*="embedVideo_"],[class*="videoWrapper_"]'))continue;
-      const img=wrapper.querySelector('img:not(.emoji)'),link=wrapper.querySelector('a[class*="originalLink_"][href]');
+      const img=wrapper.querySelector('img:not(.emoji):not([class*="imagePlaceholder_"])'),link=wrapper.querySelector('a[class*="originalLink_"][href]');
+      const caption=(wrapper.querySelector('[class*="clickableWrapper_"][aria-label]')?.getAttribute('aria-label')||'').trim();
       const url=safeMediaURL(img?.currentSrc)||safeMediaURL(img?.getAttribute('src'))||safeMediaURL(link?.getAttribute('href'));
-      if(url)addImage(url,img?.getAttribute('alt'));
-      else if(wrapper.querySelector('[class*="loadingOverlay_"]'))pendingImages++;
+      if(url)addImage(url,img?.getAttribute('alt')||caption);
+      else if(wrapper.querySelector('[class*="loadingOverlay_"]')){pendingImages++;if(caption&&caption!=='Image'&&!imageCaptions.includes(caption))imageCaptions.push(caption.slice(0,300))}
       else if(link||img)unavailableImages++;
     }
     for(const img of accessories.querySelectorAll('img')){
@@ -678,7 +679,7 @@
     for(const e of row.querySelectorAll('[class*="embedFull_"],[class*="embedWrapper_"]:not(:has([class*="embedFull_"]))')){
       const title=(e.querySelector('[class*="embedTitle_"]')?.textContent||'').trim().slice(0,300),description=(e.querySelector('[class*="embedDescription_"]')?.textContent||'').trim().slice(0,3000);
       if(title||description)embeds.push({title,description});if(embeds.length>=3)break;
-    }return {images,embeds,pendingImages,unavailableImages};
+    }return {images,embeds,pendingImages,unavailableImages,imageCaptions};
   }
   function messagePacket(node,source){
     const row=node.closest('li[id^="chat-messages-"]');
@@ -711,7 +712,7 @@
   const routeKey=()=>channelRoute()?.slice(1,3).join('/')||'';
   let exploration=null,explorationLoading='',explorationTimer=0,explorationWriteTimer=0,explorationWriteQueue=Promise.resolve(),collapsedSeen=0,showPreviouslySeen=false;
   let forumRows=[],forumSignature='',entryDecision='none',entryRoute='',entryContextRun=0;
-  const forumCache=new Map();let forumBusy=false,forumStatus='',forumNavRun=0;
+  const forumCache=new Map();let forumBusy=false,forumStatus='',forumNavRun=0,forumTrace=null,forumLastLoad=0;
   const explorationCache=new Map();
   let inertiaFrame=0,velocity={x:0,y:0},lastMotion=0;const PAN_GAIN=1.85,PINCH_GAIN=1.65,FRICTION_MS=245;
   const encountered=new Map();let encounteredChannel='';
@@ -730,7 +731,8 @@
   const world=el('div',undefined,canvasView);world.className='canvas-world';
   const historyBoundary=el('div',undefined,canvasView);historyBoundary.setAttribute('role','status');historyBoundary.hidden=true;historyBoundary.style.cssText='position:absolute;z-index:2;left:50%;transform:translateX(-50%);top:8px;max-width:90%;padding:5px 10px;border:1px solid #d9dce3;border-radius:6px;background:#fffdfa;color:#657487;font:12px system-ui;white-space:normal;text-align:center;pointer-events:none';
   const detail=el('section',undefined,canvas);detail.className='canvas-detail';detail.hidden=true;
-  const navigationFallback=el('a','Open with reload',canvasHead);navigationFallback.hidden=true;navigationFallback.style.cssText='font-size:12px;color:#4663b5';navigationFallback.title='Native navigation unavailable; reload only if you choose';
+  const forumMore=btn(canvasHead,'More posts',()=>loadForumMore(30));forumMore.hidden=true;
+  const navigationFallback=el('a','Open in new tab',canvasHead);navigationFallback.target='_blank';navigationFallback.rel='noopener noreferrer';navigationFallback.hidden=true;navigationFallback.style.cssText='font-size:12px;color:#4663b5';navigationFallback.title='Native navigation unavailable; preserve this tab and open the destination separately';
   window.addEventListener('click',e=>{if(!canvasOpen||detail.hidden||e.composedPath().includes(detail)||e.composedPath().includes(noteEditor))return;detail.hidden=true},true);
   forumBack.addEventListener('click',e=>{e.preventDefault();navigateDiscord(forumBack.href)});
   // The two human actions share one message identity and one local record.
@@ -1153,7 +1155,8 @@
     const boundary=historyEnds.older?'Beginning of channel':historyBusy?historyStatus:lateHistory&&historyStatus.includes('Discord still loading')?'Discord still loading · watching for messages':historyStalls.older&&lastHistoryDirection==='older'?(historyStatus||'Older history paused · drag again to retry'):'';
     historyBoundary.hidden=!(atTop&&boundary);historyBoundary.textContent=boundary;updateOverviewCursor();
     const thread=forumThreadRoute();forumBack.hidden=!(canvasMode==='messages'&&thread);if(thread)forumBack.href='https://discord.com/channels/'+thread[1]+'/'+thread[2];
-    updateResume();if(canvasMode==='messages'){scheduleExploration();maybePrefetchHistory()}else if(canvasMode==='posts'&&prefetchIntent==='newer'){prefetchIntent='';if(!forumBusy&&nearHistoryEdge('newer',camera.y,canvasSize.h*camera.z,canvasView.clientHeight))loadForumMore(30)}
+    forumMore.hidden=canvasMode!=='posts'||forumBusy||forumRows.length>=300;
+    updateResume();if(canvasMode==='messages'){scheduleExploration();maybePrefetchHistory()}else if(canvasMode==='posts'&&prefetchIntent==='newer'){prefetchIntent='';if(!forumBusy&&(canvasSize.h*camera.z<=canvasView.clientHeight||nearHistoryEdge('newer',camera.y,canvasSize.h*camera.z,canvasView.clientHeight)))loadForumMore(30)}
   }
   function scheduleCamera(){if(!canvasFrame)canvasFrame=requestAnimationFrame(applyCamera)}
   function clampScale(z){return Math.max(.025,Math.min(3.5,z))}
@@ -1181,6 +1184,7 @@
     el('p',p.text||'(No text in this rendered message)',detail);
     for(const embed of media.embeds){if(embed.title)el('strong',embed.title,detail);if(embed.description)el('p',embed.description,detail)}
     for(const item of media.images){const img=el('img',undefined,detail);img.className='detail-image';img.alt=item.alt;img.referrerPolicy='no-referrer';img.decoding='async';img.src=item.url;img.addEventListener('error',()=>img.replaceWith(el('p','Image unavailable · open original to view')),{once:true})}
+    for(const caption of media.imageCaptions||[])el('p',caption,detail).className='muted';
     if(media.pendingImages||media.unavailableImages)el('div','Some images are not available as previews yet. Open original to view.',detail).className='muted';
     if(p.attachments)el('div','Open original for other attachments, video or unavailable previews.',detail).className='muted';
     const actions=el('div',undefined,detail);actions.className='row';
@@ -1217,6 +1221,7 @@
       const redundantLink=media.embeds.length>0&&/^https?:\/\/\S+$/i.test(p.text.trim());
       if(p.text&&!redundantLink)preview.append(document.createTextNode(p.text));else if(!p.text&&!p.attachments&&!media.images.length&&!media.embeds.length)preview.append(document.createTextNode('(No text · open original)'));
       for(const e of media.embeds){if(e.title)el('span',e.title,preview).className='embed-preview';if(e.description)el('span',e.description,preview).className='embed-description'}
+      for(const caption of media.imageCaptions||[])el('span',caption,preview).className='embed-description';
       if(media.pendingImages||media.unavailableImages)el('span','Image · open original if preview unavailable',preview).className='embed-description';
       else if(p.attachments&&!media.images.length&&!media.embeds.length)el('span','Attachment · open message',preview).className='embed-preview';
       preview.scrollTop=cardScrollOffsets.get(p.source.url)||0;
@@ -1376,7 +1381,10 @@
     canvasView.classList.remove('dragging');updateViewButtons();syncComposerGuard();metrics.canvas.closes++;record('canvas-close');
   }
   const navWait=ms=>new Promise(r=>setTimeout(r,ms));
-  let routerFn=null,routerChecked=false;
+  let routerFn=null,routerChecked=false,lastNavigationIntent=null;
+  const navigationBoot=performance.getEntriesByType?.('navigation')?.[0]?.type||'unknown';
+  let previousNavigation=null;try{previousNavigation=JSON.parse(sessionStorage.getItem('dw-document-exit')||'null');sessionStorage.removeItem('dw-document-exit')}catch{}
+  window.addEventListener('pagehide',e=>{try{sessionStorage.setItem('dw-document-exit',JSON.stringify({version:VERSION,at:Date.now(),persisted:e.persisted,intent:lastNavigationIntent&&Date.now()-lastNavigationIntent.at<10000?lastNavigationIntent:null}))}catch{} });
   // Vencord identifies the loaded navigation export by this distinctive
   // function signature. No auth stores, API calls or new module execution.
   function discordRouter(){
@@ -1406,7 +1414,8 @@
   async function navigateDiscord(raw,{automatic=false,postId=null}={}){
     const path=validDiscordPath(raw);if(!path)return false;
     const start=location.pathname,run=++forumNavRun;
-    const current=()=>run===forumNavRun||location.pathname!==start;
+    lastNavigationIntent={at:Date.now(),kind:postId?'post':automatic?'automatic-frontier':'link'};
+    const current=()=>run===forumNavRun&&location.pathname===start;
     const arrived=()=>location.pathname.replace(/\/$/,'')===path||(postId&&channelRoute()?.[2]===postId);
     if(arrived()){const id=path.split('/')[4];if(id&&id!=='threads')document.getElementById('message-content-'+id)?.scrollIntoView({block:'center'});return true}
     navigationFallback.hidden=true;
@@ -1416,8 +1425,11 @@
       const live=nativePostTarget(postId);
       if(live){live.click();for(let i=0;i<10&&!arrived()&&current();i++)await navWait(100);if(arrived()){metrics.canvas.softNavigations++;record('navigate','native-post');return true}}
     }else{
-      const anchor=[...document.querySelectorAll('a[href]')].find(n=>validDiscordPath(n.getAttribute('href'))===path&&n.getClientRects().length&&!n.closest('#dw-sparse-explorer'));
-      if(anchor){anchor.click();for(let i=0;i<8&&!arrived()&&current();i++)await navWait(100);if(arrived()){metrics.canvas.softNavigations++;record('navigate','native-link');return true}}
+      const anchor=[...document.querySelectorAll('#channels a[href]')].find(n=>validDiscordPath(n.getAttribute('href'))===path&&n.getClientRects().length);
+      if(anchor){
+        // Let React's native handler run, but forbid the anchor's browser default.
+        const guard=e=>{if(e.composedPath().includes(anchor))e.preventDefault()};
+        document.addEventListener('click',guard);try{anchor.click()}finally{document.removeEventListener('click',guard)}for(let i=0;i<8&&!arrived()&&current();i++)await navWait(100);if(arrived()){metrics.canvas.softNavigations++;record('navigate','native-link');return true}}
     }
     if(!current()||location.pathname!==start)return arrived();
     const router=discordRouter();
@@ -1504,29 +1516,46 @@
     forumCache.set(key,merged);return merged;
   }
   function forumScroller(){
-    const list=forumList();for(let n=list;n&&n!==document.body;n=n.parentElement){
-      if(/auto|scroll|overlay/.test(getComputedStyle(n).overflowY)&&n.clientHeight>0&&n.scrollHeight>n.clientHeight+2)return n;
-    }return null;
+    const list=forumList();if(!list)return null;
+    // Captured native forum list is itself the scroller (list_BkGrJJ).
+    if(list.clientHeight>0&&/auto|scroll|overlay/.test(getComputedStyle(list).overflowY))return list;
+    for(let n=list.parentElement;n&&n!==document.body;n=n.parentElement){if(/auto|scroll|overlay/.test(getComputedStyle(n).overflowY)&&n.clientHeight>0&&n.scrollHeight>n.clientHeight+2)return n}return null;
   }
   function syncForumWindow(){
     const rows=mergeForumPosts(readForumPosts());if(forumSignature!==forumRowsSignature(rows)){renderForumPosts(rows);constrainCamera();scheduleCamera()}return rows;
   }
   async function loadForumMore(target=30){
-    if(forumBusy||!canvasOpen||canvasMode!=='posts'||forumRows.length>=300)return;
-    forumBusy=true;const route=routeKey(),gen=historyGeneration,initial=forumRows.length;
+    if(forumBusy||!canvasOpen||canvasMode!=='posts'||forumRows.length>=300||Date.now()-forumLastLoad<600)return;
+    forumBusy=true;forumLastLoad=Date.now();const route=routeKey(),gen=historyGeneration,initial=forumRows.length;
     const active=()=>gen===historyGeneration&&canvasOpen&&canvasMode==='posts'&&routeKey()===route;
-    let stagnant=0;forumStatus='Loading posts…';scheduleCamera();metrics.canvas.forumBatches++;
+    const trace=forumTrace={initial,target,steps:[],events:0,stop:'running',added:0};
+    const listener=e=>{if(e.target===forumScroller())trace.events++};
+    document.addEventListener('scroll',listener,true);
+    const deadline=performance.now()+20000;let stagnantAt=null,rearmed=false;
+    forumStatus='Loading posts…';scheduleCamera();metrics.canvas.forumBatches++;
     try{
-      for(let i=0;i<60&&active()&&forumRows.length-initial<target&&forumRows.length<300;i++){
-        const n=forumScroller();if(!n){forumStatus='Native forum scroller unavailable';break}
-        const before=n.scrollTop,height=n.scrollHeight,count=forumRows.length;
-        n.scrollTop=Math.min(n.scrollHeight-n.clientHeight,before+Math.max(80,n.clientHeight*.75));
-        await navWait(200);if(!active())return;syncForumWindow();
-        if(forumRows.length>count||Math.abs(n.scrollTop-before)>2||n.scrollHeight!==height){stagnant=0;continue}
-        if(++stagnant>=4){forumStatus='No more posts returned · swipe to retry';break}
+      for(let i=0;i<80&&active()&&performance.now()<deadline&&forumRows.length-initial<target&&forumRows.length<300;i++){
+        const n=forumScroller();if(!n){trace.stop='scroller-unavailable';break}
+        const before=n.scrollTop,height=n.scrollHeight,count=forumRows.length,max=Math.max(0,height-n.clientHeight);
+        // A previous attempt may already be at the native edge. Re-arm once.
+        let to=Math.min(max,before+Math.max(60,n.clientHeight*.65));
+        if(max>4&&max-before<2&&!rearmed){to=Math.max(0,max-Math.max(60,n.clientHeight*.8));rearmed=true}
+        n.scrollTop=to;
+        await navWait(250);if(!active())return;syncForumWindow();
+        const next=forumScroller(),after=next?.scrollTop??null,newHeight=next?.scrollHeight??null;
+        const added=forumRows.length-count;
+        boundedPush(trace.steps,{before,to,after,height,newHeight,client:n.clientHeight,added,live:readForumPosts().length,events:trace.events},30);
+        if(added||Math.abs((after??before)-before)>2||newHeight!==height){stagnantAt=null;continue}
+        if(stagnantAt===null)stagnantAt=performance.now();
+        if(performance.now()-stagnantAt>=4000){trace.stop='no-new-window';break}
       }
-      if(active()){const added=forumRows.length-initial;metrics.canvas.forumAdded+=added;if(added)forumStatus='+'+added+' posts · swipe down for more';else if(forumStatus==='Loading posts…')forumStatus='Swipe down for more posts';if(forumRows.length>=300)forumStatus='300-post session limit'}
-    }finally{if(active()){forumBusy=false;scheduleCamera()}}
+      if(active()){
+        const added=forumRows.length-initial;trace.added=added;metrics.canvas.forumAdded+=added;
+        if(trace.stop==='running')trace.stop=added>=target?'target':forumRows.length>=300?'session-limit':'budget';
+        forumStatus=(added?'+'+added+' posts · ':'')+(forumRows.length>=300?'300-post session limit':trace.stop==='target'?'Swipe down for more':trace.stop==='scroller-unavailable'?'Native forum scroller unavailable':'More posts to retry');
+      }
+    }catch(e){if(active()){trace.stop='error';forumStatus='Forum load failed · More posts to retry';fail('forum-history',e)}}
+    finally{document.removeEventListener('scroll',listener,true);if(active()){forumBusy=false;scheduleCamera()}else trace.stop='cancelled'}
   }
   async function seekForumPost(id,run){
     const route=routeKey(),gen=historyGeneration,active=()=>run===forumNavRun&&gen===historyGeneration&&canvasOpen&&canvasMode==='posts'&&routeKey()===route;
@@ -1965,7 +1994,7 @@
       if(src.kind==='folder')btn(item,name,()=>{if(!canvasOpen||canvasMode!=='servers')openCanvas('servers');const target=[...world.querySelectorAll('[data-dw-mark-url]')].find(b=>b.dataset.dwMarkUrl===url)?.closest('.server-card');if(target){stopInertia();camera.x=canvasView.clientWidth/2-(target.offsetLeft+target.offsetWidth/2)*camera.z;camera.y=canvasView.clientHeight/2-(target.offsetTop+target.offsetHeight/2)*camera.z;constrainCamera();scheduleCamera()}});
       const a=src.kind==='folder'?null:el('a',name,item);if(a){a.href=url;if(src.kind!=='server')a.addEventListener('click',e=>{e.preventDefault();navigateDiscord(url)})}
       el('div',src.kind,item).className='muted';
-      if(src.kind==='server')a.addEventListener('click',e=>{const match=readServers().find(x=>!x.folder&&x.id===src.guild);if(match){e.preventDefault();match.node.click()}});
+      if(src.kind==='server')a.addEventListener('click',e=>{e.preventDefault();const match=readServers().find(x=>!x.folder&&x.id===src.guild);if(match){match.node.click()}else navigateDiscord(url)});
       if(m.note)el('div',m.note,item);
       const controls=el('div',undefined,item);controls.className='row';addMarkControls(controls,{source:src,text:m.text});
     }
