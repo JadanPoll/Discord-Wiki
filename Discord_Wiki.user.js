@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.14.1
+// @version      0.14.2
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.14.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.14.2', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -261,7 +261,7 @@
     .canvas-card:focus-visible{outline:3px solid #4663b5}
     .card-overflow{position:absolute;right:8px;bottom:38px;font:650 11px system-ui;color:#526174;background:#fffdfa;border:1px solid #ccd1db;border-radius:4px;padding:2px 5px;pointer-events:none}
     .explored-strip{position:absolute;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;background:#e9e7e1;border:1px solid #d5d1c8;border-radius:8px;color:#46546a;min-height:52px;font:600 15px system-ui;cursor:pointer}
-    .canvas-card[data-seen-before="1"] .canvas-meta{color:#687487}
+    .canvas-card[data-seen-before="1"] .canvas-meta{color:#687487}.forum-title{font-size:15px;font-weight:700;line-height:1.25;flex:none;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
     .canvas-meta{font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .canvas-label{font-size:12px;color:#4663b5;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .canvas-card:not(.server-card){padding-bottom:34px}.canvas-meta,.canvas-label{flex:none}.canvas-preview{font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere;display:block;flex:1;min-height:0;padding:0 3px 0 0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c6c7d1 transparent}.canvas-preview[data-scrollable="1"]{border-bottom:1px solid #d9dce3}.canvas-view[data-card-scroll="1"]{cursor:ns-resize}
@@ -402,6 +402,10 @@
     html.dw-focus [class*="panels_"] [class*="avatarWrapper_"]{flex:1 1 0!important;min-width:0!important;max-width:none!important;overflow:hidden!important;margin-right:3px!important}
     html.dw-focus [class*="panels_"] [class*="avatarWrapper_"] [class*="avatar_"]{flex:none!important}
     html.dw-focus [class*="panels_"] [class*="container_"]:has(> [class*="avatarWrapper_"]) > [class*="buttons_"]{display:flex!important;flex:0 0 auto!important;gap:3px!important;position:relative!important}
+    html.dw-focus [data-dw-account-row]{display:flex!important;flex-wrap:wrap!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;padding-inline:7px!important;box-sizing:border-box!important;min-width:0!important}
+    html.dw-focus [data-dw-account-profile]{flex:1 1 40px!important;min-width:36px!important;max-width:100%!important;position:relative!important;margin:0!important;overflow:hidden!important}
+    html.dw-focus [data-dw-account-controls]{display:flex!important;flex:0 0 auto!important;min-width:max-content!important;position:relative!important;margin:0!important;gap:2px!important}
+    html.dw-focus [data-dw-account-controls] button{margin-inline:0!important}
     html.dw-focus [class*="channelTextArea_"] [class*="scrollableContainer_"]{background:#f7f3ec!important;border:1px solid #e3ded5!important;border-radius:8px}
     html.dw-focus [data-dw-clean-name]{overflow:hidden;text-overflow:ellipsis}
     @media(min-width:901px){html.dw-focus.dw-contents-open [class*="page_"]:has([data-list-id="chat-messages"]){padding-inline-end:324px!important;box-sizing:border-box!important}}
@@ -437,7 +441,7 @@
     b.addEventListener('click',async()=>{const m=metrics.actions[label]||=( {attempts:0,completed:0,failed:0} );m.attempts++;if(b.disabled)return;b.disabled=true;try{await fn();m.completed++}catch(e){m.failed++;status('Error: '+e.message);record('action-failed',label);fail('action:'+label,e);showReport()}finally{b.disabled=false}}); return b;
   }
   // The Contents launcher itself toggles the saved pane.
-  const canvasToggle=btn(launcher,readingView==='canvas'?'Timeline':'Canvas',async()=>{await chooseReadingView(readingView==='canvas'?'timeline':'canvas')});launcher.insertBefore(canvasToggle,toggle);
+  const canvasToggle=btn(launcher,readingView==='canvas'?'Timeline':'Canvas',async()=>{await chooseReadingView(canvasToggle.textContent==='Timeline'?'timeline':'canvas')});launcher.insertBefore(canvasToggle,toggle);
   const stats=el('div','',panel); stats.className='muted';
   const captureBox=el('details',undefined,panel);el('summary','Label a conversation',captureBox);
   const row=el('div',undefined,captureBox); row.className='row';
@@ -521,7 +525,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,exploration:{seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,forum:{nativeIndex:nativeForumIndex(),recognized:readForumPosts().length,displayed:canvasMode==='posts'?forumRows.length:0},world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,exploration:{seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,loadedPreviouslySeen:canvasRows.filter(p=>exploration?.prior.has(p.source.message)).length,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,accountGeometry,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -589,6 +593,7 @@
   const scrollIdentities=new WeakMap();let scrollIdentityCounter=0,lastNativeWindow='',lastNativeScrollAt=-Infinity;
   const routeKey=()=>channelRoute()?.slice(1,3).join('/')||'';
   let exploration=null,explorationLoading='',explorationTimer=0,explorationWriteTimer=0,explorationWriteQueue=Promise.resolve(),collapsedSeen=0,showPreviouslySeen=false;
+  let forumRows=[],forumSignature='';
   const explorationCache=new Map();
   let inertiaFrame=0,velocity={x:0,y:0},lastMotion=0;const PAN_GAIN=1.85,PINCH_GAIN=1.65,FRICTION_MS=245;
   const encountered=new Map();let encounteredChannel='';
@@ -598,7 +603,7 @@
   const canvasCount=el('span','',canvasHead);canvasCount.className='canvas-count';
   btn(canvasHead,'−',()=>zoomCanvas(camera.z/1.6));
   btn(canvasHead,'+',()=>zoomCanvas(camera.z*1.6));
-  btn(canvasHead,'Fit',()=>canvasMode==='messages'?fitReadingWidth():fitCanvas());
+  btn(canvasHead,'Fit',()=>canvasMode==='servers'?fitCanvas():fitReadingWidth());
   const canvasCopy=btn(canvasHead,'Copy for AI',()=>copyResearch(canvasFocusRows()));
   const resumeLink=el('a','Resume exploration',canvasHead);resumeLink.hidden=true;resumeLink.style.cssText='font-size:12px;color:#4663b5;white-space:nowrap';
   const canvasView=el('div',undefined,canvas);canvasView.className='canvas-view';canvasView.setAttribute('aria-label','Drag to pan, pinch to zoom');
@@ -743,7 +748,7 @@
     const old=lastCanvasGeometry;lastCanvasGeometry=geometry;
     if(old&&old.left===left&&old.top===top&&old.right===right&&canvas.style.left)return;
     canvas.style.left=left+'px';canvas.style.top=top+'px';canvas.style.right=right+'px';canvas.style.bottom='8px';metrics.canvas.geometryUpdates++;
-    if(canvasRows.length||canvasMode==='servers'){constrainCamera();scheduleCamera()}
+    if(canvasRows.length||canvasMode==='servers'||canvasMode==='posts'){constrainCamera();scheduleCamera()}
   }
   function stopInertia(){if(inertiaFrame){cancelAnimationFrame(inertiaFrame);inertiaFrame=0;metrics.canvas.flingStops++}velocity={x:0,y:0}}
   function boundAxis(pos,extent,viewport){
@@ -772,15 +777,19 @@
   }
   function explorationKey(route){return 'dw-exploration-v1:'+route}
   function cleanExploration(value){
-    const ids=Array.isArray(value?.ids)?value.ids.filter(x=>typeof x==='string'&&/^\d{15,22}$/.test(x)).slice(-6000):[];
+    const ids=Array.isArray(value?.ids)?value.ids.filter(x=>typeof x==='string'&&/^\d{15,22}$/.test(x)):[];
     return new Set(ids);
   }
   function saveExploration(){
     if(explorationWriteTimer){clearTimeout(explorationWriteTimer);explorationWriteTimer=0}
     for(const [key,e] of explorationCache){
       if(!e.dirty)continue;e.dirty=false;
-      const payload={ids:[...e.seen].slice(-6000)};
-      explorationWriteQueue=explorationWriteQueue.then(()=>write(explorationKey(key),payload)).then(()=>{metrics.canvas.explorationWrites++}).catch(err=>{e.dirty=true;fail('exploration-save',err)});
+      explorationWriteQueue=explorationWriteQueue.then(async()=>{
+        const stored=cleanExploration(await read(explorationKey(key),{}));
+        for(const id of stored)e.seen.add(id);
+        await write(explorationKey(key),{ids:[...e.seen]});
+        metrics.canvas.explorationWrites++;
+      }).catch(err=>{e.dirty=true;fail('exploration-save',err)});
     }
   }
   function scheduleExplorationSave(){if(!explorationWriteTimer)explorationWriteTimer=setTimeout(saveExploration,750)}
@@ -819,28 +828,41 @@
   function updateResume(){
     const id=exploration?.route===routeKey()?oldestSeen(exploration.prior):null;
     resumeLink.hidden=!(canvasMode==='messages'&&id);
-    if(id){const day=new Date(Number(BigInt(id)>>22n)+1420070400000).toISOString().slice(0,10);resumeLink.href='https://discord.com/channels/'+exploration.route+'/'+id;resumeLink.textContent='Resume · '+day;}
+    if(id){const day=new Date(Number(BigInt(id)>>22n)+1420070400000).toISOString().slice(0,10);resumeLink.href='https://discord.com/channels/'+exploration.route+'/'+id;resumeLink.title='Resume at '+day+' · previously visible messages, not a guarantee of reading';resumeLink.textContent='Resume · '+exploration.seen.size+' seen';}
+  }
+  // Sample the actual visible grid during motion, not just at settled stops.
+  // A sampled card is encountered/seen, not proof it has been read.
+  function visibleExplorationIds(slots,hidden,camera,w,h){
+    const z=camera.z;if(z<.30||!w||!h)return [];
+    const first=Math.max(0,Math.floor((-camera.y/z-184)/190));
+    const last=Math.min(Math.ceil((slots.length-hidden)/5)-1,Math.floor((h-camera.y)/z/190));
+    const ids=[];
+    for(let r=first;r<=last;r++)for(let c=0;c<5;c++){
+      const i=r*5+c;if(i>=slots.length-hidden)break;
+      const p=slots[i];if(!p)continue;
+      const x=camera.x+(10+c*316)*z,y=camera.y+(10+r*190)*z,cw=300*z,ch=174*z;
+      const area=Math.max(0,Math.min(w,x+cw)-Math.max(0,x))*Math.max(0,Math.min(h,y+ch)-Math.max(0,y));
+      if(area>=cw*ch*.45)ids.push(p.source.message);
+    }
+    return ids;
   }
   function markVisibleExploration(){
     explorationTimer=0;
-    if(!canvasOpen||canvasMode!=='messages'||!exploration||exploration.route!==routeKey()||document.visibilityState!=='visible'||pointers.size||inertiaFrame||camera.z<.34||!detail.hidden||!noteEditor.hidden)return;
-    const w=canvasView.clientWidth,h=canvasView.clientHeight;if(!w||!h)return;
-    const count=canvasSlots.length-collapsedSeen;
+    if(!canvasOpen||canvasMode!=='messages'||!exploration||exploration.route!==routeKey()||document.visibilityState!=='visible'||!detail.hidden||!noteEditor.hidden)return;
+    metrics.canvas.explorationSamples++;
+    if(pointers.size||inertiaFrame)metrics.canvas.explorationMovingSamples++;
+    const ids=visibleExplorationIds(canvasSlots,collapsedSeen,camera,canvasView.clientWidth,canvasView.clientHeight);
+    metrics.canvas.explorationVisibleCandidates+=ids.length;
     let added=0;
-    for(let i=0;i<count;i++){
-      const p=canvasSlots[i];if(!p)continue;
-      const x=camera.x+(10+i%5*316)*camera.z,y=camera.y+(10+Math.floor(i/5)*190)*camera.z,cw=300*camera.z,ch=174*camera.z;
-      const area=Math.max(0,Math.min(w,x+cw)-Math.max(0,x))*Math.max(0,Math.min(h,y+ch)-Math.max(0,y));
-      if(area>=cw*ch*.65&&!exploration.seen.has(p.source.message)){exploration.seen.add(p.source.message);added++}
-    }
-    if(added){while(exploration.seen.size>6000)exploration.seen.delete(exploration.seen.values().next().value);exploration.entry.dirty=true;metrics.canvas.explorationSeen+=added;scheduleExplorationSave()}
+    for(const id of ids){if(!exploration.seen.has(id)){exploration.seen.add(id);added++}}
+    if(added){exploration.entry.dirty=true;metrics.canvas.explorationSeen+=added;scheduleExplorationSave();updateResume()}
   }
-  function scheduleExploration(){if(explorationTimer)clearTimeout(explorationTimer);explorationTimer=setTimeout(markVisibleExploration,650)}
+  function scheduleExploration(){if(!explorationTimer)explorationTimer=setTimeout(markVisibleExploration,150)}
   window.addEventListener('pagehide',saveExploration);
   function applyCamera(){
     canvasFrame=0;world.style.transform='translate('+camera.x+'px,'+camera.y+'px) scale('+camera.z+')';
-    canvasCount.textContent=(canvasMode==='servers'?serverRows.length+' navigation entries':canvasRows.length+' encountered messages')+' · '+Math.round(camera.z*100)+'%'+(canvasMode==='messages'&&historyStatus?' · '+historyStatus:'');
-    canvasCount.title=canvasMode==='servers'?'Native server and folder entries; select a folder to expand it.':'Initially up to 100 encountered messages, extended by native history loading; chronological gaps may exist.';
+    canvasCount.textContent=(canvasMode==='servers'?serverRows.length+' navigation entries':canvasMode==='posts'?forumRows.length+' loaded posts · Timeline for more':canvasRows.length+' encountered messages')+' · '+Math.round(camera.z*100)+'%'+(canvasMode==='messages'&&historyStatus?' · '+historyStatus:'');
+    canvasCount.title=canvasMode==='servers'?'Native server and folder entries; select a folder to expand it.':canvasMode==='posts'?'Currently rendered forum posts; use Timeline to load additional posts.':'Initially up to 100 encountered messages, extended by native history loading; chronological gaps may exist.';
     const extent=canvasSize.h*camera.z,top=extent<=canvasView.clientHeight?(canvasView.clientHeight-extent)/2:0;
     const atTop=canvasMode==='messages'&&camera.y>=top-30;
     const boundary=historyEnds.older?'Beginning of channel':historyBusy?historyStatus:lateHistory&&historyStatus.includes('Discord still loading')?'Discord still loading · watching for messages':historyStalls.older?'No older messages returned · drag again to retry':'';
@@ -914,8 +936,9 @@
     }
     let rowsHeight=(row+(col?1:0))*strideY;
     const priorCount=collapsedSeen;
-    if(priorCount||showPreviouslySeen&&exploration?.prior.size){
-      const strip=el('button',priorCount?'▸ '+priorCount+' previously seen messages':'▾ Collapse previously seen messages',world);strip.className='explored-strip';strip.style.left=margin+'px';strip.style.top=(margin+rowsHeight)+'px';strip.style.width=(cols*strideX-16)+'px';
+    const localSeen=seenSuffix(canvasSlots,exploration?.prior||new Set());
+    if(priorCount||showPreviouslySeen&&localSeen){
+      const strip=el('button',priorCount?'▸ '+priorCount+' loaded seen messages · '+exploration.prior.size+' previously seen in channel':'▾ Collapse '+localSeen+' loaded seen messages',world);strip.className='explored-strip';strip.style.left=margin+'px';strip.style.top=(margin+rowsHeight)+'px';strip.style.width=(cols*strideX-16)+'px';
       strip.addEventListener('click',()=>{showPreviouslySeen=!showPreviouslySeen;renderCanvas();constrainCamera();scheduleCamera()});rowsHeight+=65;
     }
     canvasSize={w:margin*2+cols*strideX-16,h:margin*2+rowsHeight-16};
@@ -1008,7 +1031,7 @@
   }
   // Reading mode is persistent; the server map is a temporary projection.
   function updateViewButtons(){
-    canvasToggle.textContent=readingView==='canvas'?'Timeline':'Canvas';canvasToggle.setAttribute('aria-label',readingView==='canvas'?'Switch to timeline':'Switch to canvas');
+    canvasToggle.textContent=canvasOpen||readingView==='canvas'&&!nativeForumIndex()?'Timeline':'Canvas';canvasToggle.setAttribute('aria-label',canvasToggle.textContent==='Timeline'?'Switch to timeline':'Switch to canvas');
     communities.textContent=canvasOpen&&canvasMode==='servers'?'Back':'Servers';
   }
   function fillMessageCanvas(){
@@ -1016,7 +1039,7 @@
     rememberWindow(visibleRows(true));const rows=chronological([...encountered.values()]);
     if(!rows.length){historyStatus='Waiting for channel messages';scheduleCamera();return}
     canvasRows=rows.slice(-100);canvasSlots=[...canvasRows];messageCols=5;historyStatus='Drag past an edge for more';
-    positionCanvas();renderCanvas();requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='messages'){fitReadingWidth();const id=oldestSeen(exploration?.prior||[]);if(id&&canvasSlots.some(p=>p?.source.message===id))resumeExploration()}});
+    positionCanvas();renderCanvas();requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='messages'){fitReadingWidth();const id=oldestSeen(exploration?.prior||[]);if(id&&canvasSlots.slice(0,canvasSlots.length-collapsedSeen).some(p=>p?.source.message===id))resumeExploration()}});
     record('canvas-filled',String(canvasRows.length));
   }
   function openCanvas(mode='messages'){
@@ -1027,6 +1050,7 @@
     canvasMode=mode;canvasOpen=true;canvas.hidden=false;canvasCopy.hidden=mode!=='messages';updateViewButtons();resetComposerIntent('canvas');
     positionCanvas();
     if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='servers')fitCanvas()})}
+    else if(mode==='posts'){renderForumPosts();metrics.canvas.forumOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='posts')fitReadingWidth()})}
     else{
       canvasChannel=routeKey();
       if(retainedCanvas&&retainedCanvas.channel===canvasChannel&&retainedCanvas.rows.length){
@@ -1051,9 +1075,43 @@
     historyGeneration++;historyBusy=false;historyObserved=null;lateHistory=null;edgeDirection='';edgeTravel=0;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;delete canvasView.dataset.cardScroll;
     canvasView.classList.remove('dragging');updateViewButtons();syncComposerGuard();metrics.canvas.closes++;record('canvas-close');
   }
-  function nativeForumIndex(){return !document.querySelector('[data-list-id="chat-messages"]')&&!!document.querySelector('[class*="forumOrMediaChannel_"],[class*="forumChannel_"],[class*="forumPosts_"],[class*="forumPostList_"]')}
+  function readForumPosts(){
+    const route=channelRoute();if(!route||document.querySelector('[data-list-id="chat-messages"]'))return [];
+    const rows=[],seen=new Set();
+    for(const node of document.querySelectorAll('[data-list-item-id^="forum-channel-list-"]')){
+      const id=node.getAttribute('data-list-item-id')?.match(/(\d{15,22})$/)?.[1];
+      if(!id||id===route[2]||seen.has(id)||!node.getClientRects().length)continue;
+      const heading=node.querySelector('h1,h2,h3,h4,[class*="postTitle_"],[class*="title_"],[class*="name_"]');
+      const raw=(node.innerText||node.textContent||'').trim();
+      const title=(heading?.textContent?.trim()||raw.split('\n')[0]||'').slice(0,200);
+      if(!title)continue;
+      const preview=raw.startsWith(title)?raw.slice(title.length).trim():raw;
+      const source=markSource('https://discord.com/channels/'+route[1]+'/'+id);
+      if(!source)continue;seen.add(id);rows.push({id,title,text:preview.slice(0,4000),source});
+    }
+    return rows;
+  }
+  function nativeForumIndex(){return !document.querySelector('[data-list-id="chat-messages"]')&&!!document.querySelector('[data-list-item-id^="forum-channel-list-"],[class*="forumOrMediaChannel_"],[class*="forumChannel_"],[class*="forumPosts_"],[class*="forumPostList_"]')}
+  function renderForumPosts(rows=readForumPosts()){
+    forumRows=rows;forumSignature=routeKey()+'|'+rows.map(x=>x.id+':'+x.text.length).join(',');
+    world.replaceChildren();detail.hidden=true;
+    const cols=5,sx=316,sy=190;
+    for(const [i,item] of rows.entries()){
+      const card=el('div',undefined,world);card.className='canvas-card forum-card';card.tabIndex=0;card.setAttribute('role','group');card.style.left=(10+i%cols*sx)+'px';card.style.top=(10+Math.floor(i/cols)*sy)+'px';
+      card.dataset.density=item.text.length>=150?'2':'1';
+      el('div','Forum post · open discussion',card).className='canvas-meta';
+      const title=el('div',item.title,card);title.className='forum-title';
+      el('div',item.text||'Open post to read discussion',card).className='canvas-preview';
+      const bar=el('div',undefined,card);bar.className='canvas-markbar';addMarkControls(bar,{source:item.source,text:item.title});
+      const activate=()=>{if(Date.now()<suppressUntil)return;location.assign(item.source.url)};
+      card.addEventListener('click',activate);card.addEventListener('keydown',e=>{if(e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();activate()}});
+    }
+    canvasSize={w:1584,h:Math.max(194,Math.ceil(rows.length/5)*sy+4)};world.style.width=canvasSize.w+'px';world.style.height=canvasSize.h+'px';
+    scheduleCamera();
+  }
   function restoreReading(){
-    if(!focus||readingView==='timeline'||!channelRoute()||nativeForumIndex()){closeCanvas();updateViewButtons();return}
+    if(!focus||readingView==='timeline'||!channelRoute()){closeCanvas();updateViewButtons();return}
+    if(nativeForumIndex()){if(readForumPosts().length){if(!canvasOpen||canvasMode!=='posts')openCanvas('posts')}else{closeCanvas();updateViewButtons()}return}
     if(canvasOpen&&canvasMode==='messages')return;
     openCanvas('messages');
   }
@@ -1370,7 +1428,7 @@
     return dy>0?top>1:dy<0?top+client<height-1:false;
   }
   function cardForGesture(target){
-    if(canvasMode!=='messages'||target?.closest?.('button'))return null;
+    if(canvasMode==='servers'||target?.closest?.('button'))return null;
     const preview=target?.closest?.('.canvas-card')?.querySelector('.canvas-preview');
     return preview&&preview.scrollHeight>preview.clientHeight+1?preview:null;
   }
@@ -1453,6 +1511,22 @@
     const out=raw.replace(/\p{Extended_Pictographic}|\p{Emoji_Presentation}|\uFE0F|\u200D|\u20E3/gu,'').replace(/^[\s|•·‣—–─│┃｜︱┆┊-]+|[\s|•·‣—–─│┃｜︱┆┊-]+$/g,'').trim();
     return out||raw;
   }
+  let accountGeometry=null;
+  function annotateAccount(){
+    const panel=document.querySelector('[class*="panels_"]');if(!panel){accountGeometry=null;return}
+    const profile=panel.querySelector('[class*="avatarWrapper_"],[class*="avatarWrapper__"],[aria-label*="User profile" i],[aria-label*="Set Status" i]');
+    const mute=panel.querySelector('button[aria-label*="Mute" i],button[aria-label*="Unmute" i],[role="button"][aria-label*="Mute" i],[role="button"][aria-label*="Unmute" i]');
+    if(!profile||!mute){accountGeometry={profile:!!profile,mute:!!mute,matched:false};return}
+    let row=profile.parentElement;while(row&&row!==panel&&!row.contains(mute))row=row.parentElement;
+    if(!row||row===panel){accountGeometry={profile:true,mute:true,matched:false};return}
+    const branch=n=>{while(n?.parentElement!==row&&n!==row)n=n?.parentElement;return n};
+    const p=branch(profile),m=branch(mute);if(!p||!m||p===m){accountGeometry={profile:true,mute:true,matched:false};return}
+    if(!row.hasAttribute('data-dw-account-row'))row.dataset.dwAccountRow='1';
+    if(!p.hasAttribute('data-dw-account-profile'))p.dataset.dwAccountProfile='1';
+    if(!m.hasAttribute('data-dw-account-controls'))m.dataset.dwAccountControls='1';
+    const a=profile.getBoundingClientRect(),b=mute.getBoundingClientRect();
+    accountGeometry={matched:true,profileWidth:Math.round(a.width),rowWidth:Math.round(row.getBoundingClientRect().width),gap:Math.round(b.left-a.right),overlap:a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top};
+  }
   function annotateNavigation(){
     for(const a of document.querySelectorAll('#channels a[href^="/channels/"]')){
       const src=markSource(a.href),name=a.querySelector('[class*="name_"]');if(!src||src.kind!=='channel'||!name||!a.parentElement)continue;
@@ -1467,7 +1541,7 @@
   }
   function annotateDOM(){
     const t=performance.now();metrics.scans++;
-    reconcileAppearance('scan');updateRouteStyle();syncComposerGuard();annotateNavigation();scheduleLayout();
+    reconcileAppearance('scan');updateRouteStyle();syncComposerGuard();annotateNavigation();annotateAccount();scheduleLayout();
     const labels=new Map(data.conversations.map(r=>[r.id,r.title]));
     const encounteredRows=[];
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
@@ -1485,7 +1559,7 @@
       const label=source&&labels.get(keyOf(source));
       if(label)node.dataset.dwLabel=label;else delete node.dataset.dwLabel;
     }
-    rememberWindow(encounteredRows);observeNativeWindow(encounteredRows);syncMarks();if(canvasOpen&&canvasMode==='messages'&&nativeForumIndex())closeCanvas();else if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
+    rememberWindow(encounteredRows);observeNativeWindow(encounteredRows);syncMarks();if(nativeForumIndex()&&focus&&readingView==='canvas'&&(!canvasOpen||canvasMode==='messages'||canvasMode==='posts')){const posts=readForumPosts();if(posts.length){if(!canvasOpen||canvasMode!=='posts')openCanvas('posts');else if(forumSignature!==routeKey()+'|'+posts.map(x=>x.id+':'+x.text.length).join(',')){renderForumPosts(posts);constrainCamera();scheduleCamera()}}else if(canvasOpen)closeCanvas()}else if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
     if(lateHistory)collectLateHistory(encounteredRows);
     if(!historyBusy&&canvasOpen&&canvasMode==='messages'&&encounteredRows.length)confirmBeginning(encounteredRows);
     metrics.scanMs=Math.round((performance.now()-t)*10)/10;metrics.maxScanMs=Math.max(metrics.maxScanMs,metrics.scanMs);
