@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.11.1
+// @version      0.12.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.11.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.12.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0},marks:{favorite:0,note:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -229,7 +229,7 @@
     .canvas-card:focus-visible{outline:3px solid #4663b5}
     .canvas-meta{font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .canvas-label{font-size:12px;color:#4663b5;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .canvas-preview{font-size:14px;line-height:1.45;white-space:pre-wrap;overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical}
+    .canvas-card:not(.server-card){padding-bottom:34px}.canvas-meta,.canvas-label{flex:none}.canvas-preview{font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere;display:block;flex:1;min-height:0;padding:0 3px 0 0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c6c7d1 transparent}.canvas-preview[data-scrollable="1"]{border-bottom:1px solid #d9dce3}.canvas-view[data-card-scroll="1"]{cursor:ns-resize}
     .canvas-detail{position:absolute;z-index:4;right:10px;bottom:10px;width:min(400px,calc(100% - 20px));max-height:65%;overflow:auto;padding:12px;background:#fffdfa;border:1px solid #cbd4ed;border-radius:9px;box-shadow:0 6px 30px #27364a28;user-select:text}
     .canvas-detail p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;margin:8px 0}
     .canvas-detail .row{margin:4px 0}
@@ -352,7 +352,7 @@
     html.dw-focus [data-list-id="chat-messages"] [data-dw-density="3"]{background:#eaeaf3}
     html.dw-focus [data-dw-label]::before{color:#4663b5!important;font-size:13px!important;font-weight:700!important;border-color:#cbd4ed!important;padding:7px 0 5px!important}
     html.dw-focus .dw-native-marks{display:inline-flex;gap:2px;vertical-align:middle;margin-left:8px}html.dw-focus .dw-native-marks button{font:15px system-ui;color:#758195;background:transparent;border:0;padding:2px 6px;cursor:pointer}html.dw-focus .dw-native-marks button[aria-pressed="true"]{color:#9a7018;background:#fff1c7;border-radius:4px}html:not(.dw-focus) .dw-native-marks{display:none!important}
-    html.dw-focus [data-dw-channel-row]{position:relative!important}html.dw-focus [data-dw-channel-row]>a{padding-right:47px!important}html.dw-focus .dw-channel-marks{position:absolute;right:2px;top:50%;transform:translateY(-50%);display:flex;gap:0;z-index:1;background:inherit}html.dw-focus .dw-channel-marks button{font:14px system-ui;padding:2px 3px;border:0;background:transparent;color:#8792a1;cursor:pointer}html.dw-focus .dw-channel-marks button[aria-pressed="true"]{color:#946d14;background:#fff1c7;border-radius:3px}html.dw-focus [data-dw-favorite-channel="1"]>a{box-shadow:inset 2px 0 #c39b38}html:not(.dw-focus) .dw-channel-marks{display:none!important}
+    html.dw-focus #channels [data-dw-channel-row]{display:flex!important;align-items:center!important;min-width:0!important;gap:2px!important}html.dw-focus #channels [data-dw-channel-row]>a{flex:1 1 0!important;min-width:0!important;width:0!important;padding-right:3px!important;overflow:hidden!important}html.dw-focus #channels [data-dw-channel-row]>a [class*="name_"]{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}html.dw-focus #channels .dw-channel-marks{position:static!important;transform:none!important;display:flex!important;flex:0 0 44px!important;align-items:center;gap:0;background:inherit}html.dw-focus #channels .dw-channel-marks button{box-sizing:border-box;font:14px system-ui;width:22px;min-width:22px;height:28px;padding:0;border:0;background:transparent;color:#8792a1;cursor:pointer}html.dw-focus .dw-channel-marks button[aria-pressed="true"]{color:#946d14;background:#fff1c7;border-radius:3px}html.dw-focus [data-dw-favorite-channel="1"]>a{box-shadow:inset 2px 0 #c39b38}html:not(.dw-focus) .dw-channel-marks{display:none!important}
     html.dw-focus [data-dw-low="1"]{opacity:.52!important}
     html.dw-focus [data-dw-low="1"]:hover,html.dw-focus [data-dw-low="1"]:focus-within{opacity:1!important}
     html.dw-focus [class*="channelTextArea_"] [class*="scrollableContainer_"]{background:#f7f3ec!important;border:1px solid #e3ded5!important;border-radius:8px}
@@ -473,7 +473,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyTrace,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyTrace,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -550,11 +550,35 @@
   const world=el('div',undefined,canvasView);world.className='canvas-world';
   const detail=el('section',undefined,canvas);detail.className='canvas-detail';detail.hidden=true;
   // The two human actions share one message identity and one local record.
-  const noteEditor=el('section',undefined,shadow);noteEditor.className='note-editor';noteEditor.hidden=true;
+  // A real document textarea, not a shadow-retargeted event target. Discord's
+  // global type-to-chat handling must see that the user is editing an input.
+  const noteEditor=el('section',undefined,document.body);noteEditor.id='dw-note-editor';noteEditor.hidden=true;noteEditor.setAttribute('role','dialog');noteEditor.setAttribute('aria-label','Personal note');
+  el('style',`
+    #dw-note-editor{position:fixed!important;z-index:2147483647!important;top:54px;right:12px;width:min(360px,calc(100vw - 24px));max-height:calc(100dvh - 70px);overflow:auto;box-sizing:border-box;background:#fff6d9;color:#283342;border:1px solid #d9bf74;border-radius:8px;padding:12px;box-shadow:0 6px 25px #27364a33;font:14px system-ui;color-scheme:light}
+    #dw-note-editor[hidden]{display:none!important}
+    #dw-note-editor textarea{display:block;box-sizing:border-box;width:100%;height:120px;min-height:64px;margin:8px 0;padding:9px;border:1px solid #d9bf74;border-radius:5px;background:#fffdf4;color:#283342;font:16px system-ui;resize:vertical;user-select:text;touch-action:auto}
+    #dw-note-editor .row{display:flex;gap:6px;justify-content:flex-end}
+    #dw-note-editor button{background:white;color:#283342;border:1px solid #cbd5e1;border-radius:5px;padding:7px 12px;font:14px system-ui}
+  `,document.head);
   el('strong','Note',noteEditor);
   const noteField=el('textarea',undefined,noteEditor);noteField.placeholder='What matters to you?';
   const noteActions=el('div',undefined,noteEditor);noteActions.className='row';
   let noteTarget=null,markQueue=Promise.resolve();
+  function positionNoteEditor(){
+    if(noteEditor.hidden)return;const v=window.visualViewport;
+    const top=(v?.offsetTop||0)+Math.min(54,Math.max(8,(v?.height||innerHeight)*.08));
+    noteEditor.style.top=top+'px';noteEditor.style.maxHeight=Math.max(100,(v?.height||innerHeight)-(top-(v?.offsetTop||0))-12)+'px';
+  }
+  for(const name of ['keydown','keypress','keyup','beforeinput','input','compositionstart','compositionupdate','compositionend','paste','cut','copy']){
+    noteEditor.addEventListener(name,e=>{e.stopPropagation();if(name==='keydown'&&e.key==='Escape'){e.preventDefault();closeNoteEditor()}});
+  }
+  noteField.addEventListener('focus',()=>{metrics.marks.noteFocus++});
+  noteField.addEventListener('input',()=>{metrics.marks.noteInputEvents++});
+  noteField.addEventListener('blur',()=>{if(!noteEditor.hidden)metrics.marks.noteFocusLost++});
+  document.addEventListener('focusin',e=>{if(!noteEditor.hidden&&!noteEditor.contains(e.target)&&e.target?.closest?.('[contenteditable="true"],[role="textbox"]'))metrics.marks.noteComposerFocus++},true);
+  window.visualViewport?.addEventListener('resize',positionNoteEditor);
+  window.visualViewport?.addEventListener('scroll',positionNoteEditor);
+  function closeNoteEditor(){noteEditor.hidden=true;noteTarget=null;noteField.blur()}
   function mutateMark(p,change){
     const task=markQueue.then(async()=>{
       const next=await latest(),url=p.source.url;
@@ -566,10 +590,10 @@
     markQueue=task.catch(()=>{});return task;
   }
   function editMarkNote(p){
-    noteTarget=p;noteField.value=data.marks[p.source.url]?.note||'';noteEditor.hidden=false;noteField.focus();
+    noteTarget=p;noteField.value=data.marks[p.source.url]?.note||'';noteEditor.hidden=false;metrics.marks.noteOpens++;positionNoteEditor();noteField.focus({preventScroll:true});
   }
-  btn(noteActions,'Save',async()=>{if(!noteTarget)return;const target=noteTarget;await mutateMark(target,()=>({note:noteField.value.trim().slice(0,4000)}));metrics.marks.note++;noteEditor.hidden=true;noteTarget=null});
-  btn(noteActions,'Cancel',()=>{noteEditor.hidden=true;noteTarget=null});
+  btn(noteActions,'Save',async()=>{if(!noteTarget)return;const target=noteTarget,value=noteField.value.trim().slice(0,4000);await mutateMark(target,()=>({note:value}));metrics.marks.note++;if(noteTarget===target)closeNoteEditor()});
+  btn(noteActions,'Cancel',closeNoteEditor);
   function syncMarkButton(b){
     const m=data.marks[b.dataset.dwMarkUrl],isNote=b.dataset.dwMarkKind==='note',active=isNote?!!m?.note:!!m?.favorite;
     const glyph=isNote?(active?'▣':'✎'):(active?'★':'☆');
@@ -691,11 +715,12 @@
     const link=el('a','Open original',actions);link.href=p.source.url;link.addEventListener('click',()=>{metrics.canvas.sourceJumps++;chooseReadingView('timeline').catch(e=>fail('reading-view',e))});
     addMarkControls(actions,p);
   }
+  const cardScrollOffsets=new Map();
   function renderCanvas(){
     world.replaceChildren();
     const labels=new Map();for(const r of data.conversations)for(const url of r.messages){if(!labels.has(url))labels.set(url,r.title)}
     const strideX=316,strideY=190,margin=10;
-    const cols=messageCols||gridColumns(canvasRows.length,strideX,strideY);messageCols=cols;
+    const cols=5;messageCols=cols;
     let row=0,col=0;
     for(const p of canvasSlots){
       if(!p){if(++col>=cols){col=0;row++}continue;}
@@ -706,7 +731,11 @@
       if(title){card.dataset.saved='1';el('div',title,card).className='canvas-label'}
       const time=p.timestamp?.slice(11,16)||'';
       el('div',[p.author||'Message',day,time,p.attachments?p.attachments+' attachments':''].filter(Boolean).join(' · '),card).className='canvas-meta';
-      el('div',p.text||'(Attachment or no text)',card).className='canvas-preview';
+      const preview=el('div',p.text||'(Attachment or no text)',card);preview.className='canvas-preview';preview.dataset.cardUrl=p.source.url;
+      preview.scrollTop=cardScrollOffsets.get(p.source.url)||0;
+      preview.addEventListener('scroll',()=>cardScrollOffsets.set(p.source.url,preview.scrollTop),{passive:true});
+      // A subtle scroll affordance only for text which actually overflows.
+      if(preview.scrollHeight>preview.clientHeight+1)preview.dataset.scrollable='1';
       const n=p.text.length;card.dataset.density=n>=400?'3':n>=150?'2':n>=60?'1':'0';
       if(!p.attachments&&!p.reply&&lowSignal(p.text))card.dataset.low='1';
       const markbar=el('div',undefined,card);markbar.className='canvas-markbar';addMarkControls(markbar,p);
@@ -719,7 +748,7 @@
   }
   function gridColumns(n,sx,sy){
     const aspect=Math.max(.5,Math.min(3,(canvasView.clientWidth||800)/(canvasView.clientHeight||500)));
-    return Math.min(6,Math.max(1,n),Math.max(1,Math.round(Math.sqrt(n*aspect*sy/sx))));
+    return Math.min(5,Math.max(1,n),Math.max(1,Math.round(Math.sqrt(n*aspect*sy/sx))));
   }
   function readServers(){
     const rail=document.querySelector('nav[aria-label="Servers sidebar"]');if(!rail)return [];
@@ -769,7 +798,7 @@
     if(!canvasOpen||canvasMode!=='messages'||canvasRows.length)return;
     rememberWindow(visibleRows(true));const rows=chronological([...encountered.values()]);
     if(!rows.length){historyStatus='Waiting for channel messages';scheduleCamera();return}
-    canvasRows=rows.slice(-100);canvasSlots=[...canvasRows];messageCols=0;historyStatus='Drag past an edge for more';
+    canvasRows=rows.slice(-100);canvasSlots=[...canvasRows];messageCols=5;historyStatus='Drag past an edge for more';
     positionCanvas();renderCanvas();requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='messages')fitReadingWidth()});
     record('canvas-filled',String(canvasRows.length));
   }
@@ -781,11 +810,11 @@
     canvasMode=mode;canvasOpen=true;canvas.hidden=false;canvasCopy.hidden=mode!=='messages';updateViewButtons();
     positionCanvas();
     if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='servers')fitCanvas()})}
-    else{canvasRows=[];canvasSlots=[];messageCols=0;canvasSize={w:0,h:0};world.replaceChildren();camera.x=0;camera.y=0;camera.z=1;fillMessageCanvas()}
+    else{canvasRows=[];canvasSlots=[];messageCols=5;cardScrollOffsets.clear();canvasSize={w:0,h:0};world.replaceChildren();camera.x=0;camera.y=0;camera.z=1;fillMessageCanvas()}
     metrics.canvas.opens++;record('canvas-open',mode+':'+(mode==='servers'?serverRows.length:canvasRows.length));
   }
   function closeCanvas(){
-    if(!canvasOpen)return;historyGeneration++;historyBusy=false;edgeDirection='';edgeTravel=0;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;
+    if(!canvasOpen)return;historyGeneration++;historyBusy=false;edgeDirection='';edgeTravel=0;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;delete canvasView.dataset.cardScroll;
     canvasView.classList.remove('dragging');updateViewButtons();metrics.canvas.closes++;record('canvas-close');
   }
   function restoreReading(){
@@ -849,36 +878,53 @@
     }catch(e){fail('history-load',e);historyStatus='History load failed'}
     finally{if(gen===historyGeneration){historyBusy=false;edgeDirection='';edgeTravel=0;scheduleCamera()}}
   }
+  // Route a gesture once, after its direction is known. Pinches always control
+  // the canvas. At overview scale the canvas wins, even on a card.
+  const CARD_READ_ZOOM=.65;
+  function canScrollCard(top,height,client,dy){
+    return dy>0?top>1:dy<0?top+client<height-1:false;
+  }
+  function cardForGesture(target){
+    if(canvasMode!=='messages'||camera.z<CARD_READ_ZOOM||target?.closest?.('button'))return null;
+    const preview=target?.closest?.('.canvas-card')?.querySelector('.canvas-preview');
+    return preview&&preview.scrollHeight>preview.clientHeight+1?preview:null;
+  }
+  function scrollCard(preview,delta){
+    const before=preview.scrollTop;preview.scrollTop+=delta;
+    const moved=Math.abs(preview.scrollTop-before);
+    if(moved){metrics.canvas.cardScrollDistance+=Math.round(moved);cardScrollOffsets.set(preview.dataset.cardUrl,preview.scrollTop)}
+  }
   function midpoint(){const [a,b]=[...pointers.values()];if(!a||!b)return null;const r=canvasView.getBoundingClientRect();return {x:(a.x+b.x)/2-r.left,y:(a.y+b.y)/2-r.top,d:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y))}}
   canvasView.addEventListener('touchmove',e=>{if(pointers.size&&e.cancelable)e.preventDefault()},{passive:false});
   canvasView.addEventListener('pointerdown',e=>{
     if(e.pointerType==='mouse'&&e.button!==0)return;
     stopInertia();lastMotion=performance.now();edgeDirection='';edgeTravel=0;
-    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false});
-    if(pointers.size===2){const m=midpoint();pinch={d:m.d,z:camera.z,wx:(m.x-camera.x)/camera.z,wy:(m.y-camera.y)/camera.z};dragged=true;metrics.canvas.pinches++}
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false,preview:cardForGesture(e.target),gesture:null});
+    if(pointers.size===2){delete canvasView.dataset.cardScroll;for(const p of pointers.values())p.gesture='canvas';const m=midpoint();pinch={d:m.d,z:camera.z,wx:(m.x-camera.x)/camera.z,wy:(m.y-camera.y)/camera.z};dragged=true;metrics.canvas.pinches++}
   });
   window.addEventListener('pointermove',e=>{
     if(!canvasOpen)return;const p=pointers.get(e.pointerId);if(!p)return;
     const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
     const now=performance.now(),dt=Math.max(8,Math.min(70,now-lastMotion));lastMotion=now;
-    if(Math.hypot(p.x-p.sx,p.y-p.sy)>6&&!p.moved){p.moved=true;metrics.canvas.pans++}
+    if(Math.hypot(p.x-p.sx,p.y-p.sy)>6&&!p.moved){p.moved=true;if(!pinch&&p.preview&&Math.abs(p.y-p.sy)>Math.abs(p.x-p.sx)*1.15&&canScrollCard(p.preview.scrollTop,p.preview.scrollHeight,p.preview.clientHeight,p.y-p.sy)){p.gesture='card';metrics.canvas.cardScrolls++}else{p.gesture='canvas';metrics.canvas.pans++;if(p.preview)metrics.canvas.cardEdgePans++}}
     if(pointers.size>=2&&pinch){const m=midpoint();camera.z=clampScale(pinch.z*Math.pow(m.d/pinch.d,PINCH_GAIN));camera.x=m.x-pinch.wx*camera.z;camera.y=m.y-pinch.wy*camera.z;dragged=true}
+    else if(p.moved&&p.gesture==='card'){scrollCard(p.preview,-dy/camera.z);dragged=true;canvasView.dataset.cardScroll='1';return}
     else if(p.moved){trackHistoryEdge(dy*PAN_GAIN);camera.x+=dx*PAN_GAIN;camera.y+=dy*PAN_GAIN;dragged=true;const cap=v=>Math.max(-5,Math.min(5,v));velocity.x=.35*velocity.x+.65*cap(dx*PAN_GAIN/dt);velocity.y=.35*velocity.y+.65*cap(dy*PAN_GAIN/dt);metrics.canvas.peakVelocity=Math.max(metrics.canvas.peakVelocity,Math.round(Math.hypot(velocity.x,velocity.y)*100)/100)}
     else return;
     canvasView.classList.add('dragging');constrainCamera();scheduleCamera();
   });
   function endCanvasPointer(e){
     const p=pointers.get(e.pointerId);if(!p)return;const wasPinch=!!pinch;pointers.delete(e.pointerId);pinch=null;
-    if(wasPinch){velocity={x:0,y:0};for(const other of pointers.values()){other.sx=other.x;other.sy=other.y;other.moved=false}}
+    if(wasPinch){velocity={x:0,y:0};for(const other of pointers.values()){other.sx=other.x;other.sy=other.y;other.moved=false;other.gesture=null;other.preview=null}}
     if(dragged||p.moved)suppressUntil=Date.now()+300;
     if(e.type==='pointercancel'){metrics.canvas.cancels++;record('canvas-pointer-cancel',e.pointerType||'unknown')}
-    if(pointers.size===0){dragged=false;canvasView.classList.remove('dragging');if(e.type==='pointerup'&&!wasPinch&&edgeTravel>65&&edgeDirection){stopInertia();loadHistory(edgeDirection)}else if(e.type==='pointerup'&&!wasPinch&&p.moved&&performance.now()-lastMotion<90)startInertia();else stopInertia()}
+    if(pointers.size===0){dragged=false;delete canvasView.dataset.cardScroll;canvasView.classList.remove('dragging');if(p.gesture==='card'){stopInertia();return}if(e.type==='pointerup'&&!wasPinch&&edgeTravel>65&&edgeDirection){stopInertia();loadHistory(edgeDirection)}else if(e.type==='pointerup'&&!wasPinch&&p.moved&&performance.now()-lastMotion<90)startInertia();else stopInertia()}
   }
   window.addEventListener('pointerup',endCanvasPointer);window.addEventListener('pointercancel',endCanvasPointer);
   canvasView.addEventListener('click',e=>{if(Date.now()<suppressUntil){e.preventDefault();e.stopPropagation()}},true);
-  canvasView.addEventListener('wheel',e=>{e.preventDefault();const r=canvasView.getBoundingClientRect();if(e.ctrlKey||e.metaKey)zoomCanvas(camera.z*Math.exp(-Math.max(-110,Math.min(110,e.deltaY))*.015),e.clientX-r.left,e.clientY-r.top);else{const unit=e.deltaMode===1?16:e.deltaMode===2?canvasView.clientHeight:1;stopInertia();trackHistoryEdge(-e.deltaY*unit*1.65);if(edgeTravel>65&&edgeDirection){loadHistory(edgeDirection);edgeTravel=0}camera.x-=e.deltaX*unit*1.65;camera.y-=e.deltaY*unit*1.65;constrainCamera();metrics.canvas.pans++;scheduleCamera()}},{passive:false});
+  canvasView.addEventListener('wheel',e=>{e.preventDefault();const r=canvasView.getBoundingClientRect();if(e.ctrlKey||e.metaKey)zoomCanvas(camera.z*Math.exp(-Math.max(-110,Math.min(110,e.deltaY))*.015),e.clientX-r.left,e.clientY-r.top);else{const unit=e.deltaMode===1?16:e.deltaMode===2?canvasView.clientHeight:1;const preview=cardForGesture(e.target);if(preview&&Math.abs(e.deltaY)>Math.abs(e.deltaX)&&canScrollCard(preview.scrollTop,preview.scrollHeight,preview.clientHeight,-e.deltaY)){stopInertia();metrics.canvas.cardScrolls++;scrollCard(preview,e.deltaY*unit/camera.z);return}stopInertia();trackHistoryEdge(-e.deltaY*unit*1.65);if(edgeTravel>65&&edgeDirection){loadHistory(edgeDirection);edgeTravel=0}camera.x-=e.deltaX*unit*1.65;camera.y-=e.deltaY*unit*1.65;constrainCamera();metrics.canvas.pans++;scheduleCamera()}},{passive:false});
   window.addEventListener('resize',()=>{if(canvasOpen)positionCanvas()});
-  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&canvasOpen){if(!noteEditor.hidden){noteEditor.hidden=true;noteTarget=null}else if(!detail.hidden)detail.hidden=true;else if(canvasMode==='servers')restoreReading();else chooseReadingView('timeline').catch(err=>fail('reading-view',err))}});
+  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&canvasOpen){if(!noteEditor.hidden){closeNoteEditor()}else if(!detail.hidden)detail.hidden=true;else if(canvasMode==='servers')restoreReading();else chooseReadingView('timeline').catch(err=>fail('reading-view',err))}});
   function stage(rows,origin='selection'){
     if(!rows.length||rows.length>100||rows.reduce((n,p)=>n+p.text.length,0)>60000)throw Error('Select up to 100 messages / 60,000 characters');
     packet=rows;packetOrigin=origin;picked=rows[0].source;sourceInput.value=picked.url;
@@ -1016,7 +1062,7 @@
   document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;closeCanvas();canvasRows=[];canvasSlots=[];encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;closeCanvas();canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
