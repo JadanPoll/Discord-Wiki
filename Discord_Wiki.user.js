@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.14.0
+// @version      0.14.1
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.14.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.14.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -806,7 +806,7 @@
     if(!exploration||exploration.route!==routeKey())return;
     const id=oldestSeen(exploration.prior);
     if(!id)return;
-    const i=canvasSlots.findIndex(p=>p?.source.message===id);
+    const i=canvasSlots.slice(0,canvasSlots.length-collapsedSeen).findIndex(p=>p?.source.message===id);
     if(i>=0){
       stopInertia();camera.y=12-Math.floor(i/5)*190*camera.z;constrainCamera();scheduleCamera();metrics.canvas.explorationResumes++;
       return;
@@ -876,16 +876,14 @@
     addMarkControls(actions,p);
   }
   const cardScrollOffsets=new Map();
+  function seenSuffix(slots,prior){
+    // Retain one frontier card. Unknown IDs and holes break the run.
+    let n=0;for(let i=slots.length-1;i>=0;i--){if(!slots[i]||!prior.has(slots[i].source.message))break;n++}
+    return n>=6?n-1:0;
+  }
   function renderCanvas(){
     world.replaceChildren();
-    collapsedSeen=0;
-    if(!showPreviouslySeen&&exploration?.route===routeKey()){
-      // Only collapse a contiguous suffix of exact previously visible IDs;
-      // preserve the frontier card and never infer coverage from dates alone.
-      for(let i=canvasSlots.length-1;i>=0;i--){const p=canvasSlots[i];if(!p||!exploration.prior.has(p.source.message))break;collapsedSeen++}
-      collapsedSeen=Math.max(0,collapsedSeen-1);
-      if(collapsedSeen<5)collapsedSeen=0;
-    }
+    collapsedSeen=showPreviouslySeen||exploration?.route!==routeKey()?0:seenSuffix(canvasSlots,exploration.prior);
     const shown=canvasSlots.slice(0,canvasSlots.length-collapsedSeen);
     const labels=new Map();for(const r of data.conversations)for(const url of r.messages){if(!labels.has(url))labels.set(url,r.title)}
     const strideX=316,strideY=190,margin=10;
@@ -1031,7 +1029,6 @@
     if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='servers')fitCanvas()})}
     else{
       canvasChannel=routeKey();
-      if(exploration?.route!==canvasChannel){exploration=null;prepareExploration(canvasChannel)}
       if(retainedCanvas&&retainedCanvas.channel===canvasChannel&&retainedCanvas.rows.length){
         const saved=retainedCanvas;canvasRows=saved.rows;canvasSlots=saved.slots;messageCols=5;
         historyEnds={...saved.ends};historyStalls={...saved.stalls};historyStatus=saved.status;
@@ -1041,7 +1038,7 @@
         if(added){historyStatus='+'+added+' messages from timeline';metrics.canvas.historyAdded+=added}
         constrainCamera();scheduleCamera();metrics.canvas.historyRestores++;record('canvas-restored',String(canvasRows.length));
       }else{
-        canvasRows=[];canvasSlots=[];messageCols=5;cardScrollOffsets.clear();historyEnds={older:false,newer:false};historyStalls={older:0,newer:0};canvasSize={w:0,h:0};world.replaceChildren();camera.x=0;camera.y=0;camera.z=1;fillMessageCanvas();
+        canvasRows=[];canvasSlots=[];messageCols=5;cardScrollOffsets.clear();historyEnds={older:false,newer:false};historyStalls={older:0,newer:0};canvasSize={w:0,h:0};world.replaceChildren();camera.x=0;camera.y=0;camera.z=1;if(exploration?.route!==canvasChannel){exploration=null;prepareExploration(canvasChannel)}fillMessageCanvas();
       }
     }
     metrics.canvas.opens++;record('canvas-open',mode+':'+(mode==='servers'?serverRows.length:canvasRows.length));
@@ -1275,14 +1272,21 @@
     }
   }
   function nativeStartMarker(scroller){
-    if(!scroller)return false;
+    const root=scroller||document.querySelector('[data-list-id="chat-messages"]');if(!root)return false;
     // Require actual native beginning-of-channel language outside message rows.
     // A zero scrollTop or an empty retrieval is not a terminal-history signal.
-    for(const n of scroller.querySelectorAll('h1,h2,h3,[class*="beginning_"],[class*="channelStart_"],[class*="welcomeMessage_"]')){
-      if(n.closest('li[id^="chat-messages-"]'))continue;
+    for(const n of root.querySelectorAll('h1,h2,h3,[class*="beginning_"],[class*="channelStart_"],[class*="welcomeMessage_"],[class*="welcomeContainer_"],[class*="description_"]')){
+      if(n.closest('li[id^="chat-messages-"]')||!n.getClientRects().length)continue;
       if(/(?:this is|you.re at) the (?:start|beginning) of (?:the |this |#)/i.test(n.textContent||''))return true;
     }
     return false;
+  }
+  function confirmBeginning(rows){
+    if(!canvasOpen||canvasMode!=='messages'||historyEnds.older||!rows.length||!canvasRows.length)return false;
+    const native=nativeScroller();if(nativeHistoryState(native).busy||!nativeStartMarker(native))return false;
+    const nativeFirst=chronological(rows)[0].source,canvasFirst=chronological(canvasRows)[0].source;
+    if(nativeFirst.channel!==canvasFirst.channel||nativeFirst.message!==canvasFirst.message)return false;
+    historyEnds.older=true;historyStalls.older=0;metrics.canvas.historyEndConfirmed++;record('history-end','older');scheduleCamera();return true;
   }
   async function loadHistory(dir){
     if(!canvasOpen||canvasMode!=='messages'||historyBusy||!canvasRows.length||Date.now()-lastHistoryAt<600)return;
@@ -1344,9 +1348,7 @@
           const n=integrateHistory(observed,dir,remaining());metrics.canvas.historyObserved+=observed.length;
           boundedPush(historyTrace.samples,{...range,observed:observed.length,added:n,top:native?Math.round(native.scrollTop):null,height:native?.clientHeight,scrollHeight:native?.scrollHeight,startMarker,...state,elapsed:Math.round(performance.now()-historyTrace.started),visible:document.visibilityState},32);
           if(progress(n,'native-wait')){advanced=true;break}
-          if(dir==='older'&&startMarker&&current.length&&BigInt(chronological(current)[0].source.message)===BigInt(chronological(canvasRows)[0].source.message)){
-            historyEnds.older=true;historyStalls.older=0;metrics.canvas.historyEndConfirmed++;finish('channel-beginning','Beginning of channel');record('history-end','older');return;
-          }
+          if(dir==='older'&&startMarker&&confirmBeginning(current)){finish('channel-beginning','Beginning of channel');return;}
           if(state.busy){historyStatus='Discord loading '+dir+' · '+batch.added+'/'+batch.target;scheduleCamera()}
           if(performance.now()-waitStart>=3000&&!seenBusy)break;
         }
@@ -1485,6 +1487,7 @@
     }
     rememberWindow(encounteredRows);observeNativeWindow(encounteredRows);syncMarks();if(canvasOpen&&canvasMode==='messages'&&nativeForumIndex())closeCanvas();else if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
     if(lateHistory)collectLateHistory(encounteredRows);
+    if(!historyBusy&&canvasOpen&&canvasMode==='messages'&&encounteredRows.length)confirmBeginning(encounteredRows);
     metrics.scanMs=Math.round((performance.now()-t)*10)/10;metrics.maxScanMs=Math.max(metrics.maxScanMs,metrics.scanMs);
   }
   function render(){
