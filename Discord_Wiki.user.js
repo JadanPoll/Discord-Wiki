@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.15.2
+// @version      0.15.3
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.15.2', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.15.3', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -34,7 +34,7 @@
   function db(label,fn){const btn=document.createElement('button');btn.textContent=label;btn.onclick=fn;header.append(btn);return btn}
   const diagStatus=document.createElement('p');diagPanel.append(diagStatus);
   const area=document.createElement('textarea');area.readOnly=true;area.setAttribute('aria-label','Diagnostic report');diagPanel.append(area);
-  const privacy=document.createElement('p');privacy.textContent='No conversation text, links, account credentials or raw console logs.';diagPanel.append(privacy);
+  const privacy=document.createElement('p');privacy.textContent='Copy report: no conversation text. Copy DOM: includes rendered text and structural attributes; omits scripts, editors and URL query strings. Review before sharing.';diagPanel.append(privacy);
   function safeError(e){
     const allowed=new Set(['Error','TypeError','ReferenceError','SyntaxError','RangeError','NotAllowedError','SecurityError','QuotaExceededError','InvalidStateError','AbortError','DataCloneError']);
     const name=allowed.has(e?.name)?e.name:'UnknownError';
@@ -59,40 +59,70 @@
     else await navigator.clipboard.writeText(area.value);
     diagStatus.textContent='Report copied — paste into ChatGPT.';
   }catch(e){fail('report-copy',e);refreshReport();area.focus();area.select();diagStatus.textContent='Clipboard unavailable. Long-press and copy the selected report.'}});
-  function uiStructure(){
-    // Deliberately export a structural sketch, never raw HTML or message text.
-    const redact=v=>String(v||'').replace(/\d{5,}/g,'#').slice(0,100);
-    const roots=[],seen=new Set();
-    function add(kind,node){if(!node||seen.has(node))return;seen.add(node);roots.push({kind,node})}
-    const rows=[...document.querySelectorAll('[data-list-id="chat-messages"] > li[id^="chat-messages-"]')];
-    const pick=(kind,pred)=>{for(const r of rows.filter(pred).slice(0,2))add(kind,r)};
-    pick('image-only',r=>r.querySelector('img:not(.emoji)')&&!r.querySelector('[id^="message-content-"]')?.textContent.trim());
-    pick('image',r=>r.querySelector('[class*="attachment"],[class*="imageWrapper"],[class*="mediaAttachments"]'));
-    pick('embed',r=>r.querySelector('[class*="embed"]'));
-    pick('file',r=>r.querySelector('[class*="file"],[download]'));
-    pick('ordinary',r=>!!r.querySelector('[id^="message-content-"]'));
-    for(const n of document.querySelectorAll('[data-list-item-id^="forum-channel-list-"],[class*="forumPostList_"],[class*="forumOrMediaChannel_"]')){if(roots.filter(r=>r.kind==='forum').length>=3)break;add('forum',n)}
-    add('account',document.querySelector('[class*="panels_"]'));
-    const samples=roots.map(({kind,node})=>{
-      let budget=160;
-      function walk(n,depth=0){
-        if(!budget--||depth>10)return null;
-        const a={tag:n.tagName.toLowerCase()},cls=[...n.classList].filter(c=>/^[\w-]{1,100}$/.test(c)).slice(0,12);
-        if(cls.length)a.classes=cls.map(redact);
-        for(const k of ['id','data-list-item-id','data-list-id','role']){const v=n.getAttribute(k);if(v&&/^[\w:-]{1,120}$/.test(v))a[k]=redact(v)}
-        for(const k of ['src','srcset','href','alt','aria-label','download','title','poster','aria-expanded'])if(n.hasAttribute(k))a[k+'Present']=true;
-        if(n.matches('img,video,a')){try{const u=new URL(n.currentSrc||n.getAttribute('src')||n.getAttribute('href')||n.getAttribute('poster')||'',location.origin);a.urlType=/^(?:cdn\.discordapp\.com|media\.discordapp\.net|images-ext-\d+\.discordapp\.net)$/.test(u.hostname)?'discord-media':u.origin===location.origin?'discord-page':'other'}catch{}}
-        if(kind==='account'||n===node){const r=n.getBoundingClientRect(),c=getComputedStyle(n);a.box=[r.x,r.y,r.width,r.height].map(Math.round);a.layout={display:c.display,position:c.position,flex:c.flex,overflow:c.overflow,margin:c.margin,padding:c.padding}}
-        const children=[];for(const child of n.children){if(budget<=0)break;const item=walk(child,depth+1);if(item)children.push(item)}if(children.length)a.children=children;return a;
-      }
-      return {kind,tree:walk(node)};
-    });
-    return {schema:'ui-structure-v1',version:VERSION,viewport:[innerWidth,innerHeight],nativeRows:rows.length,samples};
+  // A broad snapshot of the live rendered document, not a selector-based
+  // sample. No script execution, request interception or automatic transfer.
+  function captureURL(raw,base=location.origin){
+    if(!raw)return '';
+    try{
+      const u=new URL(raw,base);
+      if(!['https:','http:'].includes(u.protocol))return '[non-http URL omitted]';
+      // Strip credentials, queries and fragments (including signed CDN URLs).
+      // Only retain pathnames on known Discord UI/media hosts.
+      const discord=/^(?:discord\.com|cdn\.discordapp\.(?:com|net)|media\.discordapp\.net|images-ext-\d+\.discordapp\.net)$/.test(u.hostname);
+      return discord?u.origin+u.pathname:u.origin+'/';
+    }catch{return '[URL omitted]'}
   }
-  db('Copy UI sample',async()=>{
-    area.value=JSON.stringify(uiStructure(),null,2);
-    try{if(typeof GM_setClipboard==='function')await GM_setClipboard(area.value,'text');else if(typeof GM!=='undefined'&&typeof GM.setClipboard==='function')await GM.setClipboard(area.value,'text');else await navigator.clipboard.writeText(area.value);diagStatus.textContent='UI sample copied · no message text or URLs.'}
-    catch(e){area.focus();area.select();diagStatus.textContent='Select and copy the UI sample.'}
+  function captureAttribute(name,value){
+    const n=name.toLowerCase();
+    if(/token|secret|password|credential|authorization|session|cookie|nonce|csrf|api[-_]?key/i.test(n))return null;
+    if(['src','href','poster','xlink:href'].includes(n)){
+      if(value.startsWith('#'))return /^#[\w:.-]+$/.test(value)?value:null;
+      return captureURL(value);
+    }
+    if(n==='srcset')return '[srcset present; URLs omitted]';
+    if(n==='style')return value.replace(/url\s*\([^)]*\)/gi,'url(omitted)');
+    if(n.startsWith('aria-')||['id','class','role','title','alt','lang','dir','type','name','tabindex','hidden','disabled','checked','selected','open','inert','contenteditable','width','height','viewbox','fill','stroke','d','points','x','y','x1','x2','y1','y2','cx','cy','r','rx','ry','opacity','transform','colspan','rowspan','loading','datetime','download','data-list-id','data-list-item-id','data-message-id','data-channel-id','data-testid','data-state','data-slate-node','data-slate-editor'].includes(n))return value;
+    // Unknown data attributes are useful for discovery, but their values
+    // can contain app state. Keep the name without the value.
+    if(n.startsWith('data-'))return '[present]';
+    return null;
+  }
+  function uiStructure(){
+    const root=document.body,clone=root.cloneNode(true),live=[root,...root.querySelectorAll('*')],copies=[clone,...clone.querySelectorAll('*')];
+    const geometry=[];let omitted=0;
+    const skip='script,style,link,meta,noscript,template,iframe,object,embed,input,textarea,[contenteditable="true"],#dw-boot,#dw-sparse-explorer,#dw-note-editor,.dw-native-marks,.dw-channel-marks';
+    for(let i=0;i<live.length;i++){
+      const n=live[i],c=copies[i];if(!c)continue;
+      if(n.matches(skip)||n.closest(skip)){if(c.parentNode)c.remove();omitted++;continue}
+      for(const attr of [...c.attributes]){
+        const value=captureAttribute(attr.name,attr.value);
+        if(value===null)c.removeAttribute(attr.name);else if(value!==attr.value)c.setAttribute(attr.name,value);
+      }
+      // Geometry is recorded for rendered elements without guessing their roles.
+      // HTML contains the entire remaining tree, including offscreen elements.
+      if(n instanceof HTMLElement){
+        const r=n.getBoundingClientRect();
+        if(r.width>0&&r.height>0&&r.bottom>=0&&r.top<=innerHeight&&r.right>=0&&r.left<=innerWidth){
+          const style=getComputedStyle(n);
+          if(style.display!=='none'&&style.visibility!=='hidden'){
+            c.setAttribute('data-capture-index',String(i));
+            geometry.push([i,[r.x,r.y,r.width,r.height].map(v=>Math.round(v*10)/10),[style.display,style.position,style.flex,style.flexDirection,style.flexWrap,style.gap,style.margin,style.padding,style.overflowX,style.overflowY,style.minWidth,style.maxWidth,style.transform,style.fontSize,style.fontWeight,style.zIndex],n.scrollHeight,n.clientHeight]);
+          }
+        }
+      }
+    }
+    // Comments can contain application metadata and are unnecessary for layout.
+    const walker=document.createTreeWalker(clone,NodeFilter.SHOW_COMMENT);const comments=[];while(walker.nextNode())comments.push(walker.currentNode);for(const n of comments)n.remove();
+    return {schema:'live-dom-v2',version:VERSION,capturedAt:new Date().toISOString(),page:captureURL(location.href),viewport:[innerWidth,innerHeight],rootClasses:document.documentElement.className,
+      counts:{elements:live.length,excluded:omitted,geometry:geometry.length},
+      geometryColumns:['captureIndex','rect[x,y,w,h]','computed[display,position,flex,flexDirection,flexWrap,gap,margin,padding,overflowX,overflowY,minWidth,maxWidth,transform,fontSize,fontWeight,zIndex]','scrollHeight','clientHeight'],
+      html:clone.outerHTML,geometry};
+  }
+  db('Copy DOM',async()=>{
+    try{area.value=JSON.stringify(uiStructure());diagStatus.textContent='DOM captured · '+Math.round(area.value.length/1024)+' Ki characters · includes rendered conversation text.';
+      if(typeof GM_setClipboard==='function')await GM_setClipboard(area.value,'text');else if(typeof GM!=='undefined'&&typeof GM.setClipboard==='function')await GM.setClipboard(area.value,'text');else await navigator.clipboard.writeText(area.value);
+      diagStatus.textContent='DOM copied · '+Math.round(area.value.length/1024)+' Ki characters · paste or save as text.';
+    }catch(e){fail('dom-capture',e);if(area.value){area.focus();area.select()}diagStatus.textContent='Capture or clipboard failed · if text is available, select and copy it.'}
   });
   db('Select all',()=>{area.focus();area.select();area.setSelectionRange(0,area.value.length)});
   db('Close',()=>{diagPanel.hidden=true});
