@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.14.4
+// @version      0.15.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.14.4', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.15.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyLateAdded:0,historyPendingTimeouts:0,historyResourceCompletions:0,historyDriverSteps:0,historyDriverProgress:0,historyTraversals:0,historyDirectionChanges:0,historyBatchesCompleted:0,historyBatchesPartial:0,historyBatchPages:0,explorationWrites:0,explorationSeen:0,explorationResumes:0,explorationSamples:0,explorationMovingSamples:0,explorationVisibleCandidates:0,explorationEntryUnseen:0,explorationEntryJumps:0,explorationEntryLoads:0,forumOpens:0,nativeScrollEvents:0,historyWindowChanges:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -249,6 +249,7 @@
     .canvas{position:fixed;z-index:3;background:#f7f3ec;color:#283342;border:1px solid #ded9d0;border-radius:9px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 18px #27364a18}
     .canvas-head{display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:6px 9px;background:#fffdfa;border-bottom:1px solid #e3ded5}
     .canvas-head button{padding:5px 8px;min-height:30px;touch-action:manipulation}
+    .history-overview{display:flex;align-items:center;gap:7px;padding:5px 9px;border-bottom:1px solid #e3ded5;background:#fffdfa;min-width:0;font:11px system-ui;color:#526174}.history-overview[hidden]{display:none}.overview-legend{flex:0 0 auto;line-height:1.35}.overview-track{display:flex;gap:3px;flex:1;min-width:0}.overview-bin{display:flex;flex-direction:column;gap:2px;flex:1 1 0;min-width:0;padding:2px!important;border:1px solid transparent!important;background:none!important;min-height:26px!important;border-radius:4px}.overview-bin[disabled]{opacity:1}.overview-bin[data-current="1"]{border-color:#4663b5!important}.overview-bar{display:flex;height:9px;border-radius:2px;overflow:hidden;background:#dce0ef;width:100%}.overview-bar i{display:block;background:#a8bcb0;height:100%}.overview-bin[disabled] .overview-bar{background:#f4f1eb;border:1px dashed #bbb9b2}.overview-label{font:10px system-ui;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .canvas-count{flex:1;min-width:110px;font-size:12px;color:#657487}
     .canvas-view{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;overscroll-behavior:contain;user-select:none;cursor:grab;background-color:#f5f2eb;background-image:radial-gradient(#d8d4ca 1px,transparent 1px);background-size:20px 20px}
     .canvas-view.dragging{cursor:grabbing}
@@ -266,6 +267,7 @@
     .canvas-label{font-size:12px;color:#4663b5;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .canvas-card:not(.server-card){padding-bottom:34px}.canvas-meta,.canvas-label{flex:none}.canvas-preview{font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere;display:block;flex:1;min-height:0;padding:0 3px 0 0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c6c7d1 transparent}.canvas-preview[data-scrollable="1"]{border-bottom:1px solid #d9dce3}.canvas-view[data-card-scroll="1"]{cursor:ns-resize}
     .canvas-detail{position:absolute;z-index:4;right:10px;bottom:10px;width:min(400px,calc(100% - 20px));max-height:65%;overflow:auto;padding:12px;background:#fffdfa;border:1px solid #cbd4ed;border-radius:9px;box-shadow:0 6px 30px #27364a28;user-select:text}
+    .canvas-detail.has-media{width:min(680px,calc(100% - 20px));max-height:83%}.detail-image{display:block;max-width:100%;max-height:65vh;object-fit:contain;margin:8px auto;border-radius:5px}.media-thumb{float:right;width:88px;height:65px;margin:0 0 4px 7px;padding:0!important;min-height:0!important;border:1px solid #c5cbd7!important;border-radius:5px;overflow:hidden;background:#e9e7e1;position:relative}.media-thumb img{display:block;width:100%;height:100%;object-fit:contain}.media-thumb span{position:absolute;bottom:0;right:0;font:600 11px system-ui;background:#fffdfa;color:#344155;padding:2px 3px}.embed-preview{display:block;font-weight:650;color:#395279;margin:3px 0;white-space:normal}.embed-description{display:block;color:#526174;font-size:12px;white-space:pre-wrap}
     .canvas-detail p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;margin:8px 0}
     .canvas-detail .row{margin:4px 0}
     .canvas-day{position:absolute;font-size:12px;color:#687689;font-weight:650;white-space:nowrap}
@@ -529,7 +531,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,forum:{nativeIndex:nativeForumIndex(),recognized:readForumPosts().length,displayed:canvasMode==='posts'?forumRows.length:0},world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,exploration:{entryDecision,seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,loadedPreviouslySeen:canvasRows.filter(p=>exploration?.prior.has(p.source.message)).length,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,accountGeometry,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({nativeBatch:(()=>{try{const raw=document.documentElement.getAttribute('data-dw-native-batch');return raw?JSON.parse(raw):{status:'companion-not-detected',target:100}}catch{return {status:'invalid-companion-report'}}})(),storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,geometry:lastCanvasGeometry,serverCards:{folders:serverRows.filter(x=>x.folder).length,groupedMembers:serverRows.filter(x=>!x.folder&&x.folderId).length,coloredParents:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="parent"]').length:null,coloredChildren:canvasMode==='servers'?world.querySelectorAll('[data-folder-role="child"]').length:null,markable:serverRows.filter(x=>x.folder?!!markSource('dw-folder:'+x.id):isId(x.id)).length,renderedControls:canvasMode==='servers'?world.querySelectorAll('.server-card .canvas-markbar').length:null},serverEntries:serverRows.length,forum:{nativeIndex:nativeForumIndex(),recognized:readForumPosts().length,displayed:canvasMode==='posts'?forumRows.length:0},world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,logicalBatchTarget:HISTORY_BATCH,sessionLimit:HISTORY_LIMIT,media:{cards:canvasRows.filter(p=>p.media?.images.length||p.media?.embeds.length).length},exploration:{entryDecision,known:exploration?.entry.known.size||0,overviewRegions:overviewBins.length,seen:exploration?.seen.size||0,previouslySeen:exploration?.prior.size||0,loadedPreviouslySeen:canvasRows.filter(p=>exploration?.prior.has(p.source.message)).length,collapsed:collapsedSeen,loading:!!explorationLoading},historyBusy,historyStatus,historyEnds,historyStalls,historyTrace:summarizeHistoryTrace(historyTrace),recentHistory:historyEvidence,nativeWindowEvidence,nativeScrollEvidence,lateWatch:!!lateHistory,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,accountGeometry,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -568,6 +570,23 @@
     return {opened,panel:box(panel),launcher:box(launcher),visualViewport:window.visualViewport?[Math.round(visualViewport.width),Math.round(visualViewport.height)]:null};
   }
   // Native list is the identity contract, not arbitrary chat-messages containers.
+  function safeMediaURL(raw){
+    if(!raw)return null;
+    try{const u=new URL(raw);return u.protocol==='https:'&&/^(?:cdn\.discordapp\.(?:com|net)|media\.discordapp\.net|images-ext-\d+\.discordapp\.net)$/.test(u.hostname)?u.href:null}catch{return null}
+  }
+  function messageMedia(row){
+    const images=[],embeds=[],seen=new Set();if(!row)return {images,embeds};
+    const selector='[class*="attachment_"],[class*="messageAttachment_"],[class*="imageWrapper_"],[class*="embedFull_"],[class*="embedImage_"],[class*="embedThumbnail_"],[class*="mediaAttachmentsContainer_"],[class*="imageContent_"]';
+    for(const img of row.querySelectorAll('img')){
+      if(!img.closest(selector)||img.closest('[class*="repliedMessage_"]')||img.matches('.emoji,[class*="emoji_"],[class*="avatar_"]'))continue;
+      const url=safeMediaURL(img.currentSrc||img.getAttribute('src'));if(!url||seen.has(url))continue;
+      seen.add(url);images.push({url,alt:(img.getAttribute('alt')||'Message image').slice(0,150)});if(images.length>=6)break;
+    }
+    for(const e of row.querySelectorAll('[class*="embedFull_"]')){
+      const title=(e.querySelector('[class*="embedTitle_"]')?.textContent||'').trim().slice(0,300),description=(e.querySelector('[class*="embedDescription_"]')?.textContent||'').trim().slice(0,3000);
+      if(title||description)embeds.push({title,description});if(embeds.length>=3)break;
+    }return {images,embeds};
+  }
   function messagePacket(node,source){
     const row=node.closest('li[id^="chat-messages-"]');
     const author=row?.querySelector('h3 [class*="username_"]');
@@ -577,7 +596,7 @@
     return {source,text:node.innerText||node.textContent||'',author:author?.textContent?.trim()||null,
       timestamp:Number.isFinite(date.getTime())?date.toISOString():time?.getAttribute('datetime')||null,
       reply:reply?.innerText?.trim().slice(0,1000)||null,
-      attachments:row?.querySelectorAll('[class*="attachment_"],[class*="embedFull_"]').length||0};
+      attachments:row?.querySelectorAll('[class*="attachment_"],[class*="embedFull_"]').length||0,media:messageMedia(row)};
   }
   function packetJSON(p){return {url:p.source.url,text:p.text,author:p.author,timestamp:p.timestamp,reply:p.reply,attachments:p.attachments}}
   function visibleRows(loaded=false){
@@ -591,7 +610,7 @@
   // Stable chronological grid, adapted from RSM_Tree_Viewer's atlas camera.
   // Snapshot the currently rendered window; no automatic history requests.
   let canvasOpen=false,canvasMode='messages',canvasRows=[],serverRows=[],canvasSize={w:0,h:0},canvasFrame=0;
-  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};const HISTORY_LIMIT=1200,HISTORY_BATCH=300,HISTORY_BATCH_CYCLES=30,HISTORY_BATCH_MS=30000;
+  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,lastHistoryDirection='',historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};const HISTORY_LIMIT=1200,HISTORY_BATCH=300,HISTORY_BATCH_CYCLES=30,HISTORY_BATCH_MS=30000;
   let canvasChannel='',retainedCanvas=null,historyObserved=null,lateHistory=null,lastTrustedActivity=null;
   const historyEvidence=[],nativeWindowEvidence=[],nativeScrollEvidence=[];
   const scrollIdentities=new WeakMap();let scrollIdentityCounter=0,lastNativeWindow='',lastNativeScrollAt=-Infinity;
@@ -610,6 +629,7 @@
   btn(canvasHead,'Fit',()=>canvasMode==='servers'?fitCanvas():fitReadingWidth());
   const canvasCopy=btn(canvasHead,'Copy for AI',()=>copyResearch(canvasFocusRows()));
   const resumeLink=el('a','Resume exploration',canvasHead);resumeLink.hidden=true;resumeLink.style.cssText='font-size:12px;color:#4663b5;white-space:nowrap';
+  const overview=el('div',undefined,canvas);overview.className='history-overview';overview.hidden=true;let overviewBins=[],overviewSignature='';
   const canvasView=el('div',undefined,canvas);canvasView.className='canvas-view';canvasView.setAttribute('aria-label','Drag to pan, pinch to zoom');
   const world=el('div',undefined,canvasView);world.className='canvas-world';
   const historyBoundary=el('div',undefined,canvasView);historyBoundary.setAttribute('role','status');historyBoundary.hidden=true;historyBoundary.style.cssText='position:absolute;z-index:2;left:50%;transform:translateX(-50%);top:8px;max-width:90%;padding:5px 10px;border:1px solid #d9dce3;border-radius:6px;background:#fffdfa;color:#657487;font:12px system-ui;white-space:normal;text-align:center;pointer-events:none';
@@ -771,7 +791,8 @@
       const dt=Math.min(40,Math.max(1,now-last));last=now;
       const decay=Math.exp(-dt/FRICTION_MS),travel=FRICTION_MS*(1-decay);
       const x=camera.x,y=camera.y;
-      camera.x+=velocity.x*travel;camera.y+=velocity.y*travel;constrainCamera();
+      trackHistoryEdge(velocity.y*travel);camera.x+=velocity.x*travel;camera.y+=velocity.y*travel;constrainCamera();
+      if(consumeHistoryEdge()){velocity={x:0,y:0};scheduleCamera();return}
       velocity.x*=decay;velocity.y*=decay;
       if(Math.abs(camera.x-x)<.01)velocity.x=0;if(Math.abs(camera.y-y)<.01)velocity.y=0;
       scheduleCamera();
@@ -789,9 +810,10 @@
     for(const [key,e] of explorationCache){
       if(!e.dirty)continue;e.dirty=false;
       explorationWriteQueue=explorationWriteQueue.then(async()=>{
-        const stored=cleanExploration(await read(explorationKey(key),{}));
-        for(const id of stored)e.seen.add(id);
-        await write(explorationKey(key),{ids:[...e.seen]});
+        const stored=await read(explorationKey(key),{});
+        for(const id of cleanExploration(stored)){e.seen.add(id);e.known.add(id)}
+        for(const id of cleanExploration({ids:stored?.known}))e.known.add(id);
+        await write(explorationKey(key),{ids:[...e.seen],known:[...e.known]});
         metrics.canvas.explorationWrites++;
       }).catch(err=>{e.dirty=true;fail('exploration-save',err)});
     }
@@ -804,8 +826,8 @@
     explorationLoading=route;
     let e=explorationCache.get(route);
     if(!e){
-      let seen=new Set();try{seen=cleanExploration(await read(explorationKey(route),{}))}catch(err){fail('exploration-read',err)}
-      e={route,seen,dirty:false};explorationCache.set(route,e);
+      let seen=new Set(),known=new Set();try{const saved=await read(explorationKey(route),{});seen=cleanExploration(saved);known=cleanExploration({ids:saved?.known})}catch(err){fail('exploration-read',err)}
+      for(const id of seen)known.add(id);e={route,seen,known,dirty:false};explorationCache.set(route,e);
     }
     if(explorationLoading!==route||routeKey()!==route)return;
     explorationLoading='';exploration={route,seen:e.seen,prior:new Set(e.seen),entry:e};
@@ -901,10 +923,48 @@
     metrics.canvas.explorationVisibleCandidates+=ids.length;
     let added=0;
     for(const id of ids){if(!exploration.seen.has(id)){exploration.seen.add(id);added++}}
-    if(added){exploration.entry.dirty=true;metrics.canvas.explorationSeen+=added;scheduleExplorationSave();updateResume()}
+    if(added){exploration.entry.dirty=true;metrics.canvas.explorationSeen+=added;scheduleExplorationSave();updateResume();renderOverview()}
   }
   function scheduleExploration(){if(!explorationTimer)explorationTimer=setTimeout(markVisibleExploration,150)}
   window.addEventListener('pagehide',saveExploration);
+  function messageMonth(id){
+    const d=new Date(Number(BigInt(id)>>22n)+1420070400000);return d.getUTCFullYear()*12+d.getUTCMonth();
+  }
+  function historyBins(known,seen){
+    const groups=new Map();let lo=Infinity,hi=-Infinity;
+    for(const id of known){const m=messageMonth(id);if(!Number.isFinite(m))continue;lo=Math.min(lo,m);hi=Math.max(hi,m);if(!groups.has(m))groups.set(m,[]);groups.get(m).push(id)}
+    if(!Number.isFinite(lo))return [];
+    const step=Math.max(1,Math.ceil((hi-lo+1)/18)),bins=[];
+    for(let start=lo;start<=hi;start+=step){
+      const end=Math.min(hi,start+step-1),ids=[];for(let m=start;m<=end;m++)for(const id of groups.get(m)||[])ids.push(id);
+      const unseen=ids.filter(id=>!seen.has(id)),latest=arr=>arr.reduce((a,id)=>a===null||BigInt(id)>BigInt(a)?id:a,null);
+      bins.push({start,end,total:ids.length,seen:ids.length-unseen.length,target:latest(unseen)||latest(ids)});
+    }return bins;
+  }
+  function monthLabel(m){return new Date(Date.UTC(Math.floor(m/12),m%12,1)).toLocaleDateString('en-US',{month:'short',year:'2-digit',timeZone:'UTC'})}
+  function renderOverview(){
+    if(!canvasOpen||canvasMode!=='messages'||!exploration||exploration.route!==routeKey()){overview.hidden=true;return}
+    const e=exploration.entry;let changed=false;for(const p of canvasRows)if(!e.known.has(p.source.message)){e.known.add(p.source.message);changed=true}
+    if(changed){e.dirty=true;scheduleExplorationSave()}
+    const sig=exploration.route+'|'+e.known.size+'|'+e.seen.size;
+    if(sig===overviewSignature){overview.hidden=!overviewBins.length;return}
+    overviewSignature=sig;overview.replaceChildren();overviewBins=historyBins(e.known,e.seen);overview.hidden=!overviewBins.length;if(overview.hidden)return;
+    const legend=el('div',undefined,overview);legend.className='overview-legend';legend.textContent='Older → newer';const key=el('div','Green seen · lilac unseen',legend);key.style.fontSize='10px';key.title='Only among observed messages, not complete channel coverage. Dashed intervals have no recorded messages.';
+    const track=el('div',undefined,overview);track.className='overview-track';
+    for(const b of overviewBins){
+      const button=el('button',undefined,track);button.type='button';button.className='overview-bin';button.disabled=!b.total;b.node=button;
+      const label=monthLabel(b.start)+(b.end!==b.start?'–'+monthLabel(b.end):'');button.title=label+' · '+(b.total?b.seen+' seen / '+b.total+' observed (not total coverage)':'No recorded messages; coverage unknown');button.setAttribute('aria-label',button.title);
+      const bar=el('span',undefined,button);bar.className='overview-bar';el('i',undefined,bar).style.width=(b.total?100*b.seen/b.total:0)+'%';el('span',label,button).className='overview-label';
+      if(b.target)button.addEventListener('click',()=>{if(!canvasOpen||canvasMode!=='messages'||exploration?.route!==routeKey())return;const local=canvasRows.filter(p=>messageMonth(p.source.message)>=b.start&&messageMonth(p.source.message)<=b.end&&!e.seen.has(p.source.message)).at(-1);const target=local?.source.message||b.target;if(!focusMessageCard(target))location.assign('https://discord.com/channels/'+exploration.route+'/'+target)});
+    }updateOverviewCursor();
+  }
+  function updateOverviewCursor(){
+    if(canvasMode!=='messages'||!exploration||exploration.route!==routeKey()){overview.hidden=true;return}
+    if(!overviewBins.length)return;overview.hidden=false;
+    const i=Math.max(0,Math.min(canvasSlots.length-collapsedSeen-1,Math.floor((canvasView.clientHeight/2-camera.y)/camera.z/190)*5+2));
+    const p=canvasSlots[i]||canvasSlots.slice(0,canvasSlots.length-collapsedSeen).find(Boolean),month=p?messageMonth(p.source.message):null;
+    for(const b of overviewBins){if(month!==null&&month>=b.start&&month<=b.end)b.node.dataset.current='1';else delete b.node.dataset.current}
+  }
   function applyCamera(){
     canvasFrame=0;world.style.transform='translate('+camera.x+'px,'+camera.y+'px) scale('+camera.z+')';
     canvasCount.textContent=(canvasMode==='servers'?serverRows.length+' navigation entries':canvasMode==='posts'?forumRows.length+' loaded posts · Timeline for more':canvasRows.length+' encountered messages')+' · '+Math.round(camera.z*100)+'%'+(canvasMode==='messages'&&historyStatus?' · '+historyStatus:'');
@@ -912,7 +972,7 @@
     const extent=canvasSize.h*camera.z,top=extent<=canvasView.clientHeight?(canvasView.clientHeight-extent)/2:0;
     const atTop=canvasMode==='messages'&&camera.y>=top-30;
     const boundary=historyEnds.older?'Beginning of channel':historyBusy?historyStatus:lateHistory&&historyStatus.includes('Discord still loading')?'Discord still loading · watching for messages':historyStalls.older?'No older messages returned · drag again to retry':'';
-    historyBoundary.hidden=!(atTop&&boundary);historyBoundary.textContent=boundary;
+    historyBoundary.hidden=!(atTop&&boundary);historyBoundary.textContent=boundary;updateOverviewCursor();
     updateResume();if(canvasMode==='messages')scheduleExploration();
   }
   function scheduleCamera(){if(!canvasFrame)canvasFrame=requestAnimationFrame(applyCamera)}
@@ -932,13 +992,16 @@
   }
   function inspectCanvas(p){
     metrics.canvas.inspections++;detail.replaceChildren();detail.hidden=false;
+    const media=p.media||{images:[],embeds:[]};detail.classList.toggle('has-media',media.images.length>0);
     const head=el('div',undefined,detail);head.className='row';
     const name=el('strong',p.author||'Message',head);name.className='grow';
     btn(head,'Close',()=>{detail.hidden=true});
     el('div',p.timestamp||'',detail).className='muted';
     if(p.reply)el('p','Reply context: '+p.reply,detail).className='muted';
     el('p',p.text||'(No text in this rendered message)',detail);
-    if(p.attachments)el('div',p.attachments+' attachment / embed indicators · open source to view',detail).className='muted';
+    for(const embed of media.embeds){if(embed.title)el('strong',embed.title,detail);if(embed.description)el('p',embed.description,detail)}
+    for(const item of media.images){const img=el('img',undefined,detail);img.className='detail-image';img.alt=item.alt;img.referrerPolicy='no-referrer';img.decoding='async';img.src=item.url;img.addEventListener('error',()=>img.replaceWith(el('p','Image unavailable · open original to view')),{once:true})}
+    if(p.attachments)el('div','Open original for other attachments, video or unavailable previews.',detail).className='muted';
     const actions=el('div',undefined,detail);actions.className='row';
     const link=el('a','Open original',actions);link.href=p.source.url;link.addEventListener('click',()=>{metrics.canvas.sourceJumps++;chooseReadingView('timeline').catch(e=>fail('reading-view',e))});
     addMarkControls(actions,p);
@@ -966,7 +1029,12 @@
       if(title){card.dataset.saved='1';el('div',title,card).className='canvas-label'}
       const time=p.timestamp?.slice(11,16)||'';
       el('div',[p.author||'Message',day,time,p.attachments?p.attachments+' attachments':''].filter(Boolean).join(' · '),card).className='canvas-meta';
-      const preview=el('div',p.text||'(Attachment or no text)',card);preview.className='canvas-preview';preview.dataset.cardUrl=p.source.url;
+      const preview=el('div',undefined,card);preview.className='canvas-preview';preview.dataset.cardUrl=p.source.url;
+      const media=p.media||{images:[],embeds:[]};
+      if(media.images.length){const thumb=el('button',undefined,preview);thumb.className='media-thumb';thumb.type='button';thumb.setAttribute('aria-label','Expand message images');const img=el('img',undefined,thumb);img.alt=media.images[0].alt;img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';img.src=media.images[0].url;el('span',media.images.length>1?'+'+(media.images.length-1)+' images':'Expand',thumb);img.addEventListener('error',()=>{img.remove();thumb.textContent='Image · open'},{once:true});thumb.addEventListener('click',e=>{e.stopPropagation();if(Date.now()>=suppressUntil)inspectCanvas(p)})}
+      if(p.text)preview.append(document.createTextNode(p.text));else if(!media.images.length&&!media.embeds.length)preview.append(document.createTextNode('(Attachment or no text)'));
+      for(const e of media.embeds){if(e.title)el('span',e.title,preview).className='embed-preview';if(e.description)el('span',e.description,preview).className='embed-description'}
+      if(p.attachments&&!media.images.length&&!media.embeds.length)el('span','Attachment · open message',preview).className='embed-preview';
       preview.scrollTop=cardScrollOffsets.get(p.source.url)||0;
       preview.addEventListener('scroll',()=>cardScrollOffsets.set(p.source.url,preview.scrollTop),{passive:true});
       if(exploration?.prior.has(p.source.message)){card.dataset.seenBefore='1';el('span','Seen',card).className='seen-corner';}
@@ -988,7 +1056,7 @@
       strip.addEventListener('click',()=>{showPreviouslySeen=!showPreviouslySeen;renderCanvas();constrainCamera();scheduleCamera()});rowsHeight+=65;
     }
     canvasSize={w:margin*2+cols*strideX-16,h:margin*2+rowsHeight-16};
-    world.style.width=canvasSize.w+'px';world.style.height=canvasSize.h+'px';
+    world.style.width=canvasSize.w+'px';world.style.height=canvasSize.h+'px';renderOverview();
     requestAnimationFrame(()=>{for(const preview of world.querySelectorAll('.canvas-preview')){const max=preview.scrollHeight-preview.clientHeight;const indicator=preview.parentElement.querySelector('.card-overflow');if(indicator)indicator.hidden=max<=2||preview.scrollTop>=max-2;preview.dataset.scrollable=max>2?'1':'0';}});
   }
   function gridColumns(n,sx,sy){
@@ -1164,14 +1232,22 @@
   async function chooseReadingView(view){
     readingView=view;closeCanvas();restoreReading();updateViewButtons();await write('dw-reading-view',readingView);record('reading-view',readingView);
   }
+  function edgeIntent(y,dy,height,extent){
+    const center=(height-extent)/2,top=extent<=height?center:0,bottom=extent<=height?center:height-extent;
+    if(dy>0&&y+dy>top)return {dir:'older',travel:Math.min(dy,y+dy-top)};
+    if(dy<0&&y+dy<bottom)return {dir:'newer',travel:Math.min(-dy,bottom-y-dy)};
+    return {dir:'',travel:0};
+  }
   function trackHistoryEdge(dy){
-    if(!canvasOpen||canvasMode!=='messages'||historyBusy||!dy)return;
-    const h=canvasView.clientHeight,extent=canvasSize.h*camera.z;
-    const center=(h-extent)/2,top=extent<=h?center:0,bottom=extent<=h?center:h-extent;
-    const dir=dy>0&&camera.y>=top-30?'older':dy<0&&camera.y<=bottom+30?'newer':'';
+    if(!canvasOpen||canvasMode!=='messages'||historyBusy||!dy){edgeTravel=0;edgeDirection='';return}
+    const {dir,travel}=edgeIntent(camera.y,dy,canvasView.clientHeight,canvasSize.h*camera.z);
     if(!dir){edgeTravel=0;edgeDirection='';return}
     if(dir!==edgeDirection){edgeDirection=dir;edgeTravel=0}
-    edgeTravel+=Math.abs(dy);
+    edgeTravel+=travel;
+  }
+  function consumeHistoryEdge(){
+    if(edgeTravel<=65||!edgeDirection||historyBusy)return false;
+    const dir=edgeDirection;edgeTravel=0;edgeDirection='';loadHistory(dir);return true;
   }
   function nativeScrollCandidates(){
     const list=document.querySelector('[data-list-id="chat-messages"]'),out=[];
@@ -1234,6 +1310,7 @@
       boundedPush(trace.driverSteps,{kind:'rearm',before,after:scrollSnapshot(n),range:historyRange(visibleRows(true))},14);
       if(nativeHistoryState(nativeScroller()).busy)return 'loading-after-rearm';
     }
+    let movement=0;
     for(let i=0;i<10;i++){
       if(!active())return 'cancelled';
       if(performance.now()>=deadline)return 'time-budget';
@@ -1247,6 +1324,7 @@
       await wait(140);if(!active())return 'cancelled';
       const rows=visibleRows(true);rememberWindow(rows);
       const current=nativeScroller(),after=scrollSnapshot(current),range=historyRange(rows);
+      if(current===n)movement+=Math.max(0,dir==='older'?before.top-after.top:after.top-before.top);
       boundedPush(trace.driverSteps,{kind:'step',target:Math.round(target),before,after,events:(trace.scrollEvents||0)-events,range,busy:nativeHistoryState(current).busy},14);
       const candidates=historyCandidates([...historyObserved.values()],dir);
       if(candidates.older.length+candidates.gap.length+candidates.newer.length){metrics.canvas.historyDriverProgress++;return 'new-window'}
@@ -1254,7 +1332,7 @@
       if(current===n&&Math.abs(n.scrollTop-edge)<2)return 'edge-reached';
       if(current===n&&Math.abs(n.scrollTop-before.top)<2&&Math.abs(target-before.top)>2)return 'scroll-not-moving';
     }
-    return 'step-budget';
+    return movement>2?'traversing':'step-budget';
   }
   function historyCandidates(rows,dir){
     if(!canvasRows.length)return {older:[],gap:[],newer:[]};
@@ -1393,10 +1471,12 @@
     historyEnds.older=true;historyStalls.older=0;metrics.canvas.historyEndConfirmed++;record('history-end','older');scheduleCamera();return true;
   }
   async function loadHistory(dir){
-    if(!canvasOpen||canvasMode!=='messages'||historyBusy||!canvasRows.length||Date.now()-lastHistoryAt<600)return;
+    if(!canvasOpen||canvasMode!=='messages'||historyBusy||!canvasRows.length||(dir===lastHistoryDirection&&Date.now()-lastHistoryAt<600))return;
     if(historyEnds[dir]){historyStatus=dir==='older'?'Beginning of channel':'End of channel';scheduleCamera();return}
     if(canvasRows.length>=HISTORY_LIMIT){historyStatus='1200-message session limit';scheduleCamera();metrics.canvas.historyBlocked++;return}
     const scroller=nativeScroller();if(!scroller){historyStatus='Native history scroller not found';metrics.canvas.historyBlocked++;scheduleCamera();return}
+    if(lastHistoryDirection&&lastHistoryDirection!==dir)metrics.canvas.historyDirectionChanges++;
+    lastHistoryDirection=dir;historyStalls[dir]=0;
     lateHistory=null;historyBusy=true;historyObserved=new Map();lastHistoryAt=Date.now();const gen=historyGeneration;metrics.canvas.historyAttempts++;
     historyStatus='Loading '+dir+' messages…';scheduleCamera();record('history-request',dir);
     const route=channelRoute()?.slice(1,3).join('/');
@@ -1436,6 +1516,7 @@
         if(!active())return;
         historyTrace.driverResult=driverResult;
         if(progress(integrateHistory([...historyObserved.values()],dir,remaining()),driverResult))continue;
+        if(driverResult==='traversing'){metrics.canvas.historyTraversals++;historyStatus='Moving through native history · '+dir;scheduleCamera();continue}
         if(driverResult==='step-budget'||driverResult==='time-budget'){
           finish(driverResult,'drag for more');return;
         }
@@ -1462,7 +1543,7 @@
         metrics.canvas.historyEmpty++;metrics.canvas.historyStalled++;historyStalls[dir]++;
         if(pending)metrics.canvas.historyPendingTimeouts++;
         lateHistory={generation:gen,route:routeKey(),dir,until:performance.now()+30000,remaining:remaining(),added:batch.added};
-        finish(pending?'native-still-loading':driverResult==='scroll-not-moving'?'scroll-not-moving':historyTrace.scrollEvents===0?'no-native-scroll-event':seenBusy?'loading-ended-without-new-window':'native-scroll-without-new-window',pending?'Discord still loading · watching for messages':'No more '+dir+' messages returned · edge not confirmed');
+        finish(pending?'native-still-loading':driverResult==='scroll-not-moving'?'scroll-not-moving':historyTrace.scrollEvents===0?'no-native-scroll-event':seenBusy?'loading-ended-without-new-window':'native-scroll-without-new-window',pending?'Discord still loading · watching for messages':driverResult==='scroll-not-moving'?'Native scroll did not advance · drag to retry':'No additional '+dir+' messages yet · edge not confirmed');
         record('history-empty',dir);return;
       }
       finish(remaining()===0?'batch-target':'cycle-budget',remaining()===0?(canvasRows.length>=HISTORY_LIMIT?'1200-message session limit':''):'drag for more');
@@ -1507,11 +1588,11 @@
     if(wasPinch){velocity={x:0,y:0};for(const other of pointers.values()){other.sx=other.x;other.sy=other.y;other.moved=false;other.gesture=null;other.preview=null}}
     if(dragged||p.moved)suppressUntil=Date.now()+300;
     if(e.type==='pointercancel'){metrics.canvas.cancels++;record('canvas-pointer-cancel',e.pointerType||'unknown')}
-    if(pointers.size===0){dragged=false;delete canvasView.dataset.cardScroll;canvasView.classList.remove('dragging');if(p.gesture==='card'){stopInertia();return}if(e.type==='pointerup'&&!wasPinch&&edgeTravel>65&&edgeDirection){stopInertia();loadHistory(edgeDirection)}else if(e.type==='pointerup'&&!wasPinch&&p.moved&&performance.now()-lastMotion<90)startInertia();else stopInertia()}
+    if(pointers.size===0){dragged=false;delete canvasView.dataset.cardScroll;canvasView.classList.remove('dragging');if(p.gesture==='card'){stopInertia();return}if(e.type==='pointerup'&&!wasPinch&&consumeHistoryEdge()){stopInertia()}else if(e.type==='pointerup'&&!wasPinch&&p.moved&&performance.now()-lastMotion<90)startInertia();else stopInertia()}
   }
   window.addEventListener('pointerup',endCanvasPointer);window.addEventListener('pointercancel',endCanvasPointer);
   canvasView.addEventListener('click',e=>{if(Date.now()<suppressUntil){e.preventDefault();e.stopPropagation()}},true);
-  canvasView.addEventListener('wheel',e=>{e.preventDefault();const r=canvasView.getBoundingClientRect();if(e.ctrlKey||e.metaKey)zoomCanvas(camera.z*Math.exp(-Math.max(-110,Math.min(110,e.deltaY))*.015),e.clientX-r.left,e.clientY-r.top);else{const unit=e.deltaMode===1?16:e.deltaMode===2?canvasView.clientHeight:1;const preview=cardForGesture(e.target);if(preview&&Math.abs(e.deltaY)>Math.abs(e.deltaX)&&canScrollCard(preview.scrollTop,preview.scrollHeight,preview.clientHeight,-e.deltaY)){stopInertia();metrics.canvas.cardScrolls++;scrollCard(preview,e.deltaY*unit/camera.z);return}stopInertia();trackHistoryEdge(-e.deltaY*unit*1.65);if(edgeTravel>65&&edgeDirection){loadHistory(edgeDirection);edgeTravel=0}camera.x-=e.deltaX*unit*1.65;camera.y-=e.deltaY*unit*1.65;constrainCamera();metrics.canvas.pans++;scheduleCamera()}},{passive:false});
+  canvasView.addEventListener('wheel',e=>{e.preventDefault();const r=canvasView.getBoundingClientRect();if(e.ctrlKey||e.metaKey)zoomCanvas(camera.z*Math.exp(-Math.max(-110,Math.min(110,e.deltaY))*.015),e.clientX-r.left,e.clientY-r.top);else{const unit=e.deltaMode===1?16:e.deltaMode===2?canvasView.clientHeight:1;const preview=cardForGesture(e.target);if(preview&&Math.abs(e.deltaY)>Math.abs(e.deltaX)&&canScrollCard(preview.scrollTop,preview.scrollHeight,preview.clientHeight,-e.deltaY)){stopInertia();metrics.canvas.cardScrolls++;scrollCard(preview,e.deltaY*unit/camera.z);return}stopInertia();trackHistoryEdge(-e.deltaY*unit*1.65);camera.x-=e.deltaX*unit*1.65;camera.y-=e.deltaY*unit*1.65;constrainCamera();consumeHistoryEdge();metrics.canvas.pans++;scheduleCamera()}},{passive:false});
   window.addEventListener('resize',()=>{if(canvasOpen)positionCanvas()});
   window.addEventListener('keydown',e=>{if(e.key==='Escape'&&canvasOpen){if(!noteEditor.hidden){closeNoteEditor()}else if(!detail.hidden)detail.hidden=true;else if(canvasMode==='servers')restoreReading();else chooseReadingView('timeline').catch(err=>fail('reading-view',err))}});
   function stage(rows,origin='selection'){
@@ -1762,7 +1843,7 @@
   document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;resetComposerIntent('route');closeCanvas();retainedCanvas=null;canvasChannel='';exploration=null;explorationLoading='';entryRoute='';entryDecision='none';showPreviouslySeen=false;canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;resetComposerIntent('route');closeCanvas();retainedCanvas=null;canvasChannel='';lastHistoryDirection='';lastHistoryAt=0;exploration=null;explorationLoading='';entryRoute='';entryDecision='none';showPreviouslySeen=false;canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
