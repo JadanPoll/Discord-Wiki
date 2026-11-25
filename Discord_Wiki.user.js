@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.15.1
+// @version      0.15.2
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.15.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.15.2', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -443,6 +443,15 @@
     html.dw-focus [data-dw-account-profile]{flex:1 1 40px!important;min-width:36px!important;max-width:100%!important;position:relative!important;margin:0!important;overflow:hidden!important}
     html.dw-focus [data-dw-account-controls]{display:flex!important;flex:0 0 auto!important;min-width:max-content!important;position:relative!important;margin:0!important;gap:2px!important}
     html.dw-focus [data-dw-account-controls] button{margin-inline:0!important}
+    /* Observed Safari account row: 188px, 14px profile wrapper, 146px controls.
+       Compact the two audio groups while preserving their independent menus. */
+    html.dw-focus.dw-server-channel:not(.dw-communities) [class*="panels_"] [class*="container_"]:has(> [class*="accountPopoutButtonWrapper_"]){display:flex!important;align-items:center!important;flex-wrap:wrap!important;justify-content:flex-start!important;gap:4px!important;padding:6px!important;box-sizing:border-box!important;height:auto!important;min-height:48px!important}
+    html.dw-focus.dw-server-channel:not(.dw-communities) [class*="panels_"] [class*="accountPopoutButtonWrapper_"]{flex:0 0 42px!important;width:42px!important;min-width:42px!important;max-width:42px!important;margin:0!important;padding:3px!important;box-sizing:border-box!important;overflow:visible!important}
+    html.dw-focus.dw-server-channel:not(.dw-communities) [class*="accountPopoutButtonWrapper_"] > [class*="nameTag_"]{display:none!important}
+    html.dw-focus.dw-server-channel:not(.dw-communities) [class*="panels_"] [class*="container_"]:has(> [class*="accountPopoutButtonWrapper_"]) > [class*="buttons_"]{display:flex!important;flex:0 0 auto!important;gap:2px!important;margin:0!important;min-width:0!important}
+    html.dw-focus.dw-server-channel:not(.dw-communities) [class*="panels_"] [class*="buttons_"] [class*="audioButtonParent_"]{flex:0 0 auto!important;gap:0!important}
+    html.dw-focus.dw-server-channel:not(.dw-communities) [class*="panels_"] [class*="buttons_"] button{width:28px!important;min-width:28px!important;max-width:28px!important;margin:0!important}
+    html.dw-focus.dw-server-channel:not(.dw-communities) [class*="panels_"] [class*="buttons_"] button[class*="buttonChevron_"]{width:14px!important;min-width:14px!important;max-width:14px!important}
     html.dw-focus.dw-server-channel:not(.dw-communities) [class*="panels_"] [class*="avatarWrapper_"]{flex:0 0 44px!important;min-width:44px!important;width:44px!important;max-width:44px!important;box-sizing:border-box!important;padding-inline:2px!important;margin-inline:0!important;position:relative!important;transform:none!important}
     html.dw-focus.dw-server-channel:not(.dw-communities) [data-dw-account-profile]{flex:0 0 44px!important;min-width:44px!important;width:44px!important;max-width:44px!important}
     html.dw-focus [data-dw-account-row]{column-gap:8px!important;row-gap:3px!important}
@@ -610,17 +619,29 @@
     try{const u=new URL(raw);return u.protocol==='https:'&&/^(?:cdn\.discordapp\.(?:com|net)|media\.discordapp\.net|images-ext-\d+\.discordapp\.net)$/.test(u.hostname)?u.href:null}catch{return null}
   }
   function messageMedia(row){
-    const images=[],embeds=[],seen=new Set();if(!row)return {images,embeds};
+    const images=[],embeds=[],seen=new Set();let pendingImages=0,unavailableImages=0;if(!row)return {images,embeds,pendingImages,unavailableImages};
+    const accessories=row.querySelector('[id^="message-accessories-"]')||row;
+    const excluded=n=>n.closest('[class*="repliedMessage_"],[class*="spoiler"],[class*="Spoiler"]');
+    const addImage=(url,alt)=>{if(!url||seen.has(url)||images.length>=6)return;seen.add(url);images.push({url,alt:(alt||'Message image').slice(0,150)})};
     const selector='[class*="attachment_"],[class*="messageAttachment_"],[class*="imageWrapper_"],[class*="embedFull_"],[class*="embedImage_"],[class*="embedThumbnail_"],[class*="mediaAttachmentsContainer_"],[class*="imageContent_"],[class*="imageContainer_"],[class*="mosaic"],[class*="visualMedia"],[class*="embedMedia"],[class*="embedVideo"],[class*="clickableWrapper"]';
-    for(const img of row.querySelectorAll('img')){
-      if(!img.closest(selector)||img.closest('[class*="repliedMessage_"]')||img.matches('.emoji,[class*="emoji_"],[class*="avatar_"]'))continue;
+    // Each wrapper owns a sibling originalLink even when its lazy img is absent.
+    for(const wrapper of accessories.querySelectorAll('[class*="imageWrapper_"]')){
+      if(excluded(wrapper)||wrapper.closest('[class*="embedVideo_"],[class*="videoWrapper_"]'))continue;
+      const img=wrapper.querySelector('img:not(.emoji)'),link=wrapper.querySelector('a[class*="originalLink_"][href]');
+      const url=safeMediaURL(img?.currentSrc)||safeMediaURL(img?.getAttribute('src'))||safeMediaURL(link?.getAttribute('href'));
+      if(url)addImage(url,img?.getAttribute('alt'));
+      else if(wrapper.querySelector('[class*="loadingOverlay_"]'))pendingImages++;
+      else if(link||img)unavailableImages++;
+    }
+    for(const img of accessories.querySelectorAll('img')){
+      if(!img.closest(selector)||excluded(img)||img.closest('[class*="imageWrapper_"]')||img.matches('.emoji,[class*="emoji_"],[class*="avatar_"]'))continue;
       const url=safeMediaURL(img.currentSrc)||safeMediaURL(img.getAttribute('src'))||safeMediaURL(img.closest('a[href]')?.getAttribute('href'));if(!url||seen.has(url))continue;
-      seen.add(url);images.push({url,alt:(img.getAttribute('alt')||'Message image').slice(0,150)});if(images.length>=6)break;
+      addImage(url,img.getAttribute('alt'));if(images.length>=6)break;
     }
     for(const e of row.querySelectorAll('[class*="embedFull_"],[class*="embedWrapper_"]:not(:has([class*="embedFull_"]))')){
       const title=(e.querySelector('[class*="embedTitle_"]')?.textContent||'').trim().slice(0,300),description=(e.querySelector('[class*="embedDescription_"]')?.textContent||'').trim().slice(0,3000);
       if(title||description)embeds.push({title,description});if(embeds.length>=3)break;
-    }return {images,embeds};
+    }return {images,embeds,pendingImages,unavailableImages};
   }
   function messagePacket(node,source){
     const row=node.closest('li[id^="chat-messages-"]');
@@ -768,6 +789,18 @@
     if(canvasOpen&&canvasMode==='messages'){historyStatus='Copied '+messages.length+' messages + '+saved.length+' saved';scheduleCamera();}
   }
   function boundedRows(rows){const result=[];let chars=0;for(const r of rows){if(result.length>=100||chars+r.text.length>60000)break;result.push(r);chars+=r.text.length}return result}
+  function mediaImproved(old,next){
+    const a=old?.media,b=next?.media;if(!b)return false;
+    return b.images.length>(a?.images.length||0)||b.embeds.length>(a?.embeds.length||0)||b.embeds.some((e,i)=>e.description.length>(a?.embeds[i]?.description?.length||0));
+  }
+  function refreshCanvasMedia(rows){
+    if(!canvasOpen||canvasMode!=='messages'||historyBusy||pointers.size||inertiaFrame||!detail.hidden||!noteEditor.hidden)return;
+    const byId=new Map(rows.map(p=>[p.source.url,p])),changed=new Map();
+    for(const p of canvasRows){const q=byId.get(p.source.url);if(mediaImproved(p,q))changed.set(p.source.url,q)}
+    if(!changed.size)return;
+    const update=p=>p?(changed.get(p.source.url)||p):p;
+    canvasRows=canvasRows.map(update);canvasSlots=canvasSlots.map(update);renderCanvas();scheduleCamera();
+  }
   function rememberWindow(rows){
     const route=channelRoute(),key=route?route[1]+'/'+route[2]:'';
     if(key!==encounteredChannel){encountered.clear();encounteredChannel=key}
@@ -1060,6 +1093,7 @@
     el('p',p.text||'(No text in this rendered message)',detail);
     for(const embed of media.embeds){if(embed.title)el('strong',embed.title,detail);if(embed.description)el('p',embed.description,detail)}
     for(const item of media.images){const img=el('img',undefined,detail);img.className='detail-image';img.alt=item.alt;img.referrerPolicy='no-referrer';img.decoding='async';img.src=item.url;img.addEventListener('error',()=>img.replaceWith(el('p','Image unavailable · open original to view')),{once:true})}
+    if(media.pendingImages||media.unavailableImages)el('div','Some images are not available as previews yet. Open original to view.',detail).className='muted';
     if(p.attachments)el('div','Open original for other attachments, video or unavailable previews.',detail).className='muted';
     const actions=el('div',undefined,detail);actions.className='row';
     const link=el('a','Open original',actions);link.href=p.source.url;link.addEventListener('click',()=>{metrics.canvas.sourceJumps++;chooseReadingView('timeline').catch(e=>fail('reading-view',e))});
@@ -1094,7 +1128,8 @@
       if(media.images.length){const thumb=el('button',undefined,preview);thumb.className='media-thumb';thumb.type='button';thumb.setAttribute('aria-label','Expand message images');const img=el('img',undefined,thumb);img.alt=media.images[0].alt;img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';img.src=media.images[0].url;el('span',media.images.length>1?'+'+(media.images.length-1)+' images':'Expand',thumb);img.addEventListener('error',()=>{img.remove();thumb.textContent='Image · open'},{once:true});thumb.addEventListener('click',e=>{e.stopPropagation();if(Date.now()>=suppressUntil)inspectCanvas(p)})}
       if(p.text)preview.append(document.createTextNode(p.text));else if(!p.attachments&&!media.images.length&&!media.embeds.length)preview.append(document.createTextNode('(No text · open original)'));
       for(const e of media.embeds){if(e.title)el('span',e.title,preview).className='embed-preview';if(e.description)el('span',e.description,preview).className='embed-description'}
-      if(p.attachments&&!media.images.length&&!media.embeds.length)el('span','Attachment · open message',preview).className='embed-preview';
+      if(media.pendingImages||media.unavailableImages)el('span','Image · open original if preview unavailable',preview).className='embed-description';
+      else if(p.attachments&&!media.images.length&&!media.embeds.length)el('span','Attachment · open message',preview).className='embed-preview';
       preview.scrollTop=cardScrollOffsets.get(p.source.url)||0;
       preview.addEventListener('scroll',()=>cardScrollOffsets.set(p.source.url,preview.scrollTop),{passive:true});
       if(exploration?.prior.has(p.source.message)){card.dataset.seenBefore='1';el('span','Seen',card).className='seen-corner';}
@@ -1702,8 +1737,8 @@
   let accountGeometry=null;
   function annotateAccount(){
     const panel=document.querySelector('[class*="panels_"]');if(!panel){accountGeometry=null;return}
-    const profile=panel.querySelector('[class*="avatarWrapper_"],[class*="avatarWrapper__"],[aria-label*="User profile" i],[aria-label*="Set Status" i]');
-    const mute=panel.querySelector('button[aria-label*="Mute" i],button[aria-label*="Unmute" i],[role="button"][aria-label*="Mute" i],[role="button"][aria-label*="Unmute" i]')||panel.querySelector('[class*="micButtonParent_"]')||panel.querySelector('[aria-label*="microphone" i]');
+    const profile=panel.querySelector('[class*="accountPopoutButtonWrapper_"]')||panel.querySelector('[class*="avatarWrapper_"],[class*="avatarWrapper__"],[aria-label*="User profile" i],[aria-label*="Set Status" i]');
+    const mute=panel.querySelector('button[aria-label*="Mute" i],button[aria-label*="Unmute" i],[role="button"][aria-label*="Mute" i],[role="button"][aria-label*="Unmute" i]')||panel.querySelector('[class*="micButtonParent_"],[class*="audioButtonParent_"] button')||panel.querySelector('[aria-label*="microphone" i]');
     if(!profile||!mute){accountGeometry={profile:!!profile,mute:!!mute,matched:false};return}
     let row=profile.parentElement;while(row&&row!==panel&&!row.contains(mute))row=row.parentElement;
     if(!row||row===panel){accountGeometry={profile:true,mute:true,matched:false};return}
@@ -1751,6 +1786,7 @@
     rememberWindow(encounteredRows);observeNativeWindow(encounteredRows);syncMarks();if(nativeForumIndex()&&focus&&readingView==='canvas'&&(!canvasOpen||canvasMode==='messages'||canvasMode==='posts')){const posts=readForumPosts();if(posts.length){if(!canvasOpen||canvasMode!=='posts')openCanvas('posts');else if(forumSignature!==routeKey()+'|'+posts.map(x=>x.id+':'+x.text.length).join(',')){renderForumPosts(posts);constrainCamera();scheduleCamera()}}else if(canvasOpen)closeCanvas()}else if(canvasOpen&&canvasMode==='messages'&&!canvasRows.length)fillMessageCanvas();
     if(canvasOpen&&canvasMode==='messages'&&entryRoute!==routeKey()&&canvasRows.length&&!historyBusy){const id=location.pathname.split('/')[4];if(id&&encounteredRows.some(p=>p.source.message===id)){if(!canvasRows.some(p=>p.source.message===id)){canvasRows=chronological(encounteredRows);canvasSlots=[...canvasRows];renderCanvas();fitReadingWidth()}landOnExploration(routeKey())}}
     if(lateHistory)collectLateHistory(encounteredRows);
+    refreshCanvasMedia(encounteredRows);
     if(!historyBusy&&canvasOpen&&canvasMode==='messages'&&encounteredRows.length)confirmBeginning(encounteredRows);
     metrics.scanMs=Math.round((performance.now()-t)*10)/10;metrics.maxScanMs=Math.max(metrics.maxScanMs,metrics.scanMs);
   }
