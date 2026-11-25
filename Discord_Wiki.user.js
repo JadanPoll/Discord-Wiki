@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.12.0
+// @version      0.12.1
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.12.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.12.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -352,7 +352,7 @@
     html.dw-focus [data-list-id="chat-messages"] [data-dw-density="3"]{background:#eaeaf3}
     html.dw-focus [data-dw-label]::before{color:#4663b5!important;font-size:13px!important;font-weight:700!important;border-color:#cbd4ed!important;padding:7px 0 5px!important}
     html.dw-focus .dw-native-marks{display:inline-flex;gap:2px;vertical-align:middle;margin-left:8px}html.dw-focus .dw-native-marks button{font:15px system-ui;color:#758195;background:transparent;border:0;padding:2px 6px;cursor:pointer}html.dw-focus .dw-native-marks button[aria-pressed="true"]{color:#9a7018;background:#fff1c7;border-radius:4px}html:not(.dw-focus) .dw-native-marks{display:none!important}
-    html.dw-focus #channels [data-dw-channel-row]{display:flex!important;align-items:center!important;min-width:0!important;gap:2px!important}html.dw-focus #channels [data-dw-channel-row]>a{flex:1 1 0!important;min-width:0!important;width:0!important;padding-right:3px!important;overflow:hidden!important}html.dw-focus #channels [data-dw-channel-row]>a [class*="name_"]{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}html.dw-focus #channels .dw-channel-marks{position:static!important;transform:none!important;display:flex!important;flex:0 0 44px!important;align-items:center;gap:0;background:inherit}html.dw-focus #channels .dw-channel-marks button{box-sizing:border-box;font:14px system-ui;width:22px;min-width:22px;height:28px;padding:0;border:0;background:transparent;color:#8792a1;cursor:pointer}html.dw-focus .dw-channel-marks button[aria-pressed="true"]{color:#946d14;background:#fff1c7;border-radius:3px}html.dw-focus [data-dw-favorite-channel="1"]>a{box-shadow:inset 2px 0 #c39b38}html:not(.dw-focus) .dw-channel-marks{display:none!important}
+    html.dw-focus #channels [data-dw-channel-row]{display:flex!important;align-items:center!important;min-width:0!important;gap:2px!important}html.dw-focus #channels [data-dw-channel-row]>a{flex:1 1 0!important;min-width:0!important;width:0!important;padding-right:3px!important;overflow:hidden!important}html.dw-focus #channels [data-dw-channel-row]>a [class*="name_"]{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}html.dw-focus #channels .dw-channel-marks{position:static!important;transform:none!important;display:flex!important;flex:0 0 44px!important;align-items:center;gap:0;background:inherit}html.dw-focus #channels .dw-channel-marks button{box-sizing:border-box;font:14px system-ui;width:22px;min-width:22px;height:28px;padding:0;border:0;background:transparent;color:#8792a1;cursor:pointer}html.dw-focus #channels .dw-channel-marks button[aria-pressed="true"]{color:#946d14;background:#fff1c7;border-radius:3px}html.dw-focus [data-dw-favorite-channel="1"]>a{box-shadow:inset 2px 0 #c39b38}html:not(.dw-focus) .dw-channel-marks{display:none!important}
     html.dw-focus [data-dw-low="1"]{opacity:.52!important}
     html.dw-focus [data-dw-low="1"]:hover,html.dw-focus [data-dw-low="1"]:focus-within{opacity:1!important}
     html.dw-focus [class*="channelTextArea_"] [class*="scrollableContainer_"]{background:#f7f3ec!important;border:1px solid #e3ded5!important;border-radius:8px}
@@ -572,6 +572,7 @@
   for(const name of ['keydown','keypress','keyup','beforeinput','input','compositionstart','compositionupdate','compositionend','paste','cut','copy']){
     noteEditor.addEventListener(name,e=>{e.stopPropagation();if(name==='keydown'&&e.key==='Escape'){e.preventDefault();closeNoteEditor()}});
   }
+  for(const name of ['pointerdown','pointerup','click'])noteEditor.addEventListener(name,e=>e.stopPropagation());
   noteField.addEventListener('focus',()=>{metrics.marks.noteFocus++});
   noteField.addEventListener('input',()=>{metrics.marks.noteInputEvents++});
   noteField.addEventListener('blur',()=>{if(!noteEditor.hidden)metrics.marks.noteFocusLost++});
