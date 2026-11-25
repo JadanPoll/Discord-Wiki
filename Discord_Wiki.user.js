@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.13.3
+// @version      0.13.4
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.13.3', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.13.4', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={composer:{blockedFocus:0,allowedFocus:0,explicitTaps:0,tabGrants:0,navigationResets:0,guardedEditors:0,canvasInert:0,lastFocusKind:'none',keyboardResizes:0},appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,geometryUpdates:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -416,7 +416,7 @@
   }
   focusToggle.addEventListener('click',async(e)=>{
     if(!e.isTrusted)return;
-    focus=!focus;metrics.appearance.explicitToggles++;record('appearance-toggle',String(focus));applyFocus();if(focus)restoreReading();else closeCanvas();
+    focus=!focus;metrics.appearance.explicitToggles++;record('appearance-toggle',String(focus));applyFocus();if(focus)restoreReading();else closeCanvas();syncComposerGuard();
     try{await write('dw-focus',focus);record('focus',String(focus))}catch(e){record('focus-save-failed');fail('save-focus',e)}
   });
   applyFocus();
@@ -926,7 +926,7 @@
     if(mode==='servers'&&!readServers().length)throw Error('No native server entries recognized');
     if(canvasOpen&&canvasMode===mode)return;
     if(canvasOpen)closeCanvas();
-    canvasMode=mode;canvasOpen=true;canvas.hidden=false;canvasCopy.hidden=mode!=='messages';updateViewButtons();
+    canvasMode=mode;canvasOpen=true;canvas.hidden=false;canvasCopy.hidden=mode!=='messages';updateViewButtons();resetComposerIntent('canvas');
     positionCanvas();
     if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='servers')fitCanvas()})}
     else{
@@ -950,7 +950,7 @@
     if(layoutFrame){cancelAnimationFrame(layoutFrame);layoutFrame=0}layoutObserver?.disconnect();layoutTargets=[];lastCanvasGeometry=null;
     if(canvasMode==='messages'&&canvasRows.length)retainedCanvas={channel:canvasChannel,rows:canvasRows,slots:canvasSlots,camera:{...camera},ends:{...historyEnds},stalls:{...historyStalls},status:historyBusy?'Drag past an edge for more':historyStatus};
     historyGeneration++;historyBusy=false;historyObserved=null;edgeDirection='';edgeTravel=0;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;delete canvasView.dataset.cardScroll;
-    canvasView.classList.remove('dragging');updateViewButtons();metrics.canvas.closes++;record('canvas-close');
+    canvasView.classList.remove('dragging');updateViewButtons();syncComposerGuard();metrics.canvas.closes++;record('canvas-close');
   }
   function restoreReading(){
     if(!focus||readingView==='timeline'||!channelRoute()){closeCanvas();updateViewButtons();return}
@@ -1182,7 +1182,7 @@
   }
   function annotateDOM(){
     const t=performance.now();metrics.scans++;
-    reconcileAppearance('scan');updateRouteStyle();annotateNavigation();scheduleLayout();
+    reconcileAppearance('scan');updateRouteStyle();syncComposerGuard();annotateNavigation();scheduleLayout();
     const labels=new Map(data.conversations.map(r=>[r.id,r.title]));
     const encounteredRows=[];
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
@@ -1226,6 +1226,93 @@
     if(warning)status(warning);
   }
   async function refresh(){ if(warning||saveInFlight)return;const epoch=saveEpoch;try{const next=await latest();if(epoch!==saveEpoch||saveInFlight)return;data=next;render()}catch(e){status('Refresh failed: '+e.message);record('refresh-failed');fail('refresh',e)} }
+  // Safari may open the software keyboard before a delayed blur can run.
+  // Gate only Discord's main Slate composer, not search, notes or other editors.
+  const COMPOSER='[class*="channelTextArea_"] [contenteditable="true"][role="textbox"][data-slate-editor="true"]';
+  const guardedComposers=new Map();
+  let composerGrant=null,tabGrant=null;
+  function composerTarget(n){return n?.closest?.(COMPOSER)||null}
+  function composerRoute(){return location.pathname.split('/').slice(0,4).join('/')}
+  function composerAllowed(editor){
+    return !focus||(!canvasOpen&&composerGrant?.editor===editor&&composerGrant.route===composerRoute());
+  }
+  function restoreComposer(editor,original){
+    if(original.mode===null){if(editor.hasAttribute('inputmode'))editor.removeAttribute('inputmode')}
+    else if(editor.getAttribute('inputmode')!==original.mode)editor.setAttribute('inputmode',original.mode);
+    if(editor.inert!==original.inert)editor.inert=original.inert;
+  }
+  function guardComposer(editor){
+    if(!guardedComposers.has(editor))guardedComposers.set(editor,{mode:editor.getAttribute('inputmode'),inert:editor.inert===true});
+    const original=guardedComposers.get(editor);
+    if(composerAllowed(editor)){restoreComposer(editor,original);return}
+    if(editor.getAttribute('inputmode')!=='none')editor.setAttribute('inputmode','none');
+    // There is no reachable composer in canvas view. Inert prevents focus
+    // altogether rather than trying to dismiss the keyboard after it opens.
+    if(canvasOpen&&document.activeElement===editor)editor.blur();
+    const inert=canvasOpen||original.inert;
+    if(editor.inert!==inert)editor.inert=inert;
+    if(document.activeElement===editor)editor.blur();
+  }
+  function syncComposerGuard(){
+    for(const [editor,original] of guardedComposers){
+      if(!focus){restoreComposer(editor,original);guardedComposers.delete(editor)}
+      else if(!editor.isConnected){guardedComposers.delete(editor)}
+    }
+    if(!focus){composerGrant=null;tabGrant=null;metrics.composer.guardedEditors=0;metrics.composer.canvasInert=0;return}
+    if(composerGrant&&(!composerGrant.editor.isConnected||composerGrant.route!==composerRoute()||canvasOpen))composerGrant=null;
+    for(const editor of document.querySelectorAll(COMPOSER))guardComposer(editor);
+    metrics.composer.guardedEditors=guardedComposers.size;
+    metrics.composer.canvasInert=[...guardedComposers.keys()].filter(n=>n.inert).length;
+  }
+  function resetComposerIntent(reason){
+    composerGrant=null;tabGrant=null;
+    if(reason==='route'||reason==='navigation')metrics.composer.navigationResets++;
+    if(focus){const editor=composerTarget(document.activeElement);if(editor)editor.blur()}
+    syncComposerGuard();
+  }
+  function pointerComposerIntent(e){
+    if(!focus||!e.isTrusted)return;
+    const target=e.composedPath?.()[0]||e.target;
+    const editor=composerTarget(target);
+    if(editor&&!canvasOpen){
+      if(composerGrant?.editor!==editor||composerGrant.route!==composerRoute())metrics.composer.explicitTaps++;
+      composerGrant={editor,route:composerRoute()};tabGrant=null;guardComposer(editor);return;
+    }
+    if(target?.closest?.('#channels,nav[aria-label="Servers sidebar"],.server-card')){
+      resetComposerIntent('navigation');return;
+    }
+    // A click outside an editor is not permission for Discord to redirect
+    // focus into chat. Preserve native composer toolbar interactions.
+    if(composerGrant&&!target?.closest?.('[class*="channelTextArea_"]'))resetComposerIntent('outside');
+  }
+  window.addEventListener('pointerdown',pointerComposerIntent,true);
+  window.addEventListener('touchstart',pointerComposerIntent,{capture:true,passive:true});
+  window.addEventListener('keydown',e=>{
+    if(focus&&!canvasOpen&&e.isTrusted&&e.key==='Tab')tabGrant={route:composerRoute(),until:performance.now()+700};
+  },true);
+  function onComposerFocus(e){
+    const target=e.composedPath?.()[0]||e.target,editor=composerTarget(target);
+    if(!editor){
+      metrics.composer.lastFocusKind=target?.closest?.('#dw-note-editor')?'note':target?.closest?.('[role="combobox"]')?'search':target?.matches?.('input,textarea,[contenteditable="true"]')?'other-editor':'other';
+      if(composerGrant&&target!==composerGrant.editor&&!target?.closest?.('[class*="channelTextArea_"]')){composerGrant=null;syncComposerGuard()}
+      return;
+    }
+    metrics.composer.lastFocusKind='composer';
+    if(!focus)return;
+    if(!canvasOpen&&tabGrant?.route===composerRoute()&&performance.now()<=tabGrant.until){composerGrant={editor,route:composerRoute()};metrics.composer.tabGrants++}
+    tabGrant=null;
+    if(composerAllowed(editor)){metrics.composer.allowedFocus++;guardComposer(editor);return}
+    metrics.composer.blockedFocus++;metrics.composer.lastFocusKind='composer-blocked';record('composer-focus-blocked',canvasOpen?'canvas':'timeline');
+    guardComposer(editor);editor.blur();
+  }
+  window.addEventListener('focus',onComposerFocus,true);
+  window.addEventListener('focusout',e=>{
+    const editor=composerTarget(e.target);
+    if(editor&&composerGrant?.editor===editor){
+      composerGrant=null;if(focus&&editor.isConnected)guardComposer(editor);
+    }
+  },true);
+  let lastVisualHeight=window.visualViewport?.height||innerHeight;
   function reconcileAppearance(origin){
     const root=document.documentElement;
     if(root.classList.contains('dw-focus')!==focus){
@@ -1243,7 +1330,7 @@
   window.addEventListener('blur',()=>{metrics.appearance.blurEvents++});
   document.addEventListener('focusin',()=>reconcileAppearance('focus-in'));
   document.addEventListener('focusout',()=>reconcileAppearance('focus-out'));
-  window.visualViewport?.addEventListener('resize',()=>{metrics.appearance.viewportResizes++;reconcileAppearance('viewport-resize');if(canvasOpen)positionCanvas()});
+  window.visualViewport?.addEventListener('resize',()=>{metrics.appearance.viewportResizes++;const h=window.visualViewport.height;if(lastVisualHeight-h>100)metrics.composer.keyboardResizes++;lastVisualHeight=h;reconcileAppearance('viewport-resize');if(canvasOpen)positionCanvas()});
   function setOpen(v){opened=v;panel.hidden=!v;toggle.textContent=v?'Hide saved':'Contents';document.documentElement.classList.toggle('dw-contents-open',v);if(canvasOpen)positionCanvas();if(v)refresh()}
   toggle.addEventListener('click',()=>setOpen(!opened));
   function captureSelection(){
@@ -1267,12 +1354,12 @@
   document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;closeCanvas();retainedCanvas=null;canvasChannel='';canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;resetComposerIntent('route');closeCanvas();retainedCanvas=null;canvasChannel='';canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
   setInterval(()=>{if(lastPath!==location.pathname)scheduleScan()},1000);
-  record('ready',storage);render();restoreReading();updateViewButtons();
+  record('ready',storage);render();restoreReading();updateViewButtons();syncComposerGuard();
   if(storage==='session only')status('No userscript storage API available; export JSON before closing.');
   bootStep='ready';boot.textContent=failures.length?'Wiki · errors '+failures.length:'Diagnostics';
   } catch(e){bootStep='startup failed';fail('startup',e);boot.textContent='Wiki startup failed';showReport();console.error('[DW] startup failed',e);}
