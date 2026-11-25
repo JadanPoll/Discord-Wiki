@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.11.0
+// @version      0.11.1
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.11.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.11.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -388,7 +388,7 @@
     const b=el('button',label,parent); if(primary)b.className='primary';
     b.addEventListener('click',async()=>{const m=metrics.actions[label]||=( {attempts:0,completed:0,failed:0} );m.attempts++;if(b.disabled)return;b.disabled=true;try{await fn();m.completed++}catch(e){m.failed++;status('Error: '+e.message);record('action-failed',label);fail('action:'+label,e);showReport()}finally{b.disabled=false}}); return b;
   }
-  btn(titleRow,'Hide',()=>setOpen(false));
+  // The Contents launcher itself toggles the saved pane.
   const canvasToggle=btn(launcher,readingView==='canvas'?'Timeline':'Canvas',async()=>{await chooseReadingView(readingView==='canvas'?'timeline':'canvas')});launcher.insertBefore(canvasToggle,toggle);
   const stats=el('div','',panel); stats.className='muted';
   const captureBox=el('details',undefined,panel);el('summary','Label a conversation',captureBox);
@@ -582,6 +582,7 @@
     for(const b of [...shadow.querySelectorAll('[data-dw-mark-url]'),...document.querySelectorAll('[data-dw-mark-url]')])syncMarkButton(b);
   }
   function addMarkControls(parent,p,native=false){
+    if(!p?.source?.url)return;
     for(const kind of ['favorite','note']){
       const b=el('button',undefined,parent);b.type='button';b.className='mark-action';b.dataset.dwMarkUrl=p.source.url;b.dataset.dwMarkKind=kind;
       b.addEventListener('click',async e=>{
@@ -611,10 +612,10 @@
     const messages=[];for(const p of boundedRows(sourceRows)){if(bytes+p.text.length>60000)break;messages.push(packetJSON(p));bytes+=p.text.length}
     if(!messages.length&&!saved.length)throw Error('No messages or saved notes to copy');
     await write('dw-last-packet',[...new Set([...messages.map(m=>m.url),...saved.filter(m=>m.kind==='message'||parseLink(m.url)).map(m=>m.url)])]);
-    await copy(JSON.stringify({instruction:'Explore these source-backed messages and personal notes. Preserve source URLs. If useful, propose concise conversation titles and topics. Return JSON {"conversations":[{"title":"...","messages":["exact supplied URL"],"topics":["..."],"note":"optional"}]}. Each conversation must belong to one channel. Chronological gaps may exist. Notes are personal interpretations, not source claims.',messages,saved,omittedSaved:marks.length-saved.length},null,2));
+    await copy(JSON.stringify({instruction:'Explore these source-backed messages and personal notes. Preserve source URLs. If useful, propose concise conversation titles and topics. Return JSON {"conversations":[{"title":"...","messages":["exact supplied URL"],"topics":["..."],"note":"optional"}]}. Each conversation must belong to one channel and reference message URLs only; server/channel favorites and notes provide context, not conversation message IDs. Chronological gaps may exist. Notes are personal interpretations, not source claims.',messages,saved,omittedSaved:marks.length-saved.length},null,2));
     record('research-copied',messages.length+' messages, '+saved.length+' saved');
     status('Copied '+messages.length+' messages and '+saved.length+' saved notes/favorites.');
-    if(canvasOpen){historyStatus='Copied '+messages.length+' messages + '+saved.length+' saved';scheduleCamera();}
+    if(canvasOpen&&canvasMode==='messages'){historyStatus='Copied '+messages.length+' messages + '+saved.length+' saved';scheduleCamera();}
   }
   function boundedRows(rows){const result=[];let chars=0;for(const r of rows){if(result.length>=100||chars+r.text.length>60000)break;result.push(r);chars+=r.text.length}return result}
   function rememberWindow(rows){
@@ -674,7 +675,7 @@
     camera.x=(w-canvasSize.w*camera.z)/2;camera.y=(h-canvasSize.h*camera.z)/2;scheduleCamera();
   }
   function fitReadingWidth(){
-    stopInertia();const w=canvasView.clientWidth,h=canvasView.clientHeight;if(!w||!h||!canvasSize.w||!canvasSize.h)return;
+    metrics.canvas.fitCount++;stopInertia();const w=canvasView.clientWidth,h=canvasView.clientHeight;if(!w||!h||!canvasSize.w||!canvasSize.h)return;
     camera.z=clampScale(Math.min(1,(w-24)/canvasSize.w));camera.x=(w-canvasSize.w*camera.z)/2;camera.y=canvasSize.h*camera.z>h?12:(h-canvasSize.h*camera.z)/2;scheduleCamera();
   }
   function inspectCanvas(p){
@@ -761,7 +762,7 @@
   }
   // Reading mode is persistent; the server map is a temporary projection.
   function updateViewButtons(){
-    canvasToggle.textContent=readingView==='canvas'?'Timeline':'Canvas';
+    canvasToggle.textContent=readingView==='canvas'?'Timeline':'Canvas';canvasToggle.setAttribute('aria-label',readingView==='canvas'?'Switch to timeline':'Switch to canvas');
     communities.textContent=canvasOpen&&canvasMode==='servers'?'Back':'Servers';
   }
   function fillMessageCanvas(){
