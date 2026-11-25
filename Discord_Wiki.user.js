@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.13.0
+// @version      0.13.1
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.13.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.13.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,historyGapFilled:0,historyRestores:0,historyObserved:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -263,7 +263,7 @@
     .canvas-detail p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;margin:8px 0}
     .canvas-detail .row{margin:4px 0}
     .canvas-day{position:absolute;font-size:12px;color:#687689;font-weight:650;white-space:nowrap}
-    .server-card{width:224px;height:84px;justify-content:flex-start;padding-bottom:23px;background:#fffdfa}.server-name{font-size:16px;font-weight:650;line-height:1.3;overflow-wrap:anywhere}.server-card[data-saved="1"]{background:#e9eefc}
+    .server-card{width:224px;height:132px;justify-content:flex-start;padding:9px 12px 7px;background:#fffdfa;gap:4px}.server-name{font-size:16px;font-weight:650;line-height:1.2;overflow-wrap:anywhere;min-height:0;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}.server-card .canvas-markbar{position:static;flex:none;display:flex;justify-content:flex-end;align-items:center;min-height:27px;width:100%;gap:4px;margin-top:auto;background:transparent}.server-card .canvas-markbar button{flex:none}.server-card[data-saved="1"]{background:#e9eefc}
     @media(max-width:480px){.launcher{flex-wrap:wrap}}
     .panel details{border-top:1px solid #e1dce7;padding:9px 0}.panel summary{cursor:pointer;font-weight:500;color:#53647b}
     .panel .entry{background:#fffdfa;border-color:#e1dce7}
@@ -502,7 +502,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyEnds,historyStalls,historyTrace,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyEnds,historyStalls,historyTrace,canvasRange:dateRange(canvasRows),nativeRange:historyRange(visibleRows(true)),retainedMessages:retainedCanvas?.rows.length||0,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -548,7 +548,7 @@
     const reply=row?.querySelector('[class*="repliedMessage_"]');
     const date=new Date(Number(BigInt(source.message)>>22n)+1420070400000);
     return {source,text:node.innerText||node.textContent||'',author:author?.textContent?.trim()||null,
-      timestamp:time?.getAttribute('datetime')||(Number.isFinite(date.getTime())?date.toISOString():null),
+      timestamp:Number.isFinite(date.getTime())?date.toISOString():time?.getAttribute('datetime')||null,
       reply:reply?.innerText?.trim().slice(0,1000)||null,
       attachments:row?.querySelectorAll('[class*="attachment_"],[class*="embedFull_"]').length||0};
   }
@@ -565,6 +565,8 @@
   // Snapshot the currently rendered window; no automatic history requests.
   let canvasOpen=false,canvasMode='messages',canvasRows=[],serverRows=[],canvasSize={w:0,h:0},canvasFrame=0;
   let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};const HISTORY_LIMIT=400;
+  let canvasChannel='',retainedCanvas=null,historyObserved=null;
+  const routeKey=()=>channelRoute()?.slice(1,3).join('/')||'';
   let inertiaFrame=0,velocity={x:0,y:0},lastMotion=0;const PAN_GAIN=1.85,PINCH_GAIN=1.65,FRICTION_MS=245;
   const encountered=new Map();let encounteredChannel='';
   const camera={x:0,y:0,z:1},pointers=new Map();let pinch=null,dragged=false,suppressUntil=0;
@@ -682,7 +684,8 @@
     if(key!==encounteredChannel){encountered.clear();encounteredChannel=key}
     if(!key)return;
     for(const p of rows){const id=keyOf(p.source);if(p.source.guild+'/'+p.source.channel!==key)continue;encountered.delete(id);encountered.set(id,p)}
-    while(encountered.size>100)encountered.delete(encountered.keys().next().value);
+    while(encountered.size>HISTORY_LIMIT)encountered.delete(encountered.keys().next().value);
+    if(historyObserved&&canvasOpen&&canvasMode==='messages'&&key===canvasChannel){for(const p of rows)if(p.source.guild+'/'+p.source.channel===key){historyObserved.set(p.source.url,p);while(historyObserved.size>HISTORY_LIMIT)historyObserved.delete(historyObserved.keys().next().value)}}
   }
   function chronological(rows){return [...rows].sort((a,b)=>{const x=BigInt(a.source.message),y=BigInt(b.source.message);return x<y?-1:x>y?1:0})}
   function positionCanvas(){
@@ -804,13 +807,13 @@
   }
   function renderServers(refit=true){
     serverRows=readServers();world.replaceChildren();detail.hidden=true;
-    const sx=236,sy=96,margin=10,cols=gridColumns(serverRows.length,sx,sy);
+    const sx=236,sy=144,margin=10,cols=gridColumns(serverRows.length,sx,sy);
     for(const [i,item] of serverRows.entries()){
       const card=el('div',undefined,world);card.tabIndex=0;card.setAttribute('role','group');card.className='canvas-card server-card';
       card.style.left=(margin+(i%cols)*sx)+'px';card.style.top=(margin+Math.floor(i/cols)*sy)+'px';
       if(item.selected)card.dataset.saved='1';
       el('div',item.folder?(item.expanded?'Folder · expanded':'Folder · tap to expand'):(item.selected?'Current community':'Community'),card).className='canvas-meta';
-      el('div',item.name,card).className='server-name';
+      card.title=item.name;card.setAttribute('aria-label',item.name);el('div',item.name,card).className='server-name';
       if(!item.folder&&isId(item.id)){const bar=el('div',undefined,card);bar.className='canvas-markbar';addMarkControls(bar,{source:markSource('https://discord.com/channels/'+item.id),text:item.name});}
       const activate=()=>{
         if(Date.now()<suppressUntil)return;
@@ -848,11 +851,26 @@
     canvasMode=mode;canvasOpen=true;canvas.hidden=false;canvasCopy.hidden=mode!=='messages';updateViewButtons();
     positionCanvas();
     if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='servers')fitCanvas()})}
-    else{canvasRows=[];canvasSlots=[];messageCols=5;cardScrollOffsets.clear();historyEnds={older:false,newer:false};historyStalls={older:0,newer:0};canvasSize={w:0,h:0};world.replaceChildren();camera.x=0;camera.y=0;camera.z=1;fillMessageCanvas()}
+    else{
+      canvasChannel=routeKey();
+      if(retainedCanvas&&retainedCanvas.channel===canvasChannel&&retainedCanvas.rows.length){
+        const saved=retainedCanvas;canvasRows=saved.rows;canvasSlots=saved.slots;messageCols=5;
+        historyEnds={...saved.ends};historyStalls={...saved.stalls};historyStatus=saved.status;
+        Object.assign(camera,saved.camera);renderCanvas();
+        rememberWindow(visibleRows(true));
+        const added=integrateHistory([...encountered.values()],'both');
+        if(added){historyStatus='+'+added+' messages from timeline';metrics.canvas.historyAdded+=added}
+        constrainCamera();scheduleCamera();metrics.canvas.historyRestores++;record('canvas-restored',String(canvasRows.length));
+      }else{
+        canvasRows=[];canvasSlots=[];messageCols=5;cardScrollOffsets.clear();historyEnds={older:false,newer:false};historyStalls={older:0,newer:0};canvasSize={w:0,h:0};world.replaceChildren();camera.x=0;camera.y=0;camera.z=1;fillMessageCanvas();
+      }
+    }
     metrics.canvas.opens++;record('canvas-open',mode+':'+(mode==='servers'?serverRows.length:canvasRows.length));
   }
   function closeCanvas(){
-    if(!canvasOpen)return;historyGeneration++;historyBusy=false;edgeDirection='';edgeTravel=0;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;delete canvasView.dataset.cardScroll;
+    if(!canvasOpen)return;
+    if(canvasMode==='messages'&&canvasRows.length)retainedCanvas={channel:canvasChannel,rows:canvasRows,slots:canvasSlots,camera:{...camera},ends:{...historyEnds},stalls:{...historyStalls},status:historyBusy?'Drag past an edge for more':historyStatus};
+    historyGeneration++;historyBusy=false;historyObserved=null;edgeDirection='';edgeTravel=0;stopInertia();canvasOpen=false;canvas.hidden=true;detail.hidden=true;pointers.clear();pinch=null;dragged=false;delete canvasView.dataset.cardScroll;
     canvasView.classList.remove('dragging');updateViewButtons();metrics.canvas.closes++;record('canvas-close');
   }
   function restoreReading(){
@@ -879,26 +897,60 @@
     }
     return null;
   }
-  function integrateHistory(rows,dir){
+  function historyCandidates(rows,dir){
+    if(!canvasRows.length)return {older:[],gap:[],newer:[]};
     const ids=new Set(canvasRows.map(p=>p.source.url)),ordered=chronological(canvasRows);
-    const edge=BigInt((dir==='older'?ordered[0]:ordered[ordered.length-1]).source.message);
-    const scope=ordered[0].source;
-    const extra=chronological(rows.filter(p=>p.source.guild===scope.guild&&p.source.channel===scope.channel&&!ids.has(p.source.url)&&(dir==='older'?BigInt(p.source.message)<edge:BigInt(p.source.message)>edge)));
-    const room=HISTORY_LIMIT-canvasRows.length,add=dir==='older'?extra.slice(-room):extra.slice(0,room);
-    if(!room||!add.length)return 0;
-    if(dir==='older'){
-      const blanks=(messageCols-add.length%messageCols)%messageCols;
-      canvasSlots=[...add,...Array(blanks).fill(null),...canvasSlots];
-      camera.y-=Math.ceil(add.length/messageCols)*190*camera.z;
-    }else canvasSlots.push(...add);
-    canvasRows=chronological([...canvasRows,...add]);renderCanvas();constrainCamera();scheduleCamera();return add.length;
+    const lo=BigInt(ordered[0].source.message),hi=BigInt(ordered.at(-1).source.message),scope=ordered[0].source;
+    const out={older:[],gap:[],newer:[]};
+    for(const p of chronological(rows)){
+      if(p.source.guild!==scope.guild||p.source.channel!==scope.channel||ids.has(p.source.url))continue;
+      ids.add(p.source.url);const id=BigInt(p.source.message);
+      if(id<lo){if(dir!=='newer')out.older.push(p)}
+      else if(id>hi){if(dir!=='older')out.newer.push(p)}
+      else out.gap.push(p);
+    }
+    return out;
+  }
+  function viewportAnchor(){
+    const cx=(canvasView.clientWidth/2-camera.x)/camera.z,cy=(canvasView.clientHeight/2-camera.y)/camera.z;
+    let best=null;
+    for(let i=0;i<canvasSlots.length;i++){
+      const p=canvasSlots[i];if(!p)continue;
+      const x=(i%messageCols)*316,y=Math.floor(i/messageCols)*190;
+      const d=Math.hypot(x+160-cx,y+97-cy);
+      if(!best||d<best.d)best={url:p.source.url,x,y,d};
+    }
+    return best;
+  }
+  function integrateHistory(rows,dir){
+    const room=HISTORY_LIMIT-canvasRows.length;if(room<=0)return 0;
+    const {older,gap,newer}=historyCandidates(rows,dir);
+    // Prefer unseen messages on the requested edge, then fill internal holes.
+    const old=older.slice(-room),recent=newer.slice(0,room-old.length),middle=gap.slice(0,room-old.length-recent.length);
+    const n=old.length+recent.length+middle.length;if(!n)return 0;
+    if(middle.length){
+      // Internal gaps require a compact reflow. Preserve the card closest to
+      // the reading viewport, rather than jumping to an unrelated date.
+      const anchor=viewportAnchor();
+      canvasRows=chronological([...canvasRows,...old,...middle,...recent]);canvasSlots=[...canvasRows];
+      if(anchor){const i=canvasSlots.findIndex(p=>p.source.url===anchor.url);if(i>=0){camera.x+=(anchor.x-(i%messageCols)*316)*camera.z;camera.y+=(anchor.y-Math.floor(i/messageCols)*190)*camera.z}}
+      metrics.canvas.historyGapFilled+=middle.length;
+    }else{
+      if(old.length){const blanks=(messageCols-old.length%messageCols)%messageCols;canvasSlots=[...old,...Array(blanks).fill(null),...canvasSlots];camera.y-=Math.ceil(old.length/messageCols)*190*camera.z}
+      if(recent.length)canvasSlots.push(...recent);
+      canvasRows=chronological([...canvasRows,...old,...recent]);
+    }
+    if(old.length)historyEnds.older=false;if(recent.length)historyEnds.newer=false;
+    renderCanvas();constrainCamera();scheduleCamera();return n;
+  }
+  function dateRange(rows){
+    if(!rows.length)return {first:null,last:null};
+    const ordered=chronological(rows),day=p=>new Date(Number(BigInt(p.source.message)>>22n)+1420070400000).toISOString();
+    return {first:day(ordered[0]),last:day(ordered.at(-1))};
   }
   function historyRange(rows){
-    if(!rows.length||!canvasRows.length)return {recognized:rows.length,unseen:0,older:0,newer:0};
-    const known=new Set(canvasRows.map(p=>p.source.url)),sorted=chronological(canvasRows),lo=BigInt(sorted[0].source.message),hi=BigInt(sorted.at(-1).source.message);
-    let unseen=0,older=0,newer=0;
-    for(const p of rows){if(known.has(p.source.url))continue;unseen++;const id=BigInt(p.source.message);if(id<lo)older++;if(id>hi)newer++}
-    return {recognized:rows.length,unseen,older,newer};
+    const groups=historyCandidates(rows,'both');
+    return {recognized:rows.length,unseen:groups.older.length+groups.gap.length+groups.newer.length,older:groups.older.length,gaps:groups.gap.length,newer:groups.newer.length,...dateRange(rows)};
   }
   function nativeStartMarker(scroller){
     if(!scroller)return false;
@@ -915,37 +967,39 @@
     if(historyEnds[dir]){historyStatus=dir==='older'?'Beginning of channel':'End of channel';scheduleCamera();return}
     if(canvasRows.length>=HISTORY_LIMIT){historyStatus='400-message session limit';scheduleCamera();metrics.canvas.historyBlocked++;return}
     const scroller=nativeScroller();if(!scroller){historyStatus='Native history scroller not found';metrics.canvas.historyBlocked++;scheduleCamera();return}
-    historyBusy=true;lastHistoryAt=Date.now();const gen=historyGeneration;metrics.canvas.historyAttempts++;
+    historyBusy=true;historyObserved=new Map();lastHistoryAt=Date.now();const gen=historyGeneration;metrics.canvas.historyAttempts++;
     historyStatus='Loading '+dir+' messages…';scheduleCamera();record('history-request',dir);
     const route=channelRoute()?.slice(1,3).join('/');
-    historyTrace={direction:dir,before:{top:Math.round(scroller.scrollTop),height:scroller.clientHeight,scrollHeight:scroller.scrollHeight},samples:[],rearmed:false};
+    historyTrace={direction:dir,canvasBefore:dateRange(canvasRows),before:{top:Math.round(scroller.scrollTop),height:scroller.clientHeight,scrollHeight:scroller.scrollHeight,...historyRange(visibleRows(true))},samples:[],rearmed:false};
     const active=()=>gen===historyGeneration&&canvasOpen&&canvasMode==='messages'&&route===channelRoute()?.slice(1,3).join('/');
     try{
       // Only drive Discord's existing scroll surface on an explicit edge gesture.
       // No fetch interception, private API, automatic paging loop or credentials.
-      const already=visibleRows(true),existing=integrateHistory(already,dir);
+      const already=visibleRows(true);rememberWindow(already);
+      const existing=integrateHistory([...encountered.values()],dir);
       if(existing){metrics.canvas.historyAdded+=existing;historyStalls[dir]=0;historyStatus='+'+existing+' '+dir+' messages';record('history-added',dir+':'+existing);return}
       const edge=()=>dir==='older'?0:Math.max(0,scroller.scrollHeight-scroller.clientHeight);
       if(Math.abs(scroller.scrollTop-edge())<2&&scroller.scrollHeight>scroller.clientHeight+4){
         // A second assignment to scrollTop=0 may emit no native scroll event.
         // Re-arm by moving inside the list once, then return to the edge.
-        const inset=Math.min(Math.max(40,Math.round(scroller.clientHeight*.6)),scroller.scrollHeight-scroller.clientHeight);
+        const inset=Math.min(Math.max(80,Math.round(scroller.clientHeight*2.5)),scroller.scrollHeight-scroller.clientHeight);
         scroller.scrollTop=dir==='older'?inset:edge()-inset;metrics.canvas.historyRearms++;historyTrace.rearmed=true;
-        await new Promise(resolve=>setTimeout(resolve,160));if(!active())return;
+        await new Promise(resolve=>setTimeout(resolve,240));if(!active())return;
+        rememberWindow(visibleRows(true));historyTrace.rearmTop=Math.round(scroller.scrollTop);
       }
       scroller.scrollTop=edge();
       for(const delay of [250,450,750,1000]){
         await new Promise(resolve=>setTimeout(resolve,delay));
         if(!active())return;
-        const current=visibleRows(true),native=nativeScroller();
-        const range=historyRange(current),startMarker=nativeStartMarker(native);
-        const n=integrateHistory(current,dir);historyTrace.samples.push({...range,added:n,top:native?Math.round(native.scrollTop):null,height:native?.clientHeight,scrollHeight:native?.scrollHeight,startMarker});
+        const current=visibleRows(true),native=nativeScroller();rememberWindow(current);
+        const observed=[...historyObserved.values()],range=historyRange(current),startMarker=nativeStartMarker(native);
+        const n=integrateHistory(observed,dir);metrics.canvas.historyObserved+=observed.length;historyTrace.samples.push({...range,observed:observed.length,added:n,top:native?Math.round(native.scrollTop):null,height:native?.clientHeight,scrollHeight:native?.scrollHeight,startMarker});
         if(n){metrics.canvas.historyAdded+=n;historyStalls[dir]=0;historyStatus='+'+n+' '+dir+' messages';record('history-added',dir+':'+n);return}
         if(dir==='older'&&startMarker&&current.length&&BigInt(chronological(current)[0].source.message)===BigInt(chronological(canvasRows)[0].source.message)){historyEnds.older=true;historyStalls.older=0;metrics.canvas.historyEndConfirmed++;historyStatus='Beginning of channel';record('history-end','older');return}
       }
       metrics.canvas.historyEmpty++;metrics.canvas.historyStalled++;historyStalls[dir]++;historyStatus='No '+dir+' messages returned · edge not confirmed';record('history-empty',dir);
     }catch(e){fail('history-load',e);historyStatus='History load failed'}
-    finally{if(gen===historyGeneration){historyBusy=false;edgeDirection='';edgeTravel=0;scheduleCamera()}}
+    finally{if(gen===historyGeneration){historyBusy=false;historyObserved=null;edgeDirection='';edgeTravel=0;historyTrace.canvasAfter=dateRange(canvasRows);scheduleCamera()}}
   }
   // Route a gesture by target, direction and actual text overflow, never zoom.
   function canScrollCard(top,height,client,dy){
@@ -1129,7 +1183,7 @@
   document.addEventListener('mouseup',captureSelection);document.addEventListener('touchend',()=>setTimeout(captureSelection,250),{passive:true});
   let lastPath=location.pathname,queued=false;
   function scheduleScan(){if(queued)return;queued=true;setTimeout(async()=>{queued=false;try{
-    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;closeCanvas();canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
+    if(lastPath!==location.pathname){const previous=lastPath;lastPath=location.pathname;const base=p=>p.split('/').slice(0,4).join('/');if(base(previous)!==base(lastPath)){metrics.navigation.channelChanges++;closeCanvas();retainedCanvas=null;canvasChannel='';canvasRows=[];canvasSlots=[];cardScrollOffsets.clear();encountered.clear();encounteredChannel='';packet=[];packetOrigin='';picked=null;sourceInput.value='';labelInput.value='';note.value='';restoreReading();await refresh();record('channel-changed')}else{metrics.navigation.messageJumps++;record('message-jump')}}
     annotateDOM();
   }catch(e){record('scan-failed');fail('scan',e)}},200)}
   new MutationObserver(scheduleScan).observe(document.body,{childList:true,subtree:true,characterData:true});
