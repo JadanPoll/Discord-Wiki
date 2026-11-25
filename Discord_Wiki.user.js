@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.6.1
+// @version      0.7.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,7 +17,7 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.6.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.7.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
@@ -194,10 +194,17 @@
   const host=el('div'); host.id=ROOT; document.body.append(host);
   const shadow=host.attachShadow({mode:'open'});
   const css=el('style',`
-    :host{all:initial;position:fixed!important;right:12px!important;top:52px!important;bottom:auto!important;z-index:2147483646!important;font:13px system-ui,sans-serif;color:#1e293b}
+    :host{all:initial;position:fixed!important;right:12px!important;top:8px!important;right:116px!important;bottom:auto!important;z-index:2147483646!important;font:13px system-ui,sans-serif;color:#1e293b}
     *{box-sizing:border-box} button,input,textarea,select{font:inherit} button{cursor:pointer;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#1e293b;padding:6px 9px}
-    button:hover{background:#eaf0ff} button:focus-visible,a:focus-visible{outline:2px solid #5265c9} .primary{background:#4256bb;color:white;border-color:#4256bb}
-    .panel{width:min(410px,calc(100vw - 24px));max-height:calc(100vh - 112px);max-height:calc(100dvh - 112px);overflow:auto;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:12px;box-shadow:0 8px 28px #0004}
+    button:hover{background:#eaf0ff} button:focus-visible,a:focus-visible{outline:2px solid #5265c9} .primary{background:#4663b5;color:white;border-color:#4663b5}
+    .panel{position:fixed;right:12px;top:52px;bottom:12px;width:min(310px,calc(100vw - 24px));overflow:auto;background:#f4f1f8;border:1px solid #dedbe5;border-radius:9px;padding:13px;box-shadow:0 4px 18px #27364a14;scrollbar-gutter:stable}
+    .launcher{justify-content:flex-end;background:#f7f3ec;padding:3px;border:1px solid #e4ded5;border-radius:7px}
+    .panel details{border-top:1px solid #e1dce7;padding:9px 0}.panel summary{cursor:pointer;font-weight:500;color:#53647b}
+    .panel .entry{background:#fffdfa;border-color:#e1dce7}
+    .panel .scroll{max-height:none;overflow:visible}
+    .panel h3{color:#27364a}
+    @media(max-width:900px){.panel{width:min(340px,calc(100vw - 24px));box-shadow:0 5px 24px #27364a44}}
+    @media(max-width:480px){:host{right:8px!important;top:48px!important}.panel{top:88px}}
     .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:7px 0} .grow{flex:1;min-width:0} input,textarea,select{border:1px solid #cbd5e1;background:white;color:#1e293b;padding:7px;border-radius:5px;width:100%}
     textarea{min-height:65px;resize:vertical} .muted{font-size:11px;color:#64748b} .status{margin:7px 0;overflow-wrap:anywhere} .entry{background:white;padding:8px;border:1px solid #e2e8f0;border-radius:6px;margin:6px 0;overflow-wrap:anywhere;white-space:pre-wrap}
     a{color:#384da5} h3{margin:0;font-size:14px} .scroll{max-height:34vh;overflow:auto} [hidden]{display:none!important}
@@ -233,14 +240,96 @@
     html.dw-focus [id^="chat-messages-"] [class*="avatar_"]:hover {filter:none;opacity:1}
     html.dw-focus [id^="chat-messages-"] [class*="username_"] {color:var(--text-default,inherit)!important}
   `,document.head);
+  // Notebook palette and layout, grounded in the captured native list/header/grid
+  // and Discord-Wiki's own paper theme. No rearrangement of React message nodes.
+  const notebookStyle=el('style',`
+    html.dw-focus,html.dw-focus :is(.theme-dark,.theme-darker,.theme-light){
+      color-scheme:light!important;
+      --app-frame-background:#f2ede3!important;--app-frame-border:#e3ded5!important;
+      --background-base-low:#fffdfa!important;--background-base-lower:#f2ede3!important;--background-base-lowest:#eae5dc!important;
+      --background-surface-high:#fffdfa!important;--background-surface-higher:#fffdfa!important;--background-surface-highest:#fff!important;
+      --background-primary:#fffdfa!important;--background-secondary:#f2ede3!important;--background-secondary-alt:#eee9df!important;--background-tertiary:#eae5dc!important;
+      --chat-background:#fffdfa!important;--chat-background-default:#fffdfa!important;--chat-border:#e3ded5!important;
+      --channel-background-default:#f2ede3!important;--channeltextarea-background:#f7f3ec!important;
+      --background-mod-muted:#27364a08!important;--background-mod-subtle:#27364a0b!important;--background-mod-normal:#27364a12!important;--background-mod-strong:#27364a1a!important;
+      --background-modifier-hover:#4663b50b!important;--background-modifier-active:#4663b514!important;--background-modifier-selected:#e9eefc!important;
+      --interactive-background-hover:#4663b50c!important;--interactive-background-active:#e9eefc!important;--interactive-background-selected:#e9eefc!important;--interactive-background-default:#eae5dc!important;
+      --text-default:#283342!important;--text-strong:#1c2734!important;--text-muted:#6a788a!important;--text-subtle:#657487!important;--text-normal:#283342!important;
+      --header-primary:#283342!important;--header-secondary:#687689!important;--channels-default:#46546a!important;--channel-icon:#748195!important;
+      --interactive-text-default:#46546a!important;--interactive-text-hover:#26374a!important;--interactive-text-active:#26374a!important;
+      --interactive-icon-default:#687689!important;--interactive-icon-hover:#334257!important;--interactive-icon-active:#334257!important;
+      --interactive-normal:#657487!important;--interactive-hover:#334257!important;--interactive-active:#334257!important;
+      --icon-default:#46546a!important;--icon-strong:#26374a!important;--icon-subtle:#778497!important;--icon-muted:#8290a1!important;
+      --border-subtle:#e3ded5!important;--border-muted:#eee9e2!important;--border-normal:#d6dce5!important;--border-strong:#bbc5d3!important;--border-focus:#4663b5!important;
+      --input-background-default:#fffdfa!important;--input-border-default:#d6dce5!important;--input-text-default:#283342!important;--input-placeholder-text-default:#748195!important;
+      --channel-text-area-placeholder:#748195!important;--text-link:#3557a6!important;--text-brand:#4663b5!important;--icon-link:#3557a6!important;
+      --text-code:#283342!important;--text-code-keyword:#a03b58!important;--text-code-string:#386849!important;--text-code-comment:#6a788a!important;--text-code-number:#975a27!important;--background-code:#eef1f5!important;
+      --scrollbar-auto-thumb:#c8c8c4!important;--scrollbar-auto-scrollbar-color-thumb:#c8c8c4!important;--scrollbar-auto-scrollbar-color-track:#f7f3ec!important;--scrollbar-thin-thumb:#c8c8c4!important;
+      --custom-message-margin-left-content-cozy:24px!important;--custom-message-margin-horizontal:18px!important;--custom-message-spacing-vertical-container-cozy:3px!important;
+    }
+    html.dw-focus body{background:#f7f3ec!important;color:#283342!important}
+    html.dw-focus :is([class*="base_"],[class*="page_"]):has([data-list-id="chat-messages"]){background:#f7f3ec}
+    html.dw-focus [class*="sidebarList_"]{background:#f2ede3!important;border-color:#e3ded5!important}
+    html.dw-focus #channels{background:#f2ede3!important;padding:3px 6px!important}
+    html.dw-focus [aria-label="Servers sidebar"]{background:#eae5dc!important}
+    html.dw-focus.dw-server-channel [class*="sidebar_"]:has(#channels){--custom-guild-sidebar-width:258px!important;--custom-guild-list-width:54px!important}
+    html.dw-focus.dw-server-channel:not(.dw-communities) [class*="sidebar_"]:has(#channels){--custom-guild-sidebar-width:205px!important;--custom-guild-list-width:0px!important}
+    html.dw-focus.dw-server-channel:not(.dw-communities) nav[aria-label="Servers sidebar"]{display:none!important}
+    html.dw-focus #channels a[href^="/channels/"] [class*="iconContainer_"],
+    html.dw-focus #channels a[href^="/channels/"] [class*="iconItem_"],
+    html.dw-focus #channels a[href^="/channels/"] [class*="children_"],
+    html.dw-focus #channels [class*="basicChannelRowLink_"] > svg,
+    html.dw-focus [aria-label="Channel header"] [class*="channelIcon_"],
+    html.dw-focus [aria-label="Channel header"] [class*="dot_"],
+    html.dw-focus [class*="headerEllipseBackdrop_"],
+    html.dw-focus [class*="headerEllipseForeground_"],
+    html.dw-focus [class*="headerGlass_"],
+    html.dw-focus [class*="inviteButton_"],
+    html.dw-focus [data-list-id="chat-messages"] img[class*="avatar_"],
+    html.dw-focus [data-list-id="chat-messages"] [class*="avatarDecoration_"],
+    html.dw-focus [data-list-id="chat-messages"] [class*="timestampVisibleOnHover_"],
+    html.dw-focus [aria-label="Channel header"] [aria-label="Notification Settings"]{display:none!important}
+    html.dw-focus #channels a[href^="/channels/"]{padding:4px 7px!important;border-radius:5px!important}
+    html.dw-focus #channels a[href^="/channels/"] [class*="name_"]{font-size:13px;line-height:1.5;color:#46546a!important}
+    html.dw-focus #channels [class*="modeSelected_"] a{background:#e9eefc!important;box-shadow:inset 2px 0 #4663b5}
+    html.dw-focus #channels [class*="modeSelected_"] [class*="name_"]{color:#26374a!important;font-weight:650}
+    html.dw-focus #channels [class*="name_"][data-dw-clean-name]{font-size:0!important}
+    html.dw-focus #channels [data-dw-clean-name]>*{display:none!important}
+    html.dw-focus #channels [data-dw-clean-name]::after{content:attr(data-dw-clean-name);font-size:13px;line-height:1.5;color:inherit}
+    html.dw-focus #channels h3{color:#718098!important;font-size:11px!important;letter-spacing:.4px}
+    html.dw-focus #channels h3[data-dw-clean-name]::after{font-size:11px}
+    html.dw-focus [aria-label="Channel header"]{background:#f7f3ec!important;color:#283342!important;border-color:#e3ded5!important}
+    html.dw-focus [aria-label="Channel header"] h1{font-size:16px!important;font-weight:700!important;color:#283342!important}
+    html.dw-focus main[class*="chatContent_"],html.dw-focus [class*="messagesWrapper_"]{background:#fffdfa!important}
+    html.dw-focus [data-list-id="chat-messages"]{padding-inline:12px!important}
+    html.dw-focus [data-list-id="chat-messages"] > li[id^="chat-messages-"] > [role="article"]{padding-inline:12px!important;border-radius:5px;box-sizing:border-box}
+    html.dw-focus [data-list-id="chat-messages"] [class*="header_"]{padding-inline-start:0!important;margin-inline-start:0!important;font-size:12px!important}
+    html.dw-focus [data-list-id="chat-messages"] [class*="username_"]{font-size:12px!important;font-weight:650!important;color:#526174!important}
+    html.dw-focus [data-list-id="chat-messages"] [class*="timestamp_"]{font-size:11px!important;color:#748195!important}
+    html.dw-focus [data-list-id="chat-messages"] [id^="message-content-"]{font-size:15px;line-height:1.55;color:#283342}
+    html.dw-focus [data-list-id="chat-messages"] [data-dw-density="1"]{background:#f8f6f1}
+    html.dw-focus [data-list-id="chat-messages"] [data-dw-density="2"]{background:#f2f1f7}
+    html.dw-focus [data-list-id="chat-messages"] [data-dw-density="3"]{background:#eaeaf3}
+    html.dw-focus [data-dw-label]::before{color:#4663b5!important;font-size:13px!important;font-weight:700!important;border-color:#cbd4ed!important;padding:7px 0 5px!important}
+    html.dw-focus [data-dw-low="1"]{opacity:.52!important}
+    html.dw-focus [data-dw-low="1"]:hover,html.dw-focus [data-dw-low="1"]:focus-within{opacity:1!important}
+    html.dw-focus [class*="channelTextArea_"] [class*="scrollableContainer_"]{background:#f7f3ec!important;border:1px solid #e3ded5!important;border-radius:8px}
+    html.dw-focus [data-dw-clean-name]{overflow:hidden;text-overflow:ellipsis}
+    @media(min-width:901px){html.dw-focus.dw-contents-open [class*="page_"]:has([data-list-id="chat-messages"]){padding-inline-end:324px!important;box-sizing:border-box!important}}
+    @media(max-width:900px){html.dw-focus.dw-server-channel [class*="sidebar_"]:has(#channels){--custom-guild-sidebar-width:225px!important}html.dw-focus.dw-server-channel:not(.dw-communities) [class*="sidebar_"]:has(#channels){--custom-guild-sidebar-width:171px!important}}
+  `,document.head);
   let focus=true;try{focus=(await read('dw-focus',true))!==false}catch(e){record('focus-load-failed');fail('load-focus',e)}
-  const launcher=el('div',undefined,shadow);launcher.className='row';launcher.style.margin='0';
+  const launcher=el('div',undefined,shadow);launcher.className='row launcher';launcher.style.margin='0';
+  const communities=el('button','Communities',launcher);communities.title='Show or hide Discord’s native community list';
+  let communitiesOpen=false;
+  function updateRouteStyle(){const root=document.documentElement;const onServer=!!channelRoute();root.classList.toggle('dw-server-channel',onServer);root.classList.toggle('dw-communities',communitiesOpen);communities.hidden=!focus||!onServer;communities.setAttribute('aria-expanded',String(communitiesOpen));}
+  communities.addEventListener('click',()=>{communitiesOpen=!communitiesOpen;updateRouteStyle();record('communities',String(communitiesOpen))});
   const focusToggle=el('button','',launcher);
   focusToggle.title='Toggle distraction reduction; no messages are removed';
   function applyFocus(){
     document.documentElement.classList.toggle('dw-focus',focus);
     focusToggle.textContent=focus?'Reading: on':'Reading: off';
-    focusToggle.setAttribute('aria-pressed',String(focus));
+    focusToggle.setAttribute('aria-pressed',String(focus));updateRouteStyle();
   }
   focusToggle.addEventListener('click',async()=>{
     focus=!focus;applyFocus();
@@ -338,7 +427,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,focus,recognition:recognitionReport(),geometry:geometryReport(),notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -422,14 +511,32 @@
   function lowSignal(text){
     return /^(?:lol+|lmao+|lmfao+|rofl|ha(?:ha)+|he(?:he)+|nice+|bruh+|xd)[.!\s]*$/i.test(text.trim());
   }
+  function cleanName(raw){
+    // Drop pictographic decorations and leading/trailing separators, retain meaningful words.
+    const out=raw.replace(/\p{Extended_Pictographic}|\p{Emoji_Presentation}|\uFE0F|\u200D|\u20E3/gu,'').replace(/^[\s|•·‣—–─]+|[\s|•·‣—–─]+$/g,'').trim();
+    return out||raw;
+  }
+  function annotateNavigation(){
+    for(const node of document.querySelectorAll('#channels a[href^="/channels/"] [class*="name_"],#channels h3[class*="name_"]')){
+      const raw=(node.textContent||'').trim();const clean=cleanName(raw);
+      if(clean!==raw){if(node.dataset.dwCleanName!==clean)node.dataset.dwCleanName=clean}
+      else if(node.hasAttribute('data-dw-clean-name'))delete node.dataset.dwCleanName;
+    }
+  }
   function annotateDOM(){
     const t=performance.now();metrics.scans++;
+    updateRouteStyle();annotateNavigation();
     const labels=new Map(data.conversations.map(r=>[r.id,r.title]));
     for(const node of document.querySelectorAll('[id^="message-content-"]')){
       const source=sourceFor(node),row=node.closest('li[id^="chat-messages-"]');
       const text=(node.innerText||node.textContent||'').trim();
       const protectedContent=node.querySelector('a,code,pre,img:not(.emoji),video')||row?.querySelector('[class*="attachment"],[class*="repliedMessage"],[class*="sticker"],[class*="embed"]');
       if(source&&!protectedContent&&(lowSignal(text)||(!text&&node.querySelector('img.emoji'))))node.dataset.dwLow='1';else delete node.dataset.dwLow;
+      if(row&&source){
+        const n=text.length;const level=n>=400?'3':n>=150?'2':n>=60?'1':'';
+        const article=row.querySelector('[role="article"]');
+        if(article){if(level)article.dataset.dwDensity=level;else delete article.dataset.dwDensity}
+      }
       const label=source&&labels.get(keyOf(source));
       if(label)node.dataset.dwLabel=label;else delete node.dataset.dwLabel;
     }
@@ -459,7 +566,7 @@
   }
   async function refresh(){ if(warning)return;try{data=await latest();render()}catch(e){status('Refresh failed: '+e.message);record('refresh-failed');fail('refresh',e)} }
   window.addEventListener('focus',refresh);
-  function setOpen(v){opened=v;panel.hidden=!v;toggle.hidden=v;if(v)refresh()}
+  function setOpen(v){opened=v;panel.hidden=!v;toggle.hidden=v;document.documentElement.classList.toggle('dw-contents-open',v);if(v)refresh()}
   toggle.addEventListener('click',()=>setOpen(true));
   function captureSelection(){
     const sel=window.getSelection();if(!sel||sel.isCollapsed||sel.rangeCount!==1)return;
