@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Discord Wiki — Sparse Explorer
 // @namespace    https://github.com/JadanPoll/Discord-Wiki
-// @version      0.12.1
+// @version      0.13.0
 // @description  Source-backed topics and selective reading inside Discord. No account credentials or background retrieval.
 // @match        https://discord.com/*
 // @run-at       document-end
@@ -17,12 +17,12 @@
 (async function () {
   'use strict';
   if(window.top!==window.self)return;
-  const VERSION = '0.12.1', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
+  const VERSION = '0.13.0', KEY = 'dw-sparse-v1', ROOT = 'dw-sparse-explorer';
   if(document.getElementById(ROOT)||document.getElementById('dw-boot'))return;
   // Independent diagnostics: mount before the storage/application layer.
   const started=new Date().toISOString(),journal=[],failures=[];
   let bootStep='storage',extraReport=()=>({});
-  const metrics={appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
+  const metrics={appearance:{explicitToggles:0,repairs:0,viewportResizes:0,focusEvents:0,blurEvents:0},canvas:{opens:0,closes:0,pans:0,pinches:0,zooms:0,cancels:0,inspections:0,sourceJumps:0,labels:0,serverOpens:0,serverJumps:0,folderToggles:0,flings:0,flingStops:0,fitCount:0,peakVelocity:0,historyAttempts:0,historyAdded:0,historyEmpty:0,historyBlocked:0,historyRearms:0,historyEndConfirmed:0,historyStalled:0,cardScrolls:0,cardScrollDistance:0,cardEdgePans:0},marks:{favorite:0,note:0,noteOpens:0,noteFocus:0,noteInputEvents:0,noteFocusLost:0,noteComposerFocus:0},scans:0,scanMs:0,maxScanMs:0,storageReads:0,storageWrites:0,storageVerified:0,storageMismatch:0,storageDelayed:0,storageOrderOnly:0,storageLastMismatch:null,actions:{},selection:{attempts:0,resolved:0,rejected:0},navigation:{channelChanges:0,messageJumps:0},clipboard:{attempts:0,success:0,fallback:0}};
   const diagnostic=document.createElement('div');diagnostic.id='dw-boot';
   diagnostic.style.cssText='all:initial!important;position:fixed!important;top:3px!important;right:8px!important;z-index:2147483647!important;display:block!important';
   const ds=diagnostic.attachShadow({mode:'open'});
@@ -40,7 +40,7 @@
     const name=allowed.has(e?.name)?e.name:'UnknownError';
     const msg=String(e?.message||'');
     const structural=/^(?:[A-Za-z_$][\w$]* is not defined|Cannot access '[\w$]+' before initialization|Cannot read properties of (?:null|undefined) \(reading '[\w$]+'\)|[\w.$]+ is not a function)$/;
-    return {name,detail:structural.test(msg)?msg:undefined};
+    return {name,detail:structural.test(msg)||msg==='Saved workspace readback differs from requested state'?msg:undefined};
   }
   function fail(stage,e){failures.push({at:new Date().toISOString(),stage,...safeError(e)});if(failures.length>30)failures.shift();boot.textContent='Wiki · errors '+failures.length}
   function count(selector){try{return document.querySelectorAll(selector).length}catch{return null}}
@@ -179,12 +179,41 @@
     if (warning) throw Error(warning);
     return normalize(await read(KEY,fresh()));
   }
+  // Object key order is not persistence semantics. Safari's GM bridge may
+  // reconstruct dictionaries in a different insertion order.
+  function canonicalJSON(value){
+    return JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
+  }
+  function mismatchSummary(expected,actual){
+    const keys=Object.keys(expected);
+    const fields=keys.filter(k=>canonicalJSON(expected[k])!==canonicalJSON(actual[k]));
+    const marks={missing:0,extra:0,changed:0};
+    for(const k of Object.keys(expected.marks)){if(!Object.hasOwn(actual.marks,k))marks.missing++;else if(canonicalJSON(expected.marks[k])!==canonicalJSON(actual.marks[k]))marks.changed++}
+    for(const k of Object.keys(actual.marks))if(!Object.hasOwn(expected.marks,k))marks.extra++;
+    return {fields,marks,expectedMarks:Object.keys(expected.marks).length,actualMarks:Object.keys(actual.marks).length};
+  }
+  let saveEpoch=0,saveInFlight=0;
   async function save(next, event) {
     if (warning && event !== 'import') throw Error(warning);
-    await write(KEY,next);
-    const check=normalize(await read(KEY,fresh()));
-    if(JSON.stringify(check)!==JSON.stringify(normalize(next))){metrics.storageMismatch++;throw Error('Saved workspace readback differs from requested state');}
-    metrics.storageVerified++;data=check; warning = ''; record(event); render();
+    const expected=normalize(next),signature=canonicalJSON(expected);saveEpoch++;saveInFlight++;
+    try{
+      await write(KEY,expected);
+      let check;
+      // Bounded verification reads, never duplicate writes. Allow a delayed bridge
+      // update but preserve a genuine mismatch as an explicit failure.
+      for(const delay of [0,90,250]){
+        if(delay)await new Promise(resolve=>setTimeout(resolve,delay));
+        check=normalize(await read(KEY,fresh()));
+        if(canonicalJSON(check)===signature){
+          if(delay)metrics.storageDelayed++;
+          if(JSON.stringify(check)!==JSON.stringify(expected))metrics.storageOrderOnly++;
+          metrics.storageVerified++;metrics.storageLastMismatch=null;data=check;warning='';record(event);render();return;
+        }
+      }
+      metrics.storageMismatch++;metrics.storageLastMismatch=mismatchSummary(expected,check);
+      data=check;render();record('storage-mismatch',event);
+      throw Error('Saved workspace readback differs from requested state');
+    }finally{saveInFlight--;saveEpoch++}
   }
   async function merge(incoming) {
     const next = warning ? fresh() : await latest();
@@ -473,7 +502,7 @@
   btn(footer,'Copy JSON',async()=>{await copy(JSON.stringify(await latest(),null,2),'text');status('Workspace copied (links + your notes).')});
   btn(footer,'Import JSON',async()=>{const raw=prompt('Paste exported workspace JSON to merge');if(raw===null)return;await merge(normalize(JSON.parse(raw)));status('Merged workspace.')});
   // Diagnostics already has an independent persistent launcher.
-  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyTrace,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
+  extraReport=()=>({storageMode:storage,topics:Object.keys(data.topics).length,sources:Object.keys(data.sources).length,conversations:data.conversations.length,staged:packet.length,packetOrigin,stagedCharacters:packet.reduce((n,p)=>n+p.text.length,0),nativeListCount:count('[data-list-id="chat-messages"]'),nativeRowCount:count('[data-list-id="chat-messages"] > li[id^="chat-messages-"]'),storageWarning:!!warning,marks:Object.keys(data.marks).length,noteEditor:{open:!noteEditor.hidden,focused:document.activeElement===noteField},markKinds:Object.values(data.marks).reduce((a,m)=>(a[m.kind]=(a[m.kind]||0)+1,a),{}),focus,recognition:recognitionReport(),geometry:geometryReport(),canvas:{open:canvasOpen,readingView,columns:messageCols,mode:canvasMode,serverEntries:serverRows.length,world:[canvasSize.w,canvasSize.h],messages:canvasRows.length,historyBusy,historyStatus,historyEnds,historyStalls,historyTrace,nativeScroller:(()=>{const n=nativeScroller();return n?{top:Math.round(n.scrollTop),height:n.clientHeight,scrollHeight:n.scrollHeight}:null})(),encountered:encountered.size,zoom:Math.round(camera.z*100)/100,x:Math.round(camera.x),y:Math.round(camera.y),width:canvasView.clientWidth,height:canvasView.clientHeight},notebook:{communitiesOpen,cleanNames:count('[data-dw-clean-name]'),densityCards:count('[data-dw-density]'),channelIcons:effectReport('#channels a[href^="/channels/"] [class*="iconContainer_"]'),themeBackground:getComputedStyle(document.querySelector('main[class*="chatContent_"]')||document.body).backgroundColor},effects:{reactions:effectReport('[class*="reactions_"]'),emoji:effectReport('[id^="message-content-"] img.emoji'),lowSignal:effectReport('[data-dw-low]'),avatarDecorations:effectReport('[class*="avatarDecoration_"]'),inlineLabels:count('[data-dw-label]')},indexEntries:index.children.length});
 
   function channelRoute(){return location.pathname.match(/^\/channels\/(\d{15,22})\/(\d{15,22})(?:\/|$)/);}
   function classifySource(node){
@@ -535,7 +564,7 @@
   // Stable chronological grid, adapted from RSM_Tree_Viewer's atlas camera.
   // Snapshot the currently rendered window; no automatic history requests.
   let canvasOpen=false,canvasMode='messages',canvasRows=[],serverRows=[],canvasSize={w:0,h:0},canvasFrame=0;
-  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,historyTrace=null;const HISTORY_LIMIT=400;
+  let canvasSlots=[],messageCols=0,historyBusy=false,historyStatus='',historyGeneration=0,edgeDirection='',edgeTravel=0,lastHistoryAt=0,historyTrace=null;let historyEnds={older:false,newer:false},historyStalls={older:0,newer:0};const HISTORY_LIMIT=400;
   let inertiaFrame=0,velocity={x:0,y:0},lastMotion=0;const PAN_GAIN=1.85,PINCH_GAIN=1.65,FRICTION_MS=245;
   const encountered=new Map();let encounteredChannel='';
   const camera={x:0,y:0,z:1},pointers=new Map();let pinch=null,dragged=false,suppressUntil=0;
@@ -548,6 +577,7 @@
   const canvasCopy=btn(canvasHead,'Copy for AI',()=>copyResearch(canvasFocusRows()));
   const canvasView=el('div',undefined,canvas);canvasView.className='canvas-view';canvasView.setAttribute('aria-label','Drag to pan, pinch to zoom');
   const world=el('div',undefined,canvasView);world.className='canvas-world';
+  const historyBoundary=el('div',undefined,canvasView);historyBoundary.setAttribute('role','status');historyBoundary.hidden=true;historyBoundary.style.cssText='position:absolute;z-index:2;left:50%;transform:translateX(-50%);top:8px;max-width:90%;padding:5px 10px;border:1px solid #d9dce3;border-radius:6px;background:#fffdfa;color:#657487;font:12px system-ui;white-space:normal;text-align:center;pointer-events:none';
   const detail=el('section',undefined,canvas);detail.className='canvas-detail';detail.hidden=true;
   // The two human actions share one message identity and one local record.
   // A real document textarea, not a shadow-retargeted event target. Discord's
@@ -563,6 +593,10 @@
   el('strong','Note',noteEditor);
   const noteField=el('textarea',undefined,noteEditor);noteField.placeholder='What matters to you?';
   const noteActions=el('div',undefined,noteEditor);noteActions.className='row';
+  const markNotice=el('div',undefined,shadow);markNotice.setAttribute('role','status');markNotice.hidden=true;
+  markNotice.style.cssText='position:fixed;top:39px;right:12px;z-index:30;background:#fff6d9;color:#694a17;border:1px solid #d9bf74;border-radius:6px;padding:7px 10px;max-width:min(320px,90vw);font:13px system-ui;pointer-events:none';
+  let markNoticeTimer=0;
+  function notifyMarkError(){markNotice.textContent='Favorite not verified. See Diagnostics.';markNotice.hidden=false;clearTimeout(markNoticeTimer);markNoticeTimer=setTimeout(()=>{markNotice.hidden=true},4500)}
   let noteTarget=null,markQueue=Promise.resolve();
   function positionNoteEditor(){
     if(noteEditor.hidden)return;const v=window.visualViewport;
@@ -614,7 +648,7 @@
         e.stopPropagation();e.preventDefault();if(Date.now()<suppressUntil&&canvasOpen)return;
         if(kind==='note'){editMarkNote(p);return}
         if(b.disabled)return;b.disabled=true;
-        try{await mutateMark(p,m=>({favorite:!m.favorite}));metrics.marks.favorite++}catch(err){fail('favorite',err);showReport()}finally{b.disabled=false}
+        try{await mutateMark(p,m=>({favorite:!m.favorite}));metrics.marks.favorite++}catch(err){fail('favorite',err);notifyMarkError()}finally{b.disabled=false}
       });syncMarkButton(b);
     }
   }
@@ -686,7 +720,10 @@
   function applyCamera(){
     canvasFrame=0;world.style.transform='translate('+camera.x+'px,'+camera.y+'px) scale('+camera.z+')';
     canvasCount.textContent=(canvasMode==='servers'?serverRows.length+' navigation entries':canvasRows.length+' encountered messages')+' · '+Math.round(camera.z*100)+'%'+(canvasMode==='messages'&&historyStatus?' · '+historyStatus:'');
-    canvasCount.title=canvasMode==='servers'?'Native server and folder entries; select a folder to expand it.':'Up to 100 messages encountered in this channel in this page session; chronological gaps may exist.';
+    canvasCount.title=canvasMode==='servers'?'Native server and folder entries; select a folder to expand it.':'Initially up to 100 encountered messages, extended by native history loading; chronological gaps may exist.';
+    const atTop=canvasMode==='messages'&&camera.y>=Math.min(0,(canvasView.clientHeight-canvasSize.h*camera.z)/2)-30&&camera.y>=-30;
+    const boundary=historyEnds.older?'Beginning of channel':historyStalls.older?'No older messages returned · drag again to retry':'';
+    historyBoundary.hidden=!(atTop&&boundary);historyBoundary.textContent=boundary;
   }
   function scheduleCamera(){if(!canvasFrame)canvasFrame=requestAnimationFrame(applyCamera)}
   function clampScale(z){return Math.max(.025,Math.min(3.5,z))}
@@ -811,7 +848,7 @@
     canvasMode=mode;canvasOpen=true;canvas.hidden=false;canvasCopy.hidden=mode!=='messages';updateViewButtons();
     positionCanvas();
     if(mode==='servers'){renderServers(false);metrics.canvas.serverOpens++;requestAnimationFrame(()=>{if(canvasOpen&&canvasMode==='servers')fitCanvas()})}
-    else{canvasRows=[];canvasSlots=[];messageCols=5;cardScrollOffsets.clear();canvasSize={w:0,h:0};world.replaceChildren();camera.x=0;camera.y=0;camera.z=1;fillMessageCanvas()}
+    else{canvasRows=[];canvasSlots=[];messageCols=5;cardScrollOffsets.clear();historyEnds={older:false,newer:false};historyStalls={older:0,newer:0};canvasSize={w:0,h:0};world.replaceChildren();camera.x=0;camera.y=0;camera.z=1;fillMessageCanvas()}
     metrics.canvas.opens++;record('canvas-open',mode+':'+(mode==='servers'?serverRows.length:canvasRows.length));
   }
   function closeCanvas(){
@@ -856,37 +893,66 @@
     }else canvasSlots.push(...add);
     canvasRows=chronological([...canvasRows,...add]);renderCanvas();constrainCamera();scheduleCamera();return add.length;
   }
+  function historyRange(rows){
+    if(!rows.length||!canvasRows.length)return {recognized:rows.length,unseen:0,older:0,newer:0};
+    const known=new Set(canvasRows.map(p=>p.source.url)),sorted=chronological(canvasRows),lo=BigInt(sorted[0].source.message),hi=BigInt(sorted.at(-1).source.message);
+    let unseen=0,older=0,newer=0;
+    for(const p of rows){if(known.has(p.source.url))continue;unseen++;const id=BigInt(p.source.message);if(id<lo)older++;if(id>hi)newer++}
+    return {recognized:rows.length,unseen,older,newer};
+  }
+  function nativeStartMarker(scroller){
+    if(!scroller)return false;
+    // Require actual native beginning-of-channel language outside message rows.
+    // A zero scrollTop or an empty retrieval is not a terminal-history signal.
+    for(const n of scroller.querySelectorAll('h1,h2,h3,[class*="beginning_"],[class*="channelStart_"],[class*="welcomeMessage_"]')){
+      if(n.closest('li[id^="chat-messages-"]'))continue;
+      if(/(?:this is|you.re at) the (?:start|beginning) of (?:the |this |#)/i.test(n.textContent||''))return true;
+    }
+    return false;
+  }
   async function loadHistory(dir){
-    if(!canvasOpen||canvasMode!=='messages'||historyBusy||Date.now()-lastHistoryAt<600)return;
+    if(!canvasOpen||canvasMode!=='messages'||historyBusy||!canvasRows.length||Date.now()-lastHistoryAt<600)return;
+    if(historyEnds[dir]){historyStatus=dir==='older'?'Beginning of channel':'End of channel';scheduleCamera();return}
     if(canvasRows.length>=HISTORY_LIMIT){historyStatus='400-message session limit';scheduleCamera();metrics.canvas.historyBlocked++;return}
     const scroller=nativeScroller();if(!scroller){historyStatus='Native history scroller not found';metrics.canvas.historyBlocked++;scheduleCamera();return}
     historyBusy=true;lastHistoryAt=Date.now();const gen=historyGeneration;metrics.canvas.historyAttempts++;
     historyStatus='Loading '+dir+' messages…';scheduleCamera();record('history-request',dir);
     const route=channelRoute()?.slice(1,3).join('/');
-    historyTrace={direction:dir,before:{top:Math.round(scroller.scrollTop),height:scroller.clientHeight,scrollHeight:scroller.scrollHeight},samples:[]};
+    historyTrace={direction:dir,before:{top:Math.round(scroller.scrollTop),height:scroller.clientHeight,scrollHeight:scroller.scrollHeight},samples:[],rearmed:false};
+    const active=()=>gen===historyGeneration&&canvasOpen&&canvasMode==='messages'&&route===channelRoute()?.slice(1,3).join('/');
     try{
       // Only drive Discord's existing scroll surface on an explicit edge gesture.
       // No fetch interception, private API, automatic paging loop or credentials.
-      scroller.scrollTop=dir==='older'?0:scroller.scrollHeight;
+      const already=visibleRows(true),existing=integrateHistory(already,dir);
+      if(existing){metrics.canvas.historyAdded+=existing;historyStalls[dir]=0;historyStatus='+'+existing+' '+dir+' messages';record('history-added',dir+':'+existing);return}
+      const edge=()=>dir==='older'?0:Math.max(0,scroller.scrollHeight-scroller.clientHeight);
+      if(Math.abs(scroller.scrollTop-edge())<2&&scroller.scrollHeight>scroller.clientHeight+4){
+        // A second assignment to scrollTop=0 may emit no native scroll event.
+        // Re-arm by moving inside the list once, then return to the edge.
+        const inset=Math.min(Math.max(40,Math.round(scroller.clientHeight*.6)),scroller.scrollHeight-scroller.clientHeight);
+        scroller.scrollTop=dir==='older'?inset:edge()-inset;metrics.canvas.historyRearms++;historyTrace.rearmed=true;
+        await new Promise(resolve=>setTimeout(resolve,160));if(!active())return;
+      }
+      scroller.scrollTop=edge();
       for(const delay of [250,450,750,1000]){
         await new Promise(resolve=>setTimeout(resolve,delay));
-        if(gen!==historyGeneration||!canvasOpen||canvasMode!=='messages'||route!==channelRoute()?.slice(1,3).join('/'))return;
+        if(!active())return;
         const current=visibleRows(true),native=nativeScroller();
-        const n=integrateHistory(current,dir);historyTrace.samples.push({recognized:current.length,added:n,top:native?Math.round(native.scrollTop):null,height:native?.clientHeight,scrollHeight:native?.scrollHeight});
-        if(n){metrics.canvas.historyAdded+=n;historyStatus='+'+n+' '+dir+' messages';record('history-added',dir+':'+n);return}
+        const range=historyRange(current),startMarker=nativeStartMarker(native);
+        const n=integrateHistory(current,dir);historyTrace.samples.push({...range,added:n,top:native?Math.round(native.scrollTop):null,height:native?.clientHeight,scrollHeight:native?.scrollHeight,startMarker});
+        if(n){metrics.canvas.historyAdded+=n;historyStalls[dir]=0;historyStatus='+'+n+' '+dir+' messages';record('history-added',dir+':'+n);return}
+        if(dir==='older'&&startMarker&&current.length&&BigInt(chronological(current)[0].source.message)===BigInt(chronological(canvasRows)[0].source.message)){historyEnds.older=true;historyStalls.older=0;metrics.canvas.historyEndConfirmed++;historyStatus='Beginning of channel';record('history-end','older');return}
       }
-      metrics.canvas.historyEmpty++;historyStatus='No additional '+dir+' messages loaded';record('history-empty',dir);
+      metrics.canvas.historyEmpty++;metrics.canvas.historyStalled++;historyStalls[dir]++;historyStatus='No '+dir+' messages returned · edge not confirmed';record('history-empty',dir);
     }catch(e){fail('history-load',e);historyStatus='History load failed'}
     finally{if(gen===historyGeneration){historyBusy=false;edgeDirection='';edgeTravel=0;scheduleCamera()}}
   }
-  // Route a gesture once, after its direction is known. Pinches always control
-  // the canvas. At overview scale the canvas wins, even on a card.
-  const CARD_READ_ZOOM=.65;
+  // Route a gesture by target, direction and actual text overflow, never zoom.
   function canScrollCard(top,height,client,dy){
     return dy>0?top>1:dy<0?top+client<height-1:false;
   }
   function cardForGesture(target){
-    if(canvasMode!=='messages'||camera.z<CARD_READ_ZOOM||target?.closest?.('button'))return null;
+    if(canvasMode!=='messages'||target?.closest?.('button'))return null;
     const preview=target?.closest?.('.canvas-card')?.querySelector('.canvas-preview');
     return preview&&preview.scrollHeight>preview.clientHeight+1?preview:null;
   }
@@ -1024,7 +1090,7 @@
     if(!list.children.length)el('div','No sources in this topic yet.',list).className='muted';
     if(warning)status(warning);
   }
-  async function refresh(){ if(warning)return;try{data=await latest();render()}catch(e){status('Refresh failed: '+e.message);record('refresh-failed');fail('refresh',e)} }
+  async function refresh(){ if(warning||saveInFlight)return;const epoch=saveEpoch;try{const next=await latest();if(epoch!==saveEpoch||saveInFlight)return;data=next;render()}catch(e){status('Refresh failed: '+e.message);record('refresh-failed');fail('refresh',e)} }
   function reconcileAppearance(origin){
     const root=document.documentElement;
     if(root.classList.contains('dw-focus')!==focus){
